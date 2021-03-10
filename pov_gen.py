@@ -6,25 +6,37 @@ from PIL import Image
 
 def panorama_creator(indem):
     demfile = 'tmp_geotiff.png'
-    subprocess.call(['gdal_translate', '-ot', 'UInt16', 
+    clear_after_run = False
+    date = 1
+    if indem.lower().endswith('.dem') or indem.lower().endswith('.tif'):
+        subprocess.call(['gdal_translate', '-ot', 'UInt16', 
                     '-of', 'PNG', '%s' % indem, '%s' % demfile])
-
-    date = "%02d%02d_%02d%02d%02d" % (datetime.now().date().month, 
+        clear_after_run = True
+    elif indem.lower().endswith('.png'):
+        demfile = indem
+        date = "%02d%02d_%02d%02d%02d" % (datetime.now().date().month, 
             datetime.now().date().day, 
             datetime.now().time().hour, 
             datetime.now().time().minute, 
             datetime.now().time().second)
+    else:
+        exit()
     
-    outfilename = 'exports/rendered_dem_%s.png' % date
+    # settings for povfile
+    outfilename = 'assets/rendered_dem_%s.png' % date
     outwidth = 2400
     outheight = 800
+    location_x = 0.5
+    location_y = 0.5
+    location_height = 0.012620
+    view_x = 1.0
+    view_y = 0.5
+    view_height = 0.010620
+    mapcolor = '<0.5, 0.5, 0.5>'
 
     povfilename = '/tmp/povfile.pov'
     povfiletext = '''
     camera {
-        // "perspective" is the default camera, which warps images
-        // so they're hard to stitch together.
-        // "cylinder 1" uses a vertical cylinder.
         cylinder 1
 
         // povray coordinates compared to the height field image are
@@ -43,22 +55,16 @@ def panorama_creator(indem):
         
         // smooth
         pigment {
-            gradient x
-            color_map {
-                [ 0.4 color <1 1 1> ]
-                [ 0.6 color <0 0 1> ]
-                [ 0.8 color <0 1 0> ]
-                [ 1 color <1 0 0> ]
-            }
+            color %s
         }
 
         scale <1, 1, 1>
     }
 
-    ''' % (0.5, 0.015620, 0.5,
-        1, 0.010620, 0.5,
-        0.5, 0.015620, 0.5,
-        demfile)
+    ''' % (location_x, location_height, location_y,
+        view_x, view_height, view_y,
+        location_x, location_height, location_y,
+        demfile, mapcolor)
 
     with open(povfilename, 'w') as pf:
         pf.write(povfiletext)
@@ -72,7 +78,10 @@ def panorama_creator(indem):
     im = Image.open(r"%s" % outfilename)
     im.show()
 
-    clear([demfile, "%s.aux.xml" % demfile, outfilename])
+    if clear_after_run:
+        clear([demfile, "%s.aux.xml" % demfile, outfilename])
+    else:
+        clear(["%s.aux.xml" % demfile])
 
     sys.exit(0)
 
