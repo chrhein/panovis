@@ -31,15 +31,17 @@ def panorama_creator(indem):
     view_x = 1.0
     view_y = 0.5
     view_height = 0.010620
-    mapcolor = '<0.5, 0.5, 0.5>'
+    mapcolor = 'BakersChoc'
 
-    sky = False
-    skycolor_ground = '<1 1 1>' if sky else '<0 0 0>'
+    sky = True
+    skycolor_ground = '<0.9 0.9 0.9>' if sky else '<0 0 0>'
     skycolor_mid = '<0.1,0.25,0.75>' if sky else '<0 0 0>'
     skycolor_top = '<0.1,0.25,0.75>' if sky else '<0 0 0>'
 
     povfilename = '/tmp/povfile.pov'
     povfiletext = '''
+    #include "colors.inc"
+
     camera {
         cylinder 1
 
@@ -52,14 +54,21 @@ def panorama_creator(indem):
         angle 160
     }
 
-    light_source { <%f, %f, %f> color <1,1,1> }
+    light_source { <%f, %f, %f> color White }
 
     height_field {
         png "%s"
         
         // smooth
+        // pigment { color %s }
         pigment {
-            color %s
+            gradient y
+            color_map {
+                [0.0 color SlateBlue]
+                [0.003 color BakersChoc]
+                [0.02 color White]
+                [1 color SlateBlue]
+            }
         }
 
         scale <1, 1, 1>
@@ -71,7 +80,7 @@ def panorama_creator(indem):
     pigment{gradient <0,1,0>
             color_map{
             [0.0 color rgb%s]
-            [0.8 color rgb%s]
+            [0.5 color rgb%s]
             [1.0 color rgb%s] }
             } // end pigment
     finish {ambient 1 diffuse 0}
@@ -81,7 +90,7 @@ def panorama_creator(indem):
 
     ''' % (location_x, location_height, location_y,
         view_x, view_height, view_y,
-        location_x, location_height, location_y,
+        location_x, location_height-0.00001, location_y,
         demfile, mapcolor, 
         skycolor_ground, skycolor_mid, skycolor_top)
 
