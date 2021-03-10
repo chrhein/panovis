@@ -14,12 +14,11 @@ def panorama_creator(indem):
         clear_after_run = True
     elif indem.lower().endswith('.png'):
         demfile = indem
-        date = "%02d%02d_%02d%02d%02d" % (datetime.now().date().month, 
-            datetime.now().date().day, 
-            datetime.now().time().hour, 
-            datetime.now().time().minute, 
-            datetime.now().time().second)
+        dt = datetime.now()
+        date = "%02d%02d_%02d%02d%02d" % (dt.date().month, dt.date().day, 
+            dt.time().hour, dt.time().minute, dt.time().second)
     else:
+        print('please provide .dem, .tif or .png')
         exit()
     
     # settings for povfile
@@ -33,6 +32,11 @@ def panorama_creator(indem):
     view_y = 0.5
     view_height = 0.010620
     mapcolor = '<0.5, 0.5, 0.5>'
+
+    sky = False
+    skycolor_ground = '<1 1 1>' if sky else '<0 0 0>'
+    skycolor_mid = '<0.1,0.25,0.75>' if sky else '<0 0 0>'
+    skycolor_top = '<0.1,0.25,0.75>' if sky else '<0 0 0>'
 
     povfilename = '/tmp/povfile.pov'
     povfiletext = '''
@@ -61,13 +65,30 @@ def panorama_creator(indem):
         scale <1, 1, 1>
     }
 
+    // sky ------------------------------------
+    sphere{<0,0,0>,1 hollow
+    texture{
+    pigment{gradient <0,1,0>
+            color_map{
+            [0.0 color rgb%s]
+            [0.8 color rgb%s]
+            [1.0 color rgb%s] }
+            } // end pigment
+    finish {ambient 1 diffuse 0}
+    } // end of texture
+    scale 10000
+    } // end of sphere -----------------------
+
     ''' % (location_x, location_height, location_y,
         view_x, view_height, view_y,
         location_x, location_height, location_y,
-        demfile, mapcolor)
+        demfile, mapcolor, 
+        skycolor_ground, skycolor_mid, skycolor_top)
 
+    
     with open(povfilename, 'w') as pf:
         pf.write(povfiletext)
+    
 
     print("Generating", outfilename)
     subprocess.call(['povray', '+A', '+W%d' % outwidth, '+H%d' % outheight,
@@ -75,22 +96,22 @@ def panorama_creator(indem):
 
     print("Wrote", povfilename)
 
-    im = Image.open(r"%s" % outfilename)
+    try:
+        im = Image.open(r"%s" % outfilename)
+    except FileNotFoundError:
+        clear([demfile, "%s.aux.xml" % demfile])
+        print("There is probably an error in the .pov file")
+        exit()
     im.show()
 
     if clear_after_run:
         clear([demfile, "%s.aux.xml" % demfile, outfilename])
     else:
-        clear(["%s.aux.xml" % demfile])
+        clear([outfilename])
 
+    print("Finished creating panorama for", indem)
     sys.exit(0)
 
 def clear(clear_list):
     for item in clear_list:
         os.remove(item)
-
-if __name__ == '__main__':
-    try:
-        panorama_creator(sys.argv[1])
-    except IndexError:
-        print('Must provide DEM file as argument')
