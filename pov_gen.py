@@ -1,7 +1,9 @@
-import sys, os
+from loc import getLocation
+import sys, os, math
 import subprocess
 from datetime import datetime
 from PIL import Image
+import rasterio
 
 
 def panorama_creator(indem):
@@ -9,8 +11,10 @@ def panorama_creator(indem):
     clear_after_run = False
     date = 1
     if indem.lower().endswith('.dem') or indem.lower().endswith('.tif'):
+        tmptiff = 'tmp_tiff.tif'
+        subprocess.call(['gdalwarp', '-t_srs', "+proj=longlat +datum=WGS84 +no_defs" , indem, tmptiff])
         subprocess.call(['gdal_translate', '-ot', 'UInt16', 
-                    '-of', 'PNG', '%s' % indem, '%s' % demfile])
+                    '-of', 'PNG', '%s' % tmptiff, '%s' % demfile])
         clear_after_run = True
     elif indem.lower().endswith('.png'):
         demfile = indem
@@ -21,16 +25,32 @@ def panorama_creator(indem):
         print('please provide .dem, .tif or .png')
         exit()
     
+    ds_raster = rasterio.open(demfile)
+    bounds = ds_raster.bounds
+    left= bounds.left
+    bottom = bounds.bottom
+    right = bounds.right
+    top = bounds.top
+    print(left, bottom, right, top)
+
+    
     # settings for povfile
     outfilename = 'assets/rendered_dem_%s.png' % date
     outwidth = 2400
     outheight = 800
-    location_x = 0.5
-    location_y = 0.5
-    location_height = 0.012620
-    view_x = 1.0
-    view_y = 0.5
-    view_height = 0.010620
+
+    location_name = 'Løvstakken'
+    #  location_x = (lat * math.pi) / 180
+    #  location_y = abs(math.cos(lat) * math.sin(lon))
+    loc_view = getLocation(location_name)
+    location = loc_view[0]
+    view = loc_view[1]
+    location_x = location[0]
+    location_y = location[1]
+    location_height = location[2]
+    view_x = view[0]
+    view_y = view[1]
+    view_height = view[2]
     mapcolor = 'BakersChoc'
 
     sky = True
@@ -44,7 +64,7 @@ def panorama_creator(indem):
 
     camera {
         cylinder 1
-
+        // panoramic
         // povray coordinates compared to the height field image are
         // < rightward, upward, forward >
         location <%f, %f, %f>
@@ -60,17 +80,18 @@ def panorama_creator(indem):
         png "%s"
         
         // smooth
-        // pigment { color %s }
+        pigment { color %s }
+        /*
         pigment {
             gradient y
             color_map {
                 [0.0 color SlateBlue]
-                [0.003 color BakersChoc]
-                [0.02 color White]
+                [0.0000001 color BakersChoc]
+                [0.1 color White]
                 [1 color SlateBlue]
             }
         }
-
+        */
         scale <1, 1, 1>
     }
 
@@ -80,7 +101,7 @@ def panorama_creator(indem):
     pigment{gradient <0,1,0>
             color_map{
             [0.0 color rgb%s]
-            [0.5 color rgb%s]
+            [0.4 color rgb%s]
             [1.0 color rgb%s] }
             } // end pigment
     finish {ambient 1 diffuse 0}
@@ -90,7 +111,7 @@ def panorama_creator(indem):
 
     ''' % (location_x, location_height, location_y,
         view_x, view_height, view_y,
-        location_x, location_height-0.00001, location_y,
+        location_x, location_height, location_y,
         demfile, mapcolor, 
         skycolor_ground, skycolor_mid, skycolor_top)
 
@@ -108,15 +129,15 @@ def panorama_creator(indem):
     try:
         im = Image.open(r"%s" % outfilename)
     except FileNotFoundError:
-        clear([demfile, "%s.aux.xml" % demfile])
+        clear(["%s.aux.xml" % demfile])
         print("There is probably an error in the .pov file")
         exit()
     im.show()
 
     if clear_after_run:
-        clear([demfile, "%s.aux.xml" % demfile, outfilename])
-    else:
-        clear([outfilename])
+        clear(["%s.aux.xml" % demfile, outfilename, tmptiff])
+    # else:
+         # clear(["%s.aux.xml" % demfile])
 
     print("Finished creating panorama for", indem)
     sys.exit(0)
