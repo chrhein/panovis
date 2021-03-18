@@ -6,4 +6,6 @@ if __name__ == '__main__':
     try:
         panorama_creator(sys.argv[1])
     except IndexError:
-        print('Must provide .png, .dem or .tif file as argument')
+        demo = "tmp_geotiff.png"
+        panorama_creator(demo)
+        # print('Must provide .png, .dem or .tif file as argument')
