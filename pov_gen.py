@@ -1,13 +1,12 @@
-from loc import getLocation
-import sys, os, math
+import sys, os
 import subprocess
-from datetime import datetime
-from PIL import Image
-import rasterio
 import rasterio
 import rasterio.features
 import rasterio.warp
+from datetime import datetime
+from PIL import Image
 from osgeo import ogr, osr
+from loc import getLocation
 from pov import pov_script
 
 def panorama_creator(indem, lat, lon):
@@ -74,6 +73,7 @@ def panorama_creator(indem, lat, lon):
         exit()
     im.show()
 
+    clear([outfilename])
     print("Finished creating panorama for", indem)
     sys.exit(0)
 
