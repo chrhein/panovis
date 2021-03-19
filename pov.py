@@ -17,17 +17,13 @@ def pov_script(location_x, location_height, location_y,
     #declare CAMERAFRONTX = CAMERAFRONT.x;
     #declare CAMERAFRONTY = CAMERAFRONT.y;
     #declare CAMERAFRONTZ = CAMERAFRONT.z;
-    #declare DEPTHMIN = 0.0;
-    #declare DEPTHMAX = 0.15;
+    #declare DEPTHMIN = 0.01;
+    #declare DEPTHMAX = 0.2;
 
     camera {
         cylinder 1
-        // panoramic
-        // povray coordinates compared to the height field image are
-        // < rightward, upward, forward >
         location CAMERALOOKAT
         look_at  CAMERAPOS
-        // to get a panorama image
         angle 160
     }
 
@@ -54,7 +50,9 @@ def pov_script(location_x, location_height, location_y,
         }
     
     union {
-        height_field { png FILENAME }
+        height_field { 
+            png FILENAME
+        }
         texture { thetexture }
     }
 
