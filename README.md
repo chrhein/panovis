@@ -16,6 +16,10 @@ In `main.py` I have specified that the coordinates I want to use as viewpoint is
 
 ![POV-Ray Result](assets/depth_map_example.png)
 
+After applying a Canny Edge Detection algorithm we get an image showing the contours of the mountains:
+
+![POV-Ray Result](assets/canny_example.png)
+
 ## Example for normal rendering without coloring by depth
 
 Modifying the `pov.py` file by removing `thetexture` and adding this block of code:

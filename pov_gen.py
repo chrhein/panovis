@@ -8,6 +8,8 @@ from PIL import Image
 from osgeo import ogr, osr
 from loc import getLocation
 from pov import pov_script
+from edge_detection import edge_detection
+
 
 def panorama_creator(indem, lat, lon):
     demfile = 'tmp_geotiff.png'
@@ -67,12 +69,12 @@ def panorama_creator(indem, lat, lon):
     print("Wrote", povfilename)
 
     try:
-        im = Image.open(r"%s" % outfilename)
+        #  im = Image.open(r"%s" % outfilename)
+        #  im.show()
+        edge_detection(outfilename)
     except FileNotFoundError:
         print("There is probably an error in the .pov file")
         exit()
-    im.show()
-
     clear([outfilename])
     print("Finished creating panorama for", indem)
     sys.exit(0)
