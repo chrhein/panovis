@@ -49,6 +49,8 @@ def pov_script(location_x, location_height, location_y,
         finish { ambient 1 diffuse 0 specular 0 }
         }
     
+    light_source { CAMERALOOKAT color White }
+    
     union {
         height_field { 
             png FILENAME
