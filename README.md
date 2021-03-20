@@ -6,19 +6,19 @@ A script for rendering a depth map from a given digital elevation model (DEM).
 
 Using a DEM for the southern parts of the Vestland region in Norway, which can be downloaded for free from [GeoNorge](https://kartkatalog.geonorge.no/nedlasting):
 
-![Hillshaded-RAW Digital Elevation File](assets/raw_dem_hillshaded.png)
+![Hillshaded-RAW Digital Elevation File](exports/raw_dem_hillshaded.png)
 
 The actual DEM looks like this (almost completely black) when being used, the example above has been hillshaded for making it easier to see what the map is actually containing:
 
-![RAW Digital Elevation File](assets/raw_dem.png)
+![RAW Digital Elevation File](exports/raw_dem.png)
 
 In `main.py` I have specified that the coordinates I want to use as viewpoint is `60.36458, 5.32426`, which is the pair of latitude and longitude for the Løvstakken mountain in Bergen. Knowing that these coordinates are inside the bounds of the DEM, I can run the script with the downloaded DEM as an argument. This results in a generated PNG which contains the generated panorama image, looking like this:
 
-![POV-Ray Result](assets/depth_map_example.png)
+![POV-Ray Result](exports/depth_map_example.png)
 
 After applying a Canny Edge Detection algorithm we get an image showing the contours of the mountains:
 
-![POV-Ray Result](assets/canny_example.png)
+![POV-Ray Result](exports/canny_example.png)
 
 ## Example for normal rendering without coloring by depth
 
@@ -56,4 +56,4 @@ pigment {
 
 it will result in a colored 3D rendering of the DEM, which is this case looks like this:
 
-![POV-Ray Result](assets/colored_dem.png)
+![POV-Ray Result](exports/colored_dem.png)
