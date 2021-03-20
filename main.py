@@ -1,5 +1,5 @@
 import sys
-from pov_gen import panorama_creator
+from pov_generator import panorama_creator
 
 
 if __name__ == '__main__':

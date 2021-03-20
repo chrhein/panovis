@@ -5,8 +5,7 @@ import rasterio.features
 import rasterio.warp
 from datetime import datetime
 from PIL import Image
-from osgeo import ogr, osr
-from loc import getLocation
+from location_handler import convertCoordinates, getLocation
 from pov import pov_script
 from edge_detection import edge_detection
 
@@ -27,30 +26,14 @@ def panorama_creator(indem, lat, lon):
         exit()
     
     ds_raster = rasterio.open(demfile)
-    b = ds_raster.bounds
-    min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
-
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)       # WGS84/Geographic
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(32633)     # WGS 84 / UTM zone 33N
-
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat,lon)
-    coordinate_pair.AssignSpatialReference(in_sr)    # tell the point what coordinates it's in
-    coordinate_pair.TransformTo(out_sr)              # project it to the out spatial reference
-
-    polar_lat = coordinate_pair.GetX()
-    polar_lon = coordinate_pair.GetY()
-    lat_scaled = (polar_lat-min_x)/(max_x-min_x)
-    lon_scaled = (polar_lon-min_y)/(max_y-min_y)
+    latlon = convertCoordinates(ds_raster, 4326, 32633, lat, lon)
 
     # settings for povfile
     outfilename = 'assets/rendered_dem_%s.png' % date
     outwidth = 2400
     outheight = 800
 
-    loc_view = getLocation(lat_scaled, lon_scaled, 0.005681)
+    loc_view = getLocation(latlon[0], latlon[1], 0.005681)
     location, view = loc_view[0], loc_view[1]
     location_x, location_y, location_height = location[0], location[1], location[2]
     view_x, view_y, view_height = view[0], view[1], view[2]
