@@ -33,18 +33,12 @@ def convertCoordinates(raster, to_espg, lat, lon):
     lat_scaled = (polar_lat-min_x)/(max_x-min_x)
     lon_scaled = (polar_lon-min_y)/(max_y-min_y)
 
-
     to_crs = raster.crs
     from_crs = rasterio.crs.CRS.from_epsg(4326)
-
     new_x,new_y = transform(from_crs,to_crs, [lon],[lat])
-
-    # transform returns lists so unpack
     new_x = new_x[0]
     new_y = new_y[0]
-
-    # get row and col
     row, col = raster.index(new_x,new_y)
-    print(row, col)
     height = raster.read(1)[row][col]
-    return [lat_scaled, lon_scaled, ((height+250)/100000)]
+    
+    return [lat_scaled, lon_scaled, ((height+260)/100000)]

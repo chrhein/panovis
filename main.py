@@ -3,8 +3,8 @@ from src.pov_generator import panorama_creator
 
 
 if __name__ == '__main__':
-    camera_lat, camera_lon = 60.3775, 5.3871
-    lookat_lat, lookat_lon = 60.36458, 5.32426
+    camera_lat, camera_lon = 60.3609, 5.3191
+    lookat_lat, lookat_lon = 60.46461, 5.29138
     try:
         panorama_creator(sys.argv[1], camera_lat, camera_lon, lookat_lat, lookat_lon)
     except IndexError:

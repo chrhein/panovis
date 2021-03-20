@@ -6,12 +6,12 @@ import rasterio.warp
 from datetime import datetime
 from src.location_handler import convertCoordinates, getLocation
 from src.edge_detection import edge_detection
-from rasterio.warp import transform
 
 
 def panorama_creator(indem, lat, lon, llat, llon):
     demfile = 'exports/tmp_geotiff.png'
     date = 1
+    color_mode = False
     if indem.lower().endswith('.dem') or indem.lower().endswith('.tif'):
         subprocess.call(['gdal_translate', '-ot', 'UInt16', 
                     '-of', 'PNG', '%s' % indem, '%s' % demfile])
@@ -42,9 +42,12 @@ def panorama_creator(indem, lat, lon, llat, llon):
     povfilename = '/tmp/povfile.pov'
     
     with open(povfilename, 'w') as pf:
-        pf.write(pov_script(location_x, location_height, location_y,
+        pov = color_pov(location_x, location_height, location_y,
         view_x, view_height, view_y,
-        demfile))
+        demfile) if color_mode else pov_script(location_x, location_height, location_y,
+        view_x, view_height, view_y,
+        demfile)
+        pf.write(pov)
 
     print("Generating", outfilename)
     subprocess.call(['povray', '+A', '+W%d' % outwidth, '+H%d' % outheight,
@@ -121,6 +124,44 @@ def pov_script(location_x, location_height, location_y,
             png FILENAME
         }
         texture { thetexture }
+    }
+    ''' % (location_x, location_height, location_y,
+        view_x, view_height, view_y,
+        demfile)
+    return povfiletext
+
+
+def color_pov(location_x, location_height, location_y,
+        view_x, view_height, view_y,
+        demfile):
+    povfiletext = '''
+    #include "colors.inc"
+    #include "math.inc"
+
+    #declare CAMERALOOKAT = <%f, %f, %f>;
+    #declare CAMERAPOS = <%f, %f, %f>;
+    #declare FILENAME = "%s";
+
+    camera {
+        cylinder 1
+        location CAMERALOOKAT
+        look_at  CAMERAPOS
+        angle 160
+    }
+    light_source { CAMERALOOKAT color White }
+    height_field {
+        png FILENAME
+        smooth
+        pigment {
+            gradient y
+            color_map {
+                [0.0 color SlateBlue]
+                [0.000000001 color BakersChoc]
+                [0.02 color White]
+                [1 color SlateBlue]
+            }
+        }
+        scale <1, 1, 1>
     }
     ''' % (location_x, location_height, location_y,
         view_x, view_height, view_y,
