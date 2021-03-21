@@ -51,7 +51,7 @@ def panorama_creator(indem, lat, lon, llat, llon):
 
     print("Generating", outfilename)
     subprocess.call(['povray', '+A', '+W%d' % outwidth, '+H%d' % outheight,
-                    'Antialias=off Output_File_Type=N Bits_Per_Color=16', 
+                    '+A0.3 Output_File_Type=N Bits_Per_Color=16 +Q8', 
                     '+I' + povfilename, '+O' + outfilename])
 
     print("Wrote", povfilename)
@@ -85,14 +85,14 @@ def pov_script(location_x, location_height, location_y,
     #declare CAMERAFRONTX = CAMERAFRONT.x;
     #declare CAMERAFRONTY = CAMERAFRONT.y;
     #declare CAMERAFRONTZ = CAMERAFRONT.z;
-    #declare DEPTHMIN = 0.01;
+    #declare DEPTHMIN = -0.1;
     #declare DEPTHMAX = 0.2;
 
     camera {
         cylinder 1
+        angle 150
         location CAMERALOOKAT
         look_at  CAMERAPOS
-        angle 160
     }
 
     #declare clipped_scaled_gradient =
@@ -144,14 +144,13 @@ def color_pov(location_x, location_height, location_y,
 
     camera {
         cylinder 1
+        angle 150
         location CAMERALOOKAT
         look_at  CAMERAPOS
-        angle 160
     }
     light_source { CAMERALOOKAT color White }
     height_field {
         png FILENAME
-        smooth
         pigment {
             gradient y
             color_map {
@@ -161,8 +160,22 @@ def color_pov(location_x, location_height, location_y,
                 [1 color SlateBlue]
             }
         }
+        finish { ambient 0.2 diffuse 1 specular 0.1 }
         scale <1, 1, 1>
     }
+    sky_sphere {
+    pigment {
+      gradient y
+      color_map {
+        [0.4 color rgb<1 1 1>]
+        [0.8 color rgb<0.1,0.25,0.75>]
+        [1 color rgb<0.1,0.25,0.75>]
+      }
+      scale 2
+      translate -1
+    }
+  }
+    
     ''' % (location_x, location_height, location_y,
         view_x, view_height, view_y,
         demfile)

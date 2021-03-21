@@ -1,59 +1,25 @@
 # Digital Elevation Model to Depth Map
 
-A script for rendering a depth map from a given digital elevation model (DEM).
+A script for rendering a depth map from a given digital elevation model (DEM). Additional features are Canny Edge Detection and a 'world like' rendering of the map in 3D, which includes coloring of the terrain and sky.
+
+![Depth Map from Strandafjellet in Bergen](exports/strandafjellet_depth.png)
 
 ## Example
 
-Using a DEM for the southern parts of the Vestland region in Norway, which can be downloaded for free from [GeoNorge](https://kartkatalog.geonorge.no/nedlasting):
+In this example I will be using a digital elevation map from the region around Bergen in Norway. The map looks like this when hillshaded, and if provided as a `.dem` or `.tif` file then `gdal_translate` will be called for converting it to a `.png`.
 
 ![Hillshaded-RAW Digital Elevation File](exports/raw_dem_hillshaded.png)
 
-The actual DEM looks like this (almost completely black) when being used, the example above has been hillshaded for making it easier to see what the map is actually containing:
+The user chooses camera position and where the camera will be pointed towards, and a `.pov` file for generating a depth map from the camera position will be created. `povray` computes a depth map image, and the result when looking from Strandafjellet towards Ulriken in Bergen can be seen here.
 
-![RAW Digital Elevation File](exports/raw_dem.png)
+![Depth Map from Strandafjellet in Bergen](exports/strandafjellet_depth.png)
 
-In `main.py` I have specified that the coordinates I want to use as viewpoint is `60.36458, 5.32426`, which is the pair of latitude and longitude for the Løvstakken mountain in Bergen. Knowing that these coordinates are inside the bounds of the DEM, I can run the script with the downloaded DEM as an argument. This results in a generated PNG which contains the generated panorama image, looking like this:
+When the depth map is created, `OpenCV` is used to provide a tool for handling Canny Edge Detection for the depth map image, and the user can adjust the lower and upper bounds for fine-tuning how the edges should look in the final image. Using the canny edge detection on the image above, the result is this image showing the contour lines of the mountains around the central region of Bergen.
 
-![POV-Ray Result](exports/depth_map_example.png)
+![Canny Edge Detected view from Strandafjellet in Bergen](exports/strandafjellet_canny.png)
 
-After applying a Canny Edge Detection algorithm we get an image showing the contours of the mountains:
+## Bonus
 
-![POV-Ray Result](exports/canny_example.png)
+I also added the option for just creating a 3D rendering looking from a given location towards another, and the `.pov` file for this includes coloring of the sky and mountains, aswell as blue color for areas at sea level. To enable this feature, just set `color_mode` to `True` in the `pov_generator` file. A result using this feature can be seen here, from the same location as in the example above.
 
-## Example for normal rendering without coloring by depth
-
-Modifying the `pov.py` file by removing `thetexture` and adding this block of code:
-
-```
-light_source { CAMERALOOKAT color White }
-sphere{<0,0,0>,1 hollow
-    texture{
-    pigment{gradient <0,1,0>
-            color_map{
-            [0.0 color rgb<0.9 0.9 0.9>]
-            [0.5 color rgb<0.1,0.25,0.75>]
-            [1.0 color rgb<0.1,0.25,0.75>] }
-            } // end pigment
-    finish {ambient 1 diffuse 0}
-    } // end of texture
-    scale 10000
-    }
-```
-
-and adding pigment to the `height_field`:
-
-```
-pigment {
-            gradient y
-            color_map {
-                [0.0 color SlateBlue]
-                [0.003 color BakersChoc]
-                [0.02 color White]
-                [1 color SlateBlue]
-            }
-        }
-```
-
-it will result in a colored 3D rendering of the DEM, which is this case looks like this:
-
-![POV-Ray Result](exports/colored_dem.png)
+![Colored 3D view from Strandafjellet in Bergen](exports/strandafjellet_color.png)

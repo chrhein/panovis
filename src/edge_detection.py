@@ -10,8 +10,8 @@ def edge_detection(image):
     cv2.namedWindow(n)
     switch = 'Show Contours'
     cv2.createTrackbar(switch, n, 0, 1, nothing)
-    cv2.createTrackbar('Lower Bound', n, 0, 100, nothing)
-    cv2.createTrackbar('Upper Bound', n, 0, 100, nothing)
+    cv2.createTrackbar('Lower Bound', n, 40, 100, nothing)
+    cv2.createTrackbar('Upper Bound', n, 20, 100, nothing)
     while(True):
         s = cv2.getTrackbarPos(switch, n)
         lb = cv2.getTrackbarPos('Lower Bound', n)

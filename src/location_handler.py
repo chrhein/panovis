@@ -3,7 +3,6 @@ import rasterio
 from rasterio.warp import transform
 
 
-
 def getLocation(lat, lon, hgt, lookat_lat, lookat_lon, lookat_hgt):
     location_x = lat
     location_y = lon
@@ -25,8 +24,8 @@ def convertCoordinates(raster, to_espg, lat, lon):
 
     coordinate_pair = ogr.Geometry(ogr.wkbPoint)
     coordinate_pair.AddPoint(lat,lon)
-    coordinate_pair.AssignSpatialReference(in_sr)    # tell the point what coordinates it's in
-    coordinate_pair.TransformTo(out_sr)              # project it to the out spatial reference
+    coordinate_pair.AssignSpatialReference(in_sr)
+    coordinate_pair.TransformTo(out_sr)
 
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
@@ -39,6 +38,11 @@ def convertCoordinates(raster, to_espg, lat, lon):
     new_x = new_x[0]
     new_y = new_y[0]
     row, col = raster.index(new_x,new_y)
-    height = raster.read(1)[row][col]
-    
-    return [lat_scaled, lon_scaled, ((height+260)/100000)]
+    h = raster.read(1)
+    height = h[row][col]
+    height_min = h.min()
+    height_max = h.max()
+    height_scaled = (height-height_min)/(height_max-height_min)
+    print(height_scaled)
+
+    return [lat_scaled, lon_scaled, height_scaled/38]
