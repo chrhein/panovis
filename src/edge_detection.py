@@ -1,7 +1,9 @@
 import cv2
 
+
 def nothing(x):
     pass
+
 
 def edge_detection(image):
     print('Opening external window')
@@ -12,7 +14,7 @@ def edge_detection(image):
     cv2.createTrackbar(switch, n, 0, 1, nothing)
     cv2.createTrackbar('Lower Bound', n, 40, 100, nothing)
     cv2.createTrackbar('Upper Bound', n, 20, 100, nothing)
-    while(True):
+    while (True):
         s = cv2.getTrackbarPos(switch, n)
         lb = cv2.getTrackbarPos('Lower Bound', n)
         ub = cv2.getTrackbarPos('Upper Bound', n)
@@ -22,9 +24,8 @@ def edge_detection(image):
             edges = cv2.Canny(img, lb, ub)
         cv2.imshow(n, edges)
         k = cv2.waitKey(1) & 0xFF
-        if k == 27:  # use escape for exiting window, autosave image
+        if k == 27:  # use escape for exiting window, auto save image
             cv2.imwrite('canny.png', edges)
             print('Created image using Canny Edge Detection')
             break
-    cv2.destroyAllWindows
-    
+    cv2.destroyAllWindows()
