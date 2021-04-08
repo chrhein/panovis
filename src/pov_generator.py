@@ -47,6 +47,9 @@ def panorama_creator(in_dem, lat, lon, view_lat, view_lon):
     location, view = loc_view[0], loc_view[1]
     location_x, location_y, location_height = location[0], location[1], location[2]
     view_x, view_y, view_height = view[0], view[1], view[2]
+
+
+
     pov_filename = '/tmp/pov_file.pov'
 
     with open(pov_filename, 'w') as pf:
