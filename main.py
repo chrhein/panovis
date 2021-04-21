@@ -27,6 +27,6 @@ if __name__ == '__main__':
             print('Must provide .png, .dem or .tif file as argument')
     else:
         try:
-            photo_filtering(sys.argv[1])
+            photo_filtering('assets/panorama3.jpg')
         except IndexError:
             print('Must provide .png or .jpeg file as argument')

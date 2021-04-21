@@ -3,6 +3,7 @@ import subprocess
 import sys
 from datetime import datetime
 
+import cv2
 import numpy as np
 import rasterio
 import rasterio.features
@@ -12,7 +13,7 @@ from osgeo import gdal
 from src.edge_detection import edge_detection
 from src.location_handler import convert_coordinates, get_location
 
-color_mode = True
+color_mode = False
 
 
 def panorama_creator(in_dem, lat, lon, view_lat, view_lon):
@@ -48,8 +49,6 @@ def panorama_creator(in_dem, lat, lon, view_lat, view_lon):
     location_x, location_y, location_height = location[0], location[1], location[2]
     view_x, view_y, view_height = view[0], view[1], view[2]
 
-
-
     pov_filename = '/tmp/pov_file.pov'
 
     with open(pov_filename, 'w') as pf:
@@ -68,7 +67,10 @@ def panorama_creator(in_dem, lat, lon, view_lat, view_lon):
     print("Wrote", pov_filename)
 
     try:
-        edge_detection(out_filename)
+        im = cv2.imread(out_filename)
+        edges = edge_detection(im)
+        cv2.imwrite('canny.png', edges)
+        print('Created image using Canny Edge Detection')
     except FileNotFoundError:
         print("There is probably an error in the .pov file")
         exit()

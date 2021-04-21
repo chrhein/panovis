@@ -306,3 +306,4 @@ fabric.properties
 .idea
 *.jpg
 *.jpeg
+*.yml
