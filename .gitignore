@@ -307,3 +307,5 @@ fabric.properties
 *.jpg
 *.jpeg
 *.yml
+
+hed_model

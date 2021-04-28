@@ -68,7 +68,7 @@ def panorama_creator(in_dem, lat, lon, view_lat, view_lon):
 
     try:
         im = cv2.imread(out_filename)
-        edges = edge_detection(im)
+        edges = edge_detection(im, True, 3)
         cv2.imwrite('canny.png', edges)
         print('Created image using Canny Edge Detection')
     except FileNotFoundError:
