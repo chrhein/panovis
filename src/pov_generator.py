@@ -63,13 +63,16 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
     if mode_selection == 0 or mode_selection == 1:
         with open(pov_filename, 'w') as pf:
             if mode_selection == 1:
+                p_i("Color mode selected")
                 pov = color_pov(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6])
             else:
+                p_i("Depth map mode selected")
                 pov = pov_script(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6])
             pf.write(pov)
             pf.close()
         execute_pov(out_width, out_height, pov_filename, out_filename)
     else:
+        p_i("Multicolor mode selected")
         with open(pov_filename, 'w') as pf:
             pf.write(pov_script(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6]))
             pf.close()
@@ -88,7 +91,21 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
         execute_pov(out_width, out_height, pov_filename, out_filename_z)
         p_i(get_image_rgb_list(out_filename_x))
         p_i(get_image_rgb_list(out_filename_z))
-
+        image = cv2.imread(out_filename)
+        height, width, _ = image.shape
+        m_factor = 0.0
+        while True:
+            color = get_image_rgb_list(out_filename_x, m_factor)
+            if color[0] != 0 or color[2] != 0 or color[2] != 0:
+                break
+            if m_factor >= 1:
+                m_factor = 0.5
+                break
+            m_factor += 0.01
+        p_i("m_factor used: %i" % m_factor)
+        p_i("r: %i g: %i b: %i" %(color[0], color[1], color[2]))
+        cv2.imwrite('exports/rendered_dem_%s_point.png' % date,
+                    cv2.circle(image, (int(width * 0.5), int(height * m_factor)), 18, (0, 0, 255), -1))
     try:
         im = cv2.imread(out_filename)
         edges = edge_detection(im, True, 3)
@@ -108,10 +125,10 @@ def execute_pov(out_width, out_height, pov_filename, out_filename):
                      '+I' + pov_filename, '+O' + out_filename])
 
 
-def get_image_rgb_list(image_path):
+def get_image_rgb_list(image_path, m_factor=0.55):
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     height, width, _ = image.shape
-    color = image[int(height * 0.6), int(width * 0.5)]
+    color = image[int(height * m_factor), int(width * 0.5)]
     color = np.array_split(color, 3)
     b, g, r = color
     return r[0], g[0], b[0]

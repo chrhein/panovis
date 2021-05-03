@@ -43,4 +43,4 @@ def convert_coordinates(raster, to_espg, lat, lon):
     height_min = h.min()
     height_max = h.max()
     height_scaled = (height - height_min) / (height_max - height_min)
-    return [lat_scaled, lon_scaled, height_scaled / 38]
+    return [lat_scaled, lon_scaled, height_scaled / 38.5]

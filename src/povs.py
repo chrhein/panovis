@@ -68,6 +68,10 @@ def color_gradient_map(location_x, location_height, location_y,
     #version 3.7;
     #include "colors.inc"
     #include "math.inc"
+    
+    global_settings {
+        assumed_gamma 1
+    }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
     #declare CAMERAPOS = <%f, %f, %f>;

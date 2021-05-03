@@ -16,7 +16,7 @@ if __name__ == '__main__':
         rundemanen = 60.4112, 5.3613
         sandviksfjellet = 60.4094, 5.3402
         strandafjellet = 60.37214161757205, 5.3226537916231305
-        ulriken = 60.4014, 5.3633
+        ulriken = 60.3772347916171, 5.381081749383611
 
         camera_lat, camera_lon = strandafjellet
         look_at_lat, look_at_lon = ulriken
