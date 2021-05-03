@@ -1,9 +1,9 @@
 import sys
 
 from src.photo_filtering import photo_filtering
-from src.pov_generator import panorama_creator
+from src.pov_generator import file_handler
 
-dem_mode = False
+dem_mode = True
 
 if __name__ == '__main__':
     if dem_mode:
@@ -22,11 +22,11 @@ if __name__ == '__main__':
         look_at_lat, look_at_lon = ulriken
 
         try:
-            panorama_creator(sys.argv[1], camera_lat, camera_lon, look_at_lat, look_at_lon)
+            file_handler(sys.argv[1], camera_lat, camera_lon, look_at_lat, look_at_lon)
         except IndexError:
             print('Must provide .png, .dem or .tif file as argument')
     else:
         try:
-            photo_filtering('assets/panorama3.jpg')
+            photo_filtering('assets/panorama2.jpg')
         except IndexError:
             print('Must provide .png or .jpeg file as argument')
