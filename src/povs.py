@@ -7,7 +7,7 @@ def pov_script(location_x, location_height, location_y,
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 1
+        assumed_gamma 2.2
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
@@ -70,7 +70,7 @@ def color_gradient_map(location_x, location_height, location_y,
     #include "math.inc"
     
     global_settings {
-        assumed_gamma 1
+        assumed_gamma 2.2
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
@@ -89,8 +89,8 @@ def color_gradient_map(location_x, location_height, location_y,
         pigment {
             gradient %s
             color_map {
-                [0 color rgb <1,0,0>] // west if x, south if z
-                [1 color rgb <0,1,0>] // east if x, north if z
+                [0 color rgb <0,0,0>] // west if x, south if z
+                [1 color rgb <1,0,0>] // east if x, north if z
               }
         }
         finish { ambient 1 diffuse 0 specular 0 }
@@ -110,7 +110,7 @@ def color_pov(location_x, location_height, location_y,
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 1
+        assumed_gamma 2.2
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;

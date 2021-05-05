@@ -16,17 +16,7 @@ def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
 def convert_coordinates(raster, to_espg, lat, lon):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
-
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)  # WGS84/Geographic
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_espg)
-
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(in_sr)
-    coordinate_pair.TransformTo(out_sr)
-
+    coordinate_pair = cor_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
@@ -44,3 +34,33 @@ def convert_coordinates(raster, to_espg, lat, lon):
     height_max = h.max()
     height_scaled = (height - height_min) / (height_max - height_min)
     return [lat_scaled, lon_scaled, height_scaled / 38.5]
+
+
+def cor_to_crs(to_espg, lat, lon):
+    in_sr = osr.SpatialReference()
+    in_sr.ImportFromEPSG(4326)
+    out_sr = osr.SpatialReference()
+    out_sr.ImportFromEPSG(to_espg)
+    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
+    coordinate_pair.AddPoint(lat, lon)
+    coordinate_pair.AssignSpatialReference(in_sr)
+    coordinate_pair.TransformTo(out_sr)
+    return coordinate_pair
+
+
+def crs_to_cor(to_espg, lat, lon):
+    in_sr = osr.SpatialReference()
+    in_sr.ImportFromEPSG(4326)
+    out_sr = osr.SpatialReference()
+    out_sr.ImportFromEPSG(to_espg)
+    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
+    coordinate_pair.AddPoint(lat, lon)
+    coordinate_pair.AssignSpatialReference(out_sr)
+    coordinate_pair.TransformTo(in_sr)
+    return coordinate_pair
+
+
+def crs_to_wgs84(dataset, x, y):
+    crs = rasterio.crs.CRS.from_epsg(4326)
+    lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
+    return lat, lon

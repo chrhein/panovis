@@ -18,6 +18,9 @@ if __name__ == '__main__':
         strandafjellet = 60.37214161757205, 5.3226537916231305
         ulriken = 60.3772347916171, 5.381081749383611
 
+        lb = 60.062891, 5.092038
+        ub = 61.077628, 6.647520
+
         camera_lat, camera_lon = strandafjellet
         look_at_lat, look_at_lon = ulriken
 
