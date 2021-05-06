@@ -83,7 +83,7 @@ def color_gradient_map(location_x, location_height, location_y,
         location CAMERALOOKAT
         look_at  CAMERAPOS
     }
-
+    background { color rgb <1, 1, 1> }
     height_field {
         png FILENAME
         pigment {
@@ -93,7 +93,8 @@ def color_gradient_map(location_x, location_height, location_y,
                 [1 color rgb <1,0,0>] // east if x, north if z
               }
         }
-        finish { ambient 1 diffuse 0 specular 0 }
+        finish {ambient 1 diffuse 0 specular 0}
+
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
