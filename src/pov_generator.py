@@ -2,14 +2,12 @@ import os
 import subprocess
 from datetime import datetime
 
-import cv2
-import rasterio
-
-from src.colors import get_color_index_in_image, get_color_from_image
-from src.debug_tools import p_i, p_e, p_line
-from src.edge_detection import edge_detection
-from src.location_handler import convert_coordinates, get_location, crs_to_wgs84
-from src.povs import pov_script, color_pov, color_gradient_map
+from src.colors import *
+from src.debug_tools import *
+from src.edge_detection import *
+from src.location_handler import *
+from src.photo_filtering import *
+from src.povs import *
 
 
 def file_handler(in_dem, lat, lon, view_lat, view_lon):
@@ -17,7 +15,6 @@ def file_handler(in_dem, lat, lon, view_lat, view_lon):
 
 
 def render_dem(in_dem, lat, lon, view_lat, view_lon):
-
     debug_mode = False
     dem_file = 'exports/tmp_geotiff.png'
     date = 1
@@ -27,7 +24,7 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
     if in_dem.lower().endswith('.dem') or in_dem.lower().endswith('.tif'):
         subprocess.call(['gdal_translate', '-ot', 'UInt16',
                          '-of', 'PNG', '%s' % in_dem, '%s' % dem_file])
-    elif in_dem.lower().endswith('.png'):
+    elif in_dem.lower().endswith('.png') or in_dem.lower().endswith('.jpg'):
         dem_file = in_dem
         dt = datetime.now()
         date = "%02d%02d_%02d%02d%02d" % (dt.date().month, dt.date().day,
@@ -35,6 +32,15 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
     else:
         p_e('please provide .dem, .tif or .png')
         exit()
+
+    im = cv2.imread(in_dem)
+    height, width, _ = im.shape
+    im = resizer(image=im, im_width=1500)
+    sifted = annotate_image(sift(im), "Scale-invariant Feature Transform")
+    harrisd = annotate_image(harris_corner_detection(im), "Harris Corner Detection")
+    custom_imshow(sifted, "SIFT")
+    custom_imshow(harrisd, "Harris")
+    exit()
 
     ds_raster = rasterio.open(dem_file)
     print(ds_raster.bounds)
@@ -48,7 +54,8 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
     raster_left, raster_bottom, raster_right, raster_top = ds_raster.bounds
     p_line([raster_left, raster_right, raster_top, raster_bottom])
     print(ds_raster)
-    bounds = crs_to_wgs84(ds_raster, raster_left, raster_bottom), crs_to_wgs84(ds_raster, raster_right, raster_top)
+    bounds = crs_to_wgs84(ds_raster, raster_left, raster_bottom), \
+             crs_to_wgs84(ds_raster, raster_right, raster_top)
     lb_lat = bounds[0][0][0]
     lb_lon = bounds[0][1][0]
     ub_lat = bounds[1][0][0]
@@ -134,7 +141,7 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
                     cv2.circle(image, (int(width * 0.5), int(height * m_factor)), 18, (0, 0, 255), -1))
         # w, h = get_dataset_bounds(dem_file)
 
-        x, y = ds_raster.xy(int(x_index / tpx_x), int(z_index / tpx_y))
+        x, y = ds_raster.xy(x_index / tpx_x, z_index / tpx_y)
         x -= tpx_x / 2
         y += tpx_y / 2
         print(crs_to_wgs84(ds_raster, x, y))
@@ -144,7 +151,7 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
         cv2.imwrite(original_raster_dotted,
                     cv2.circle(original_dem, (int(z_index / tpx_y), int(x_index / tpx_x)), 25, (0, 0, 255), -1))
 
-        clear([out_filename, out_filename_x, out_filename_z, point_file, original_raster_dotted])
+        # clear([out_filename, out_filename_x, out_filename_z, point_file, original_raster_dotted])
 
         exit()
     try:
