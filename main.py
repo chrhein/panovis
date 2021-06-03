@@ -1,12 +1,25 @@
 import sys
 
-from src.photo_filtering import photo_filtering
+import cv2
+import exifread
+from GPSPhoto import gpsphoto
+
+from src.debug_tools import p_a, p_i
+from src.feature_matching import feature_matching
+from src.location_handler import look_at_location
+from src.photo_filtering import photo_filtering, resizer
 from src.pov_generator import file_handler
 
-dem_mode = True
-
 if __name__ == '__main__':
-    if dem_mode:
+    try:
+        mode = int(sys.argv[1])
+        index = 2
+    except ValueError or IndexError:
+        mode = 1
+        p_a('No mode selected, using mode 1 as default.')
+        index = 1
+    if mode == 0:
+        p_i("Running the program in DEM mode")
         blåmanen = 60.4014, 5.3633
         damsgårdsfjellet = 60.3774, 5.2914
         fløyen = 60.3944, 5.3432
@@ -25,11 +38,34 @@ if __name__ == '__main__':
         look_at_lat, look_at_lon = ulriken
 
         try:
-            file_handler(sys.argv[1], camera_lat, camera_lon, look_at_lat, look_at_lon)
+            data = gpsphoto.getGPSData(sys.argv[index + 1])
+            p_i("Image Lat/Lon: %f, %f" % (data['Latitude'], data['Longitude']))
+            p_i("Image Lat/Lon: %f, %f" % (data['Latitude'], data['Longitude']))
+            print(data)
+            camera_lat, camera_lon = data['Latitude'], data['Longitude']
+            print(camera_lat, camera_lon)
+            try:
+                heading = int(sys.argv[index + 2])
+            except ValueError or IndexError:
+                heading = 0
+            look_at_lat, look_at_lon = look_at_location(camera_lat, camera_lon, 5, heading)
+        except IndexError:
+            pass
+
+        try:
+            file_handler(sys.argv[index], camera_lat, camera_lon, look_at_lat, look_at_lon)
         except IndexError:
             print('Must provide .png, .dem or .tif file as argument')
-    else:
+    elif mode == 1:
+        p_i("Running the program in Photo Filtering mode")
         try:
-            photo_filtering('assets/panorama2.jpg')
+            photo_filtering(sys.argv[index])
         except IndexError:
             print('Must provide .png or .jpeg file as argument')
+    elif mode == 2:
+        p_i("Running the program in Feature Matching mode")
+        try:
+            im1, im2 = cv2.imread(sys.argv[index]), cv2.imread(sys.argv[index + 1])
+            feature_matching(resizer(im1), resizer(im2))
+        except IndexError:
+            print('Must provide two .pngs or .jpegs as arguments')

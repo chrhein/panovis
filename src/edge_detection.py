@@ -15,10 +15,9 @@ def harris_corner_detection(image):
 
 def sift(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    sift_i = cv2.SIFT_create()
-    kp = sift_i.detect(gray, None)
-    image = cv2.drawKeypoints(gray, kp, image.copy())
-    return image
+    s = cv2.SIFT_create()
+    key_points, descriptors = s.detectAndCompute(gray, None)
+    return [key_points, descriptors]
 
 
 def edge_detection(image, interactive_window, blur_factor):

@@ -33,15 +33,6 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
         p_e('please provide .dem, .tif or .png')
         exit()
 
-    im = cv2.imread(in_dem)
-    height, width, _ = im.shape
-    im = resizer(image=im, im_width=1500)
-    sifted = annotate_image(sift(im), "Scale-invariant Feature Transform")
-    harrisd = annotate_image(harris_corner_detection(im), "Harris Corner Detection")
-    custom_imshow(sifted, "SIFT")
-    custom_imshow(harrisd, "Harris")
-    exit()
-
     ds_raster = rasterio.open(dem_file)
     print(ds_raster.bounds)
     tpx = ds_raster.transform
@@ -78,7 +69,7 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
 
     try:
         # mode_selection = int(input('Select mode: ')
-        mode_selection = 2
+        mode_selection = 0
     except ValueError:
         p_e("No integer provided, default mode selected")
         mode_selection = 0

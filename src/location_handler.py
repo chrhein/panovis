@@ -1,3 +1,5 @@
+from math import *
+
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
@@ -64,3 +66,14 @@ def crs_to_wgs84(dataset, x, y):
     crs = rasterio.crs.CRS.from_epsg(4326)
     lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
     return lat, lon
+
+
+def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
+    earth_radius = 6378.1
+    bearing = radians(true_course)
+    d = dist_in_kms
+    lat1, lon1 = radians(in_lat), radians(in_lon)
+    lat2 = asin(sin(lat1) * cos(d / earth_radius) + cos(lat1) * sin(d / earth_radius) * cos(bearing))
+    lon2 = lon1 + atan2(sin(bearing) * sin(d / earth_radius) * cos(lat1), cos(d / earth_radius) - sin(lat1) * sin(lat2))
+    lat2, lon2 = degrees(lat2), degrees(lon2)
+    return lat2, lon2

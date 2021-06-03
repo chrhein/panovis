@@ -11,6 +11,10 @@ def p_e(text):
     print("[ERROR]", text)
 
 
+def p_a(text):
+    print("[ALERT]", text)
+
+
 def p_line(p_list=[]):
     print("===================================================")
     if not p_list:
