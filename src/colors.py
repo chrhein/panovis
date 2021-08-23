@@ -6,7 +6,6 @@ from src.debug_tools import p_i
 
 def get_image_rgb_list(image_path, m_factor=0.55, color_space=1):
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    # image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     height, width, _ = image.shape
     color = image[int(height * m_factor), int(width * 0.5)]

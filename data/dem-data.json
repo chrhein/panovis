@@ -1,0 +1,55 @@
+{
+    "dem-path": "exports/tmp_geotiff.png",
+    "mountains": {
+        "blåmanen": {
+            "latitude": 60.4014,
+            "longitude": 5.3633,
+            "height": 500
+        },
+        "damsgårdsfjellet": {
+            "latitude": 60.3774,
+            "longitude": 5.2914,
+            "height": 500
+        },
+        "fløyen": {
+            "latitude": 60.3944,
+            "longitude": 5.3432,
+            "height": 500
+        },
+        "gulfjellet": {
+            "latitude": 60.3731,
+            "longitude": 5.5804,
+            "height": 500
+        },
+        "løvstakken": {
+            "latitude": 60.3609,
+            "longitude": 5.3191,
+            "height": 500
+        },
+        "lyderhorn": {
+            "latitude": 60.3739,
+            "longitude": 5.2419,
+            "height": 500
+        },
+        "rundemanen": {
+            "latitude": 60.4112,
+            "longitude": 5.3613,
+            "height": 500
+        },
+        "sandviksfjellet": {
+            "latitude": 60.4094,
+            "longitude": 5.3402,
+            "height": 500
+        },
+        "strandafjellet": {
+            "latitude": 60.37214161757205,
+            "longitude": 5.3226537916231305,
+            "height": 500
+        },
+        "ulriken": {
+            "latitude": 60.3772347916171,
+            "longitude": 5.381081749383611,
+            "height": 500
+        }
+    }
+}

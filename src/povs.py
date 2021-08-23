@@ -2,7 +2,7 @@ def pov_script(location_x, location_height, location_y,
                view_x, view_height, view_y,
                dem_file):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
 
@@ -37,16 +37,15 @@ def pov_script(location_x, location_height, location_y,
     #declare thetexture = texture {
         pigment {
             function {
-            clipped_scaled_gradient(
-                x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
+                clipped_scaled_gradient(
+                    x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
             }
             color_map {
-            [0 color rgb <0,0,0>]
-            [1 color rgb <1,1,1>]
+                [0 color rgb <0,0,0>]
+                [1 color rgb <1,1,1>]
             }
             translate CAMERAPOS
-        }
-        finish { ambient 1 diffuse 0 specular 0 }
+            }
         }
 
     light_source { CAMERALOOKAT color White }
@@ -65,7 +64,7 @@ def color_gradient_map(location_x, location_height, location_y,
                        view_x, view_height, view_y,
                        dem_file, axis):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
     
@@ -89,11 +88,10 @@ def color_gradient_map(location_x, location_height, location_y,
         pigment {
             gradient %s
             color_map {
-                [0 color rgb <0,0,0>] // west if x, south if z
-                [1 color rgb <1,0,0>] // east if x, north if z
-              }
+                [0.0  color Black]
+                [1.0  color Red]
+            }
         }
-        finish {ambient 1 diffuse 0 specular 0}
 
     }
     ''' % (location_x, location_height, location_y,
@@ -106,7 +104,7 @@ def color_pov(location_x, location_height, location_y,
               view_x, view_height, view_y,
               dem_file):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
 
