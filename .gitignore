@@ -307,5 +307,8 @@ fabric.properties
 *.jpg
 *.jpeg
 *.yml
+*.heic
+
 
 hed_model
+*.pov-state

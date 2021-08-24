@@ -1,13 +1,13 @@
-def pov_script(location_x, location_height, location_y,
+def depth_pov(location_x, location_height, location_y,
                view_x, view_height, view_y,
                dem_file):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 1
+        assumed_gamma 2.2
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
@@ -37,16 +37,18 @@ def pov_script(location_x, location_height, location_y,
     #declare thetexture = texture {
         pigment {
             function {
-            clipped_scaled_gradient(
-                x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
+                clipped_scaled_gradient(
+                    x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
             }
             color_map {
-            [0 color rgb <0,0,0>]
-            [1 color rgb <1,1,1>]
+                [0 color rgb <0,0,0>]
+                [1 color rgb <1,1,1>]
             }
             translate CAMERAPOS
-        }
-        finish { ambient 1 diffuse 0 specular 0 }
+            }
+            finish {
+                ambient 1 diffuse 0 specular 0
+            }
         }
 
     light_source { CAMERALOOKAT color White }
@@ -54,6 +56,7 @@ def pov_script(location_x, location_height, location_y,
     height_field { 
         png FILENAME
         texture { thetexture }
+
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
@@ -61,13 +64,17 @@ def pov_script(location_x, location_height, location_y,
     return pov_text
 
 
-def color_gradient_map(location_x, location_height, location_y,
+def color_gradient_pov(location_x, location_height, location_y,
                        view_x, view_height, view_y,
                        dem_file, axis):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
+    
+    global_settings {
+        assumed_gamma 2.2
+    }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
     #declare CAMERAPOS = <%f, %f, %f>;
@@ -79,17 +86,18 @@ def color_gradient_map(location_x, location_height, location_y,
         location CAMERALOOKAT
         look_at  CAMERAPOS
     }
-
+    background { color rgb <1, 1, 1> }
     height_field {
         png FILENAME
         pigment {
             gradient %s
             color_map {
-                [0 color rgb <1,0,0>] // west if x, south if z
-                [1 color rgb <0,1,0>] // east if x, north if z
+                [0 color rgb <0,0,0>] // west if x, south if z
+                [1 color rgb <1,0,0>] // east if x, north if z
               }
         }
-        finish { ambient 1 diffuse 0 specular 0 }
+        finish {ambient 1 diffuse 0 specular 0}
+
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
@@ -97,16 +105,16 @@ def color_gradient_map(location_x, location_height, location_y,
     return pov_text
 
 
-def color_pov(location_x, location_height, location_y,
+def color_pov_with_sky(location_x, location_height, location_y,
               view_x, view_height, view_y,
               dem_file):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 1
+        assumed_gamma 2.2
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;

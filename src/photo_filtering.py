@@ -60,8 +60,9 @@ def f_print(image, n=3, m=2):
     return np.repeat(image[..., np.newaxis], n, axis=m)
 
 
-def resizer(image, width=0.1, height=0.1):
-    return cv2.resize(image, (0, 0), fx=width, fy=height)
+def resizer(image, im_width=1200):
+    n_size = (1 / image.shape[1]) * im_width
+    return cv2.resize(image, (0, 0), fx=n_size, fy=n_size)
 
 
 def annotate_image(image, text):
@@ -78,51 +79,9 @@ def photo_filtering(input_photo):
     filename = input_photo.split("/")[1].split(".")[0]
     image = cv2.imread(input_photo)
     image = resizer(image)
-    auto_canny_detected = edge_detection(image, False, 7)
-    hed = holistically_nested(image)
-    sf = structured_forest(image)
+    edges = structured_forest(image)
+    cv2.imwrite('canny2.png', edges)
 
-    p_i("Exporting edge detected images...")
-    cv2.imwrite(filename="exports/edge_detections/canny_%s.png" % filename,
-                img=annotate_image(np.concatenate([image, f_print(auto_canny_detected)]), "Canny"))
-    cv2.imwrite(filename="exports/edge_detections/hed_%s.png" % filename,
-                img=annotate_image(np.concatenate([image, f_print(hed)]), "Holistically-Nested"))
-    cv2.imwrite(filename="exports/edge_detections/sf_%s.png" % filename, img=sf)
-    nsf = cv2.imread("exports/edge_detections/sf_%s.png" % filename)
-    cv2.imwrite(filename="exports/edge_detections/sf_%s.png" % filename,
-                img=annotate_image(np.concatenate([image, nsf]), "Structured Forest"))
-    p_i("Exporting complete!")
-
-
-# also from the link above
-class CropLayer(object):
-    def __init__(self, params, blobs):
-        # initialize our starting and ending (x, y)-coordinates of
-        # the crop
-        self.startX = 0
-        self.startY = 0
-        self.endX = 0
-        self.endY = 0
-
-    def getMemoryShapes(self, inputs):
-        # the crop layer will receive two inputs -- we need to crop
-        # the first input blob to match the shape of the second one,
-        # keeping the batch size and number of channels
-        (inputShape, targetShape) = (inputs[0], inputs[1])
-        (batchSize, numChannels) = (inputShape[0], inputShape[1])
-        (H, W) = (targetShape[2], targetShape[3])
-
-        # compute the starting and ending crop coordinates
-        self.startX = int((inputShape[3] - targetShape[3]) / 2)
-        self.startY = int((inputShape[2] - targetShape[2]) / 2)
-        self.endX = self.startX + W
-        self.endY = self.startY + H
-
-        # return the shape of the volume (we'll perform the actual
-        # crop during the forward pass
-        return [[batchSize, numChannels, H, W]]
-
-    def forward(self, inputs):
-        # use the derived (x, y)-coordinates to perform the crop
-        return [inputs[0][:, :, self.startY:self.endY,
-                self.startX:self.endX]]
+    new_edges = cv2.imread('canny2.png')
+    canny = edge_detection(new_edges, True, 7)
+    cv2.imwrite('canny4.png', canny)

@@ -1,32 +1,18 @@
-import sys
+from src.data_getters.mountains import get_mountain_data
+from src.dem import render_dem
 
-from src.photo_filtering import photo_filtering
-from src.pov_generator import file_handler
-
-dem_mode = True
 
 if __name__ == '__main__':
-    if dem_mode:
-        blåmanen = 60.4014, 5.3633
-        damsgårdsfjellet = 60.3774, 5.2914
-        fløyen = 60.3944, 5.3432
-        gulfjellet = 60.3731, 5.5804
-        løvstakken = 60.3609, 5.3191
-        lyderhorn = 60.3739, 5.2419
-        rundemanen = 60.4112, 5.3613
-        sandviksfjellet = 60.4094, 5.3402
-        strandafjellet = 60.37214161757205, 5.3226537916231305
-        ulriken = 60.4014, 5.3633
+    file, camera_lat, camera_lon, look_at_lat, look_at_lon =  \
+        get_mountain_data('data/dem-data.json')
+    coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
 
-        camera_lat, camera_lon = strandafjellet
-        look_at_lat, look_at_lon = ulriken
+    # modes:
+    # 1: create 3d depth pov-ray render from DEM
+    # 2: render-to-coordinates
+    mode = 1
 
-        try:
-            file_handler(sys.argv[1], camera_lat, camera_lon, look_at_lat, look_at_lon)
-        except IndexError:
-            print('Must provide .png, .dem or .tif file as argument')
-    else:
-        try:
-            photo_filtering('assets/panorama2.jpg')
-        except IndexError:
-            print('Must provide .png or .jpeg file as argument')
+    # save renders to export-folder
+    persistent = False
+
+    render_dem(file, coordinates, mode, persistent)
