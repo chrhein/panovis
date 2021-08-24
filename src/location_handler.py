@@ -6,13 +6,7 @@ from rasterio.warp import transform
 
 
 def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
-    location_x = lat
-    location_y = lon
-    location_height = hgt
-    view_x = look_at_lat
-    view_y = look_at_lon
-    view_height = look_at_hgt
-    return [[location_x, location_y, location_height], [view_x, view_y, view_height]]
+    return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
 
 
 def convert_coordinates(raster, to_espg, lat, lon):
@@ -35,7 +29,7 @@ def convert_coordinates(raster, to_espg, lat, lon):
     height_min = h.min()
     height_max = h.max()
     height_scaled = (height - height_min) / (height_max - height_min)
-    return [lat_scaled, lon_scaled, height_scaled / 38.5]
+    return [lat_scaled, height_scaled / 38.5, lon_scaled]
 
 
 def cor_to_crs(to_espg, lat, lon):
