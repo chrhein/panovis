@@ -11,8 +11,6 @@ from src.dem import render_dem
 
 if __name__ == '__main__':
     render_dem(*get_mountain_data('data/dem-data.json'))
-    
-
 
     exit()
     try:

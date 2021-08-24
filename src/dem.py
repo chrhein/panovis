@@ -12,45 +12,39 @@ from src.povs import *
 from src.data_getters.raster import get_raster_data
 
 def create_depth_image(a_l, out_params):
-    out_width, out_height, pov_filename, out_filename = out_params
+    pov_filename, out_width, out_height, out_filename = out_params
     with open(pov_filename, 'w') as pf:
         pf.write(pov_script(*a_l))
         pf.close()
         execute_pov(out_width, out_height, pov_filename, out_filename)
 
-def create_coordinate_gradients(raster_data, dem_file, out_params, date):
-    out_width, out_height, pov_filename, out_filename = out_params
-    execute_params = [out_width, out_height, pov_filename]
-    print(out_params)
-
-    computed_coordinates = raster_data[:6]
-    tpx = raster_data[6:8]
-    total_distances = raster_data[8:10]
-    ds_raster = raster_data[10]
-
-    a_l = [*computed_coordinates, dem_file]
-    tpx_x, tpx_y = tpx
-    total_distance_n_s, total_distance_e_w = total_distances
-
-    with open(pov_filename, 'w') as pf:
-        pf.write(pov_script(*a_l))
-        pf.close()
-        execute_pov(*execute_params, out_filename)
-
-    pov_filename = '/tmp/pov_x.pov'
-    out_filename_x = 'exports/rendered_dem_%s_x.png' % date
-    with open(pov_filename, 'w') as pf:
-        pf.write(color_gradient_map(*a_l, "x"))
-        pf.close()
-        execute_pov(*execute_params, out_filename_x)
-
-    pov_filename = '/tmp/pov_z.pov'
-    out_filename_z = 'exports/rendered_dem_%s_z.png' % date
+def create_color_image(a_l, out_params):
+    pov_filename, out_width, out_height, out_filename = out_params
     with open(pov_filename, 'w') as pf:
         pf.write(color_gradient_map(*a_l, "z"))
         pf.close()
-        execute_pov(*execute_params, out_filename_z)
-        
+        execute_pov(out_width, out_height, pov_filename, out_filename)
+
+def create_coordinate_gradients(raster_data, out_data):
+    a_l, ds_raster, total_distance_n_s, total_distance_e_w, tpx_x, tpx_y, = raster_data
+    pov_filename, out_width, out_height, out_filename, date = out_data
+    p_i("Multicolor mode selected")
+    with open(pov_filename, 'w') as pf:
+        pf.write(pov_script(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6]))
+        pf.close()
+    execute_pov(out_width, out_height, pov_filename, out_filename)
+    pov_filename = '/tmp/pov_x.pov'
+    out_filename_x = 'exports/rendered_dem_%s_x.png' % date
+    with open(pov_filename, 'w') as pf:
+        pf.write(color_gradient_map(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6], "x"))
+        pf.close()
+    execute_pov(out_width, out_height, pov_filename, out_filename_x)
+    pov_filename = '/tmp/pov_z.pov'
+    out_filename_z = 'exports/rendered_dem_%s_z.png' % date
+    with open(pov_filename, 'w') as pf:
+        pf.write(color_gradient_map(a_l[0], a_l[1], a_l[2], a_l[3], a_l[4], a_l[5], a_l[6], "z"))
+        pf.close()
+    execute_pov(out_width, out_height, pov_filename, out_filename_z)
     image = cv2.imread(out_filename)
     height, width, _ = image.shape
     color_z, m_factor = get_color_from_image(out_filename_z)
@@ -66,6 +60,7 @@ def create_coordinate_gradients(raster_data, dem_file, out_params, date):
     point_file = 'exports/rendered_dem_%s_point.png' % date
     cv2.imwrite(point_file,
                 cv2.circle(image, (int(width * 0.5), int(height * m_factor)), 18, (0, 0, 255), -1))
+    # w, h = get_dataset_bounds(dem_file)
 
     x, y = ds_raster.xy(x_index / tpx_x, z_index / tpx_y)
     x -= tpx_x / 2
@@ -73,13 +68,11 @@ def create_coordinate_gradients(raster_data, dem_file, out_params, date):
     print(crs_to_wgs84(ds_raster, x, y))
 
     original_raster_dotted = 'exports/original_dem%s_point.png' % date
-    original_dem = cv2.imread(dem_file)
+    original_dem = cv2.imread(a_l[6])
     cv2.imwrite(original_raster_dotted,
                 cv2.circle(original_dem, (int(z_index / tpx_y), int(x_index / tpx_x)), 25, (0, 0, 255), -1))
 
     # clear([out_filename, out_filename_x, out_filename_z, point_file, original_raster_dotted])
-
-
 
 def render_dem(in_dem, lat, lon, view_lat, view_lon):
     if in_dem.lower().endswith('.dem') or in_dem.lower().endswith('.tif'):
@@ -96,20 +89,20 @@ def render_dem(in_dem, lat, lon, view_lat, view_lon):
     out_filename = 'exports/rendered_dem_%s.png' % date
     out_width = 2400
     out_height = 800
-
-    coordinates = [lat, lon, view_lat, view_lon]
-
-    raster_data = get_raster_data(dem_file, coordinates)
-    computed_coordinates = raster_data[:6]
-
     pov_filename = '/tmp/pov_file.pov'
 
-    out_params = [out_width, out_height, pov_filename, out_filename]
+    out_data = [pov_filename, out_width, out_height, out_filename, date]
+
+    coordinates = [lat, lon, view_lat, view_lon]
+    raster_data = get_raster_data(dem_file, coordinates)
+        
+    create_coordinate_gradients(raster_data, out_data)
+    
     mode='depth1'
     if mode=='depth':
-        create_depth_image([*computed_coordinates, dem_file], out_params)
+        create_depth_image(raster_data[0], out_data[:4])
     else:
-        create_coordinate_gradients(raster_data, dem_file, out_params, date)
+        create_coordinate_gradients(raster_data, out_data)
     try:
         show_image(out_filename)
     except FileNotFoundError:

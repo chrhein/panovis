@@ -53,6 +53,8 @@ def pov_script(location_x, location_height, location_y,
     height_field { 
         png FILENAME
         texture { thetexture }
+        finish {ambient 1 diffuse 0 specular 0}
+
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
@@ -88,10 +90,11 @@ def color_gradient_map(location_x, location_height, location_y,
         pigment {
             gradient %s
             color_map {
-                [0.0  color Black]
-                [1.0  color Red]
-            }
+                [0 color rgb <0,0,0>] // west if x, south if z
+                [1 color rgb <1,0,0>] // east if x, north if z
+              }
         }
+        finish {ambient 1 diffuse 0 specular 0}
 
     }
     ''' % (location_x, location_height, location_y,
