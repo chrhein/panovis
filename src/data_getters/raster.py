@@ -31,3 +31,4 @@ def get_raster_data(dem_file, coordinates):
     coordinates_and_dem = [*camera_lat_lon, *look_at_lat_lon, dem_file]
 
     return [coordinates_and_dem, ds_raster, total_distance_n_s, total_distance_e_w, resolution]
+    

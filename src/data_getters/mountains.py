@@ -9,3 +9,4 @@ def get_mountain_data(json_path):
         camera_lat, camera_lon = camera_mountain['latitude'], camera_mountain['longitude']
         look_at_lat, look_at_lon = look_at_mountain['latitude'], look_at_mountain['longitude']
         return [file, camera_lat, camera_lon, look_at_lat, look_at_lon]
+        

@@ -1,4 +1,4 @@
-def pov_script(location_x, location_height, location_y,
+def depth_pov(location_x, location_height, location_y,
                view_x, view_height, view_y,
                dem_file):
     pov_text = '''
@@ -46,6 +46,9 @@ def pov_script(location_x, location_height, location_y,
             }
             translate CAMERAPOS
             }
+            finish {
+                ambient 1 diffuse 0 specular 0
+            }
         }
 
     light_source { CAMERALOOKAT color White }
@@ -53,7 +56,6 @@ def pov_script(location_x, location_height, location_y,
     height_field { 
         png FILENAME
         texture { thetexture }
-        finish {ambient 1 diffuse 0 specular 0}
 
     }
     ''' % (location_x, location_height, location_y,
@@ -62,7 +64,7 @@ def pov_script(location_x, location_height, location_y,
     return pov_text
 
 
-def color_gradient_map(location_x, location_height, location_y,
+def color_gradient_pov(location_x, location_height, location_y,
                        view_x, view_height, view_y,
                        dem_file, axis):
     pov_text = '''
@@ -103,7 +105,7 @@ def color_gradient_map(location_x, location_height, location_y,
     return pov_text
 
 
-def color_pov(location_x, location_height, location_y,
+def color_pov_with_sky(location_x, location_height, location_y,
               view_x, view_height, view_y,
               dem_file):
     pov_text = '''

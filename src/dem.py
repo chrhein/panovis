@@ -6,7 +6,7 @@ from src.colors import get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
 from src.location_handler import crs_to_wgs84
-from src.povs import color_gradient_map, pov_script
+from src.povs import color_gradient_pov, depth_pov
 
 
 def render_dem(input_file, coordinates, mode, persistent):
@@ -50,7 +50,7 @@ def render_dem(input_file, coordinates, mode, persistent):
 def create_depth_image(coordinates_and_dem, out_params):
     # generating pov-ray render using depth mapping
     with open(out_params[2], 'w') as pf:
-        pf.write(pov_script(*coordinates_and_dem))
+        pf.write(depth_pov(*coordinates_and_dem))
         pf.close()
     execute_pov(*out_params)
 
@@ -58,7 +58,7 @@ def create_depth_image(coordinates_and_dem, out_params):
 def create_color_image(coordinates_and_dem, out_params):
     # generating gradient colored pov-ray render
     with open(out_params[2], 'w') as pf:
-        pf.write(color_gradient_map(*coordinates_and_dem, "z"))
+        pf.write(color_gradient_pov(*coordinates_and_dem, "z"))
         pf.close()
     execute_pov(*out_params)
 
@@ -70,13 +70,13 @@ def create_coordinate_gradients(raster_data, out_data):
     # generating two gradient colored pov-ray renders
     out_filename_x = '%srendered_dem_%s_x.png' % (out_data[4], out_data[5])
     with open(out_data[2], 'w') as pf:
-        pf.write(color_gradient_map(*coordinates_and_dem, "x"))
+        pf.write(color_gradient_pov(*coordinates_and_dem, "x"))
         pf.close()
     execute_pov(*out_data[:3], out_filename_x)
 
     out_filename_z = '%srendered_dem_%s_z.png' % (out_data[4], out_data[5])
     with open(out_data[2], 'w') as pf:
-        pf.write(color_gradient_map(*coordinates_and_dem, "z"))
+        pf.write(color_gradient_pov(*coordinates_and_dem, "z"))
         pf.close()
     execute_pov(*out_data[:3], out_filename_z)
 
