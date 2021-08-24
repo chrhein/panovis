@@ -10,9 +10,9 @@ if __name__ == '__main__':
     # modes:
     # 1: create 3d depth pov-ray render from DEM
     # 2: render-to-coordinates
-    mode = 1
+    mode = 2
 
     # save renders to export-folder
-    persistent = False
+    persistent = True
 
     render_dem(file, coordinates, mode, persistent)
