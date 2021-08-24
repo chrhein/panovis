@@ -18,14 +18,6 @@ def get_raster_data(dem_file, coordinates):
     view_lat_lon = convert_coordinates(ds_raster, crs, coordinates[2], coordinates[3])
     raster_left, raster_bottom, raster_right, raster_top = ds_raster.bounds
     p_line([raster_left, raster_right, raster_top, raster_bottom])
-    bounds = crs_to_wgs84(ds_raster, raster_left, raster_bottom), \
-             crs_to_wgs84(ds_raster, raster_right, raster_top)
-    lb_lat = bounds[0][0][0]
-    lb_lon = bounds[0][1][0]
-    ub_lat = bounds[1][0][0]
-    yb_lon = bounds[1][1][0]
-    p_i("Lower left coordinates:  (%f, %f)" % (lb_lat, lb_lon))
-    p_i("Upper right coordinates: (%f, %f)" % (ub_lat, yb_lon))
 
     total_distance_e_w = abs(raster_left) + abs(raster_right)
     total_distance_n_s = abs(raster_left) + abs(raster_right)
@@ -38,11 +30,3 @@ def get_raster_data(dem_file, coordinates):
                view_x, view_height, view_y, dem_file]
 
     return [a_l, ds_raster, total_distance_n_s, total_distance_e_w, tpx_x, tpx_y]
-
-    ds_raster, total_distance_n_s, total_distance_e_w, tpx_x, tpx_y,
-
-    return [location_x, location_height, location_y,
-               view_x, view_height, view_y, 
-               tpx_x, tpx_y, 
-               total_distance_n_s, total_distance_e_w, 
-               ds_raster]
