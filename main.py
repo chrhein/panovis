@@ -13,17 +13,20 @@ def get_input():
         "1: create 3d depth pov-ray render from DEM",
         "2: render-to-coordinates",
         "3: edge detection in given image",
-        "4: feature matching given two images"
+        "4: feature matching given two images",
+        "0: exit program"
     ]
     p_line(information_text)
 
     while True:
         try:
-            mode = int(input("Select mode: "))
+            mode = int(input("[INPUT] Select mode: "))
         except ValueError:
             p_e('No valid mode given.')
             continue
         else:
+            if mode == 0:
+                exit()
             if mode < 1 or mode > len(information_text):
                 p_e('No valid mode given.')
                 continue
