@@ -4,6 +4,13 @@ import numpy as np
 from src.debug_tools import p_i, nothing
 
 
+def edge_detection(image_path, folder, date):
+    image = cv2.imread(image_path)
+    edge_detected_image = canny_edge_detection(image)
+    out_filename = '%s/edge_detected_image%s.png' % (folder, date)
+    cv2.imwrite(out_filename, edge_detected_image)
+
+
 def harris_corner_detection(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = np.float32(gray)
@@ -20,20 +27,16 @@ def sift(image):
     return [key_points, descriptors]
 
 
-def edge_detection(image, interactive_window, blur_factor):
+def canny_edge_detection(image, interactive_window=True, blur_factor=5):
     print("[INFO] Starting Canny Edge Detection...")
     # automatically set lb and ub values from the median color in the image
-    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = image
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     v = np.median(gray)
     sigma = 0.5
     lb = int(max(0, (1.0 - sigma) * v))
     ub = int(min(100, (1.0 + sigma) * v))
 
     blurred = cv2.medianBlur(gray, blur_factor)
-    # blurred = cv2.GaussianBlur(image, (blur_factor, blur_factor), 0)
-    # blurred = cv2.blur(image, (blur_factor, blur_factor), 0)
-    # blurred = cv2.bilateralFilter(image, blur_factor, 75, 75)
     if not interactive_window:
         print("[INFO] Canny Edge Detection complete!")
         return cv2.Canny(blurred, lb, ub)
@@ -44,7 +47,7 @@ def edge_detection(image, interactive_window, blur_factor):
     switch = 'Show Contours'
     cv2.createTrackbar(switch, n, 1, 1, nothing)
     cv2.createTrackbar('Lower Bound', n, lb, 100, nothing)
-    cv2.createTrackbar('Upper Bound', n, ub, 100, nothing)
+    cv2.createTrackbar('Upper Bound', n, 25, 100, nothing)
     while True:
         s = cv2.getTrackbarPos(switch, n)
         lb = cv2.getTrackbarPos('Lower Bound', n)
@@ -55,7 +58,7 @@ def edge_detection(image, interactive_window, blur_factor):
             edges = cv2.Canny(blurred, lb, ub)
         cv2.imshow(n, edges)
         k = cv2.waitKey(1) & 0xFF
-        if k == 27:  # use escape for exiting window, auto save image
+        if k == 27:  # use escape for exiting window
             cv2.destroyAllWindows()
             p_i("Canny Edge Detection complete!")
             return edges
