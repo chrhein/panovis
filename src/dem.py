@@ -9,7 +9,7 @@ from src.location_handler import crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov
 
 
-def render_dem(input_file, coordinates, mode, persistent):
+def render_dem(input_file, coordinates, mode, folder, date):
     f = input_file.lower()
     if f.endswith('.dem') or f.endswith('.tif'):
         # convert DEM to GeoTIFF
@@ -22,15 +22,14 @@ def render_dem(input_file, coordinates, mode, persistent):
         p_e('please provide .dem, .tif or .png')
         exit()
 
-    out_folder = '/tmp/'
-    if persistent: out_folder = 'exports/'
+    
 
-    date = get_date_time()
-    out_filename = '%srendered_dem_%s.png' % (out_folder, date)
+    
+    out_filename = '%srendered_dem_%s.png' % (folder, date)
     out_width, out_height = 2400, 800
     pov_filename = '/tmp/pov_file.pov'
 
-    out_data = [out_width, out_height, pov_filename, out_filename, out_folder, date]
+    out_data = [out_width, out_height, pov_filename, out_filename, folder, date]
     raster_data = get_raster_data(dem_file, coordinates)
 
     if mode==1:
@@ -145,8 +144,8 @@ def visualize_point_on_dem(out_params, coordinates_and_dem, x_index, z_index, re
 
 def get_date_time():
     dt = datetime.now()
-    return "%02d%02d_%02d%02d%02d" % (dt.date().month, dt.date().day, \
-        dt.time().hour, dt.time().minute, dt.time().second)
+    return "%02d%02d_%02d%02d" % (dt.date().month, dt.date().day, \
+        dt.time().hour, dt.time().minute)
 
 
 def clear(clear_list):

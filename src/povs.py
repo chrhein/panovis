@@ -7,7 +7,7 @@ def depth_pov(location_x, location_height, location_y,
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 2.2
+        assumed_gamma 1.0
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
@@ -18,8 +18,8 @@ def depth_pov(location_x, location_height, location_y,
     #declare CAMERAFRONTX = CAMERAFRONT.x;
     #declare CAMERAFRONTY = CAMERAFRONT.y;
     #declare CAMERAFRONTZ = CAMERAFRONT.z;
-    #declare DEPTHMIN = -0.1;
-    #declare DEPTHMAX = 0.2;
+    #declare DEPTHMIN = -0.5;
+    #declare DEPTHMAX = 0.1;
 
     camera {
         cylinder 1
@@ -41,7 +41,7 @@ def depth_pov(location_x, location_height, location_y,
                     x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
             }
             color_map {
-                [0 color rgb <0,0,0>]
+                [0.0 color rgb <0,0,0>]
                 [1 color rgb <1,1,1>]
             }
             translate CAMERAPOS
