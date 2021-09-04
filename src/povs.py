@@ -1,6 +1,6 @@
 def depth_pov(location_x, location_height, location_y,
-               view_x, view_height, view_y,
-               dem_file):
+              view_x, view_height, view_y,
+              dem_file):
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -31,14 +31,16 @@ def depth_pov(location_x, location_height, location_y,
     #declare clipped_scaled_gradient =
         function(x, y, z, gradx, grady, gradz, gradmin, gradmax) {
             clip(
-            ((x * gradx + y * grady + z * gradz) - gradmin) / (gradmax - gradmin),
+            ((x * gradx + y * grady + z * gradz)
+             - gradmin) / (gradmax - gradmin),
             0,1)
         }
     #declare thetexture = texture {
         pigment {
             function {
                 clipped_scaled_gradient(
-                    x, y, z, CAMERAFRONTX, CAMERAFRONTY, CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
+                    x, y, z, CAMERAFRONTX, CAMERAFRONTY,
+                    CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
             }
             color_map {
                 [0.0 color rgb <0,0,0>]
@@ -53,7 +55,7 @@ def depth_pov(location_x, location_height, location_y,
 
     light_source { CAMERALOOKAT color White }
 
-    height_field { 
+    height_field {
         png FILENAME
         texture { thetexture }
 
@@ -71,7 +73,7 @@ def color_gradient_pov(location_x, location_height, location_y,
     #version 3.8;
     #include "colors.inc"
     #include "math.inc"
-    
+
     global_settings {
         assumed_gamma 2.2
     }
@@ -106,8 +108,8 @@ def color_gradient_pov(location_x, location_height, location_y,
 
 
 def color_pov_with_sky(location_x, location_height, location_y,
-              view_x, view_height, view_y,
-              dem_file):
+                       view_x, view_height, view_y,
+                       dem_file):
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -147,9 +149,9 @@ def color_pov_with_sky(location_x, location_height, location_y,
           {
             pigment { color rgb < 0.3, 0.3, 0.7 > }
             normal { bumps 0.2 }
-            finish { phong 1 reflection 1.0 ambient 0.2 diffuse 0.2 specular 1.0 }
+            finish { phong 1 reflection 1 ambient 0.2 diffuse 0.2 specular 1 }
           }
-    } 
+    }
     sky_sphere {
     pigment {
       gradient y

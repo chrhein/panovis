@@ -1,5 +1,5 @@
+from src.debug_tools import p_e, p_i, p_line
 from src.feature_matching import feature_matching
-from src.debug_tools import *
 from src.edge_detection import edge_detection
 from src.data_getters.mountains import get_mountain_data
 from src.dem import get_date_time, render_dem
@@ -36,8 +36,11 @@ def get_input():
 def file_chooser(title):
     root = tk.Tk()
     root.withdraw()
-    file = askopenfile(title=title, mode ='r', filetypes =[('PNGs', '*.png'), ('JPEGs', '*.jpeg')])
-    return file.name
+    filename = askopenfile(title=title,
+                           mode='r',
+                           filetypes=[('PNGs', '*.png'),
+                                      ('JPEGs', '*.jpeg'), ('JPGs', '*.jpg')])
+    return filename.name
 
 
 if __name__ == '__main__':
@@ -48,21 +51,21 @@ if __name__ == '__main__':
 
     date = get_date_time()
     folder = '/tmp/'
-    if persistent: folder = 'exports/'
+    if persistent:
+        folder = 'exports/'
 
     if mode == 1 or mode == 2:
-        file, camera_lat, camera_lon, look_at_lat, look_at_lon =  \
-        get_mountain_data('data/dem-data.json')
+        file, camera_lat, camera_lon, look_at_lat, look_at_lon = \
+            get_mountain_data('data/dem-data.json')
+        camera_lat, camera_lon = 60.340148, 5.47665
+        look_at_lat, look_at_lon = 60.373084070631464, 5.580410727548175
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         render_dem(file, coordinates, mode, folder, date)
 
     elif mode == 3:
         image = file_chooser('Select an image to detect edges on')
         edge_detection(image, folder, date)
-    
     elif mode == 4:
         image1 = file_chooser('Select first image')
-        image2 = file_chooser('Select second image')
 
-        feature_matching(image1, image2)
-
+        feature_matching(image1)

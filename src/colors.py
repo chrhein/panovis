@@ -18,8 +18,6 @@ def color_interpolator(from_color, to_color, size):
     color_gradient = []
     for i in range(size + 1):
         r = (to_color[0] - from_color[0]) * i / size + from_color[0]
-        g = (to_color[1] - from_color[1]) * i / size + from_color[1]
-        b = (to_color[2] - from_color[2]) * i / size + from_color[2]
         color_gradient.append([r, 0, 0])
     return color_gradient
 
@@ -60,5 +58,6 @@ def get_color_index_in_image(color, from_color, to_color, step_size):
 
     p_i(l_index)
     p_i("Found nearest color: %i, %i, %i" % (
-        round(colors[l_index][0]), round(colors[l_index][1]), round(colors[l_index][2])))
+        round(colors[l_index][0]), round(colors[l_index][1]),
+        round(colors[l_index][2])))
     return l_index

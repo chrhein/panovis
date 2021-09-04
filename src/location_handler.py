@@ -1,4 +1,4 @@
-from math import *
+from math import radians, asin, cos, sin, atan2, degrees
 
 import rasterio
 from osgeo import ogr, osr
@@ -67,7 +67,10 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     bearing = radians(true_course)
     d = dist_in_kms
     lat1, lon1 = radians(in_lat), radians(in_lon)
-    lat2 = asin(sin(lat1) * cos(d / earth_radius) + cos(lat1) * sin(d / earth_radius) * cos(bearing))
-    lon2 = lon1 + atan2(sin(bearing) * sin(d / earth_radius) * cos(lat1), cos(d / earth_radius) - sin(lat1) * sin(lat2))
+    lat2 = asin(sin(lat1) * cos(d / earth_radius)
+                + cos(lat1) * sin(d / earth_radius) * cos(bearing))
+    lon2 = lon1 + atan2(sin(bearing) * sin(d / earth_radius)
+                                     * cos(lat1), cos(d / earth_radius)
+                        - sin(lat1) * sin(lat2))
     lat2, lon2 = degrees(lat2), degrees(lon2)
     return lat2, lon2
