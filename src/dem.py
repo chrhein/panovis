@@ -92,11 +92,11 @@ def create_coordinate_gradients(raster_data, out_data):
                                        int(total_distance_e_w))
 
     x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
+    print(x, y)
+
     x -= resolution / 2
     y += resolution / 2
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
-    p_line(["Latitude: %f" % float(str(latitude).strip("[]")),
-            "Longitude: %f" % float(str(longitude).strip("[]"))])
 
     if(folder != "/tmp/"):
         with open(pov_filename, 'w') as pf:
@@ -109,13 +109,18 @@ def create_coordinate_gradients(raster_data, out_data):
         visualize_point(out_params, image, width, height, m_factor)
         visualize_point_on_dem(out_params, coordinates_and_dem, x_index,
                                z_index, resolution)
+    p_line(["Latitude: %.20f" % float(str(latitude).strip("[]")),
+            "Longitude: %.20f" % float(str(longitude).strip("[]"))])
+    p_i("%.20f, %.20f" % (float(str(latitude).strip("[]")),
+                          float(str(longitude).strip("[]"))))
 
 
 def execute_pov(out_width, out_height, pov_filename, out_filename):
     p_i("Generating %s" % out_filename)
     # calling subprocess which triggers the pov_filename parameter
     subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                     'Output_File_Type=N Bits_Per_Color=8 +Q4 +UR +A',
+                     'Output_File_Type=N Bits_Per_Color=32 Display=off',
+                     'Antialias=off Quality=0 File_Gamma=1.0',
                      '+I' + pov_filename, '+O' + out_filename])
 
 

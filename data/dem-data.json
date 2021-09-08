@@ -51,5 +51,17 @@
             "longitude": 5.381081749383611,
             "height": 500
         }
+    },
+    "panoramas": {
+        "panorama3_camera": {
+            "latitude": 60.39672484004798,
+            "longitude": 5.529010653474241,
+            "height": 500
+        },
+        "panorama3_view": {
+            "latitude": 60.39680752708766,
+            "longitude": 5.524744812572357,
+            "height": 500
+        }
     }
 }

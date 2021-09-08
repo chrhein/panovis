@@ -57,8 +57,6 @@ if __name__ == '__main__':
     if mode == 1 or mode == 2:
         file, camera_lat, camera_lon, look_at_lat, look_at_lon = \
             get_mountain_data('data/dem-data.json')
-        camera_lat, camera_lon = 60.340148, 5.47665
-        look_at_lat, look_at_lon = 60.373084070631464, 5.580410727548175
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         render_dem(file, coordinates, mode, folder, date)
 
@@ -66,6 +64,7 @@ if __name__ == '__main__':
         image = file_chooser('Select an image to detect edges on')
         edge_detection(image, folder, date)
     elif mode == 4:
-        image1 = file_chooser('Select first image')
+        image1 = file_chooser('Select render')
+        image2 = file_chooser('Select image')
 
-        feature_matching(image1)
+        feature_matching(image1, image2)

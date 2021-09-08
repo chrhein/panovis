@@ -15,17 +15,17 @@ class CropLayer(object):
         # the crop layer will receive two inputs -- we need to crop
         # the first input blob to match the shape of the second one,
         # keeping the batch size and number of channels
-        (inputShape, targetShape) = (inputs[0], inputs[1])
-        (batchSize, numChannels) = (inputShape[0], inputShape[1])
-        (H, W) = (targetShape[2], targetShape[3])
+        (input_shape, target_shape) = (inputs[0], inputs[1])
+        (batch_size, num_channels) = (input_shape[0], input_shape[1])
+        (H, W) = (target_shape[2], target_shape[3])
         # compute the starting and ending crop coordinates
-        self.startX = int((inputShape[3] - targetShape[3]) / 2)
-        self.startY = int((inputShape[2] - targetShape[2]) / 2)
+        self.startX = int((input_shape[3] - target_shape[3]) / 2)
+        self.startY = int((input_shape[2] - target_shape[2]) / 2)
         self.endX = self.startX + W
         self.endY = self.startY + H
         # return the shape of the volume (we'll perform the actual
         # crop during the forward pass
-        return [[batchSize, numChannels, H, W]]
+        return [[batch_size, num_channels, H, W]]
 
     def forward(self, inputs):
         # use the derived (x, y)-coordinates to perform the crop

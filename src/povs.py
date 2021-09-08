@@ -6,9 +6,7 @@ def depth_pov(location_x, location_height, location_y,
     #include "colors.inc"
     #include "math.inc"
 
-    global_settings {
-        assumed_gamma 1.0
-    }
+    global_settings { assumed_gamma 1 }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
     #declare CAMERAPOS = <%f, %f, %f>;
@@ -18,12 +16,12 @@ def depth_pov(location_x, location_height, location_y,
     #declare CAMERAFRONTX = CAMERAFRONT.x;
     #declare CAMERAFRONTY = CAMERAFRONT.y;
     #declare CAMERAFRONTZ = CAMERAFRONT.z;
-    #declare DEPTHMIN = -0.5;
-    #declare DEPTHMAX = 0.1;
+    #declare DEPTHMIN = -1;
+    #declare DEPTHMAX = 0.15;
 
     camera {
-        cylinder 1
-        angle 150
+        panoramic
+        angle 300
         location CAMERALOOKAT
         look_at  CAMERAPOS
     }
@@ -35,6 +33,7 @@ def depth_pov(location_x, location_height, location_y,
              - gradmin) / (gradmax - gradmin),
             0,1)
         }
+
     #declare thetexture = texture {
         pigment {
             function {
@@ -75,7 +74,7 @@ def color_gradient_pov(location_x, location_height, location_y,
     #include "math.inc"
 
     global_settings {
-        assumed_gamma 2.2
+        assumed_gamma 1
     }
 
     #declare CAMERALOOKAT = <%f, %f, %f>;
@@ -83,8 +82,8 @@ def color_gradient_pov(location_x, location_height, location_y,
     #declare FILENAME = "%s";
 
     camera {
-        cylinder 1
-        angle 150
+        panoramic
+        angle 300
         location CAMERALOOKAT
         look_at  CAMERAPOS
     }
@@ -124,11 +123,12 @@ def color_pov_with_sky(location_x, location_height, location_y,
     #declare FILENAME = "%s";
 
     camera {
-        cylinder 1
-        angle 150
+        panoramic
+        angle 220
         location CAMERALOOKAT
         look_at  CAMERAPOS
     }
+
     light_source { CAMERALOOKAT color White }
     height_field {
         png FILENAME
