@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 
 from src.debug_tools import p_i
-from src.edge_detection import edge_detection
 
 
 def change_brightness(img, value=30):
@@ -60,15 +59,3 @@ def annotate_image(image, text):
     font = cv2.FONT_HERSHEY_COMPLEX
     cv2.putText(out_im, text, (10, 53), font, 2, (255, 255, 255), 3, 0)
     return out_im
-
-
-def photo_filtering(input_photo):
-    p_i("Detecting edges in '%s'...\n" % input_photo)
-    image = cv2.imread(input_photo)
-    image = resizer(image)
-    edges = structured_forest(image)
-    cv2.imwrite('canny2.png', edges)
-
-    new_edges = cv2.imread('canny2.png')
-    canny = edge_detection(new_edges, True, 7)
-    cv2.imwrite('canny4.png', canny)

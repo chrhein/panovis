@@ -34,6 +34,7 @@ class CropLayer(object):
 
 
 def holistically_nested(image):
+    p_i("Starting Holistically-Nested Edge Detection...")
     net = cv2.dnn.readNetFromCaffe("assets/hed_model/deploy.prototxt",
                                    "assets/hed_model/"
                                    + "hed_pretrained_bsds.caffemodel")

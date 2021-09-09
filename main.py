@@ -1,10 +1,11 @@
 from src.debug_tools import p_e, p_i, p_line
 from src.feature_matching import feature_matching
-from src.edge_detection import edge_detection
+from src.edge_detection import edge_detection, remove_pixels
 from src.data_getters.mountains import get_mountain_data
 from src.dem import get_date_time, render_dem
 from tkinter.filedialog import askopenfile
 import tkinter as tk
+import os
 
 
 def get_input():
@@ -34,11 +35,15 @@ def get_input():
 
 
 def file_chooser(title):
+    # Set environment variable
+    os.environ['TK_SILENCE_DEPRECATION'] = "1"
     root = tk.Tk()
     root.withdraw()
     filename = askopenfile(title=title,
                            mode='r',
                            filetypes=[('PNGs', '*.png'),
+
+
                                       ('JPEGs', '*.jpeg'), ('JPGs', '*.jpg')])
     return filename.name
 
@@ -62,7 +67,9 @@ if __name__ == '__main__':
 
     elif mode == 3:
         image = file_chooser('Select an image to detect edges on')
-        edge_detection(image, folder, date)
+        remove_pixels(image)
+        exit()
+        edge_detection(image, folder, date, "HED")
     elif mode == 4:
         image1 = file_chooser('Select render')
         image2 = file_chooser('Select image')

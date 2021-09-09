@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from osgeo import gdal
 
@@ -40,14 +39,6 @@ def get_dataset_bounds(in_dem):
     dem_data = gdal.Open(in_dem)
     dem_array = np.array(dem_data.GetRasterBand(1).ReadAsArray())
     return [len(dem_array), len(dem_array[0])]
-
-
-def custom_imshow(image, title, wait_key=1, from_left=100, from_top=400):
-    cv2.namedWindow(title)
-    cv2.moveWindow(title, from_left, from_top)
-    cv2.imshow(title, image)
-    cv2.setWindowProperty(title, cv2.WND_PROP_TOPMOST, 1)
-    cv2.waitKey(0) if wait_key == 1 else nothing(0)
 
 
 def nothing(x):

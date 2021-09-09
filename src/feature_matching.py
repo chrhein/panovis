@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from src.debug_tools import nothing, p_line
 from src.edge_detection import sift
-from src.debug_tools import custom_imshow
+from src.im import custom_imshow
 
 
 def save_image(image, filename):
@@ -82,25 +82,6 @@ def skeletonize(image):
 
 
 def feature_matching(image1, image2):
-    # RENDER
-    '''
-    render = cv2.imread(image1)
-    canny = canny_edge_detection(render, interactive_window=False)
-    save_image(canny, "canny")
-    canny = cv2.imread("./feature_matching/fm_canny.png")
-    render_keypoints, render_descriptors = sift(resizer(canny))
-
-
-    # PHOTO
-    # photo = cv2.imread(image2)
-    # heded = holistically_nested(resizer(photo, im_width=2400))
-    # save_image(heded, "hed")
-    heded = open_image("hed")
-    skeleton = skeletonize(heded)
-    save_image(skeleton, "skeleton2")
-
-    '''
-
     image1 = flip(cv2.imread(image1))
     image2 = flip(cv2.imread(image2))
 

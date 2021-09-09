@@ -1,12 +1,23 @@
 import cv2
 import numpy as np
-
+from src.im import vertical_stack_imshow_divider
+from src.hed import holistically_nested
 from src.debug_tools import p_i, nothing
+from src.image_manipulations import resizer
 
 
-def edge_detection(image_path, folder, date):
+def edge_detection(image_path, folder, date, algorithm):
     image = cv2.imread(image_path)
-    edge_detected_image = canny_edge_detection(image)
+    if algorithm == "Canny":
+        edge_detected_image = canny_edge_detection(image)
+    elif algorithm == "HED":
+        height, width, channels = image.shape
+        max_length = max(height, width)
+        if max_length > 3000:
+            image = resizer(image, im_width=3000)
+        edge_detected_image = holistically_nested(image)
+    else:
+        return
     out_filename = '%s/edge_detected_image%s.png' % (folder, date)
     cv2.imwrite(out_filename, edge_detected_image)
 
@@ -62,3 +73,21 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
             cv2.destroyAllWindows()
             p_i("Canny Edge Detection complete!")
             return edges
+
+
+def remove_pixels(image_path, im_width=1200, thresh=10,
+                  l_thresh=225, l_bounds=(2 / 3)):
+    image = resizer(cv2.imread(image_path), im_width=im_width)
+    rows, cols, _ = image.shape
+    threshhold = thresh  # up black pixels under this color value
+
+    for row in range(rows):
+        if row == int(rows * l_bounds):
+            threshhold = l_thresh
+        for col in range(cols):
+            k = image[row, col]
+            r, g, b = k
+            if r < threshhold or g < threshhold or b < threshhold:
+                image[row, col] = [0, 0, 0]
+
+    vertical_stack_imshow_divider(image, cv2.imread(image_path))
