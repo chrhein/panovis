@@ -11,7 +11,7 @@ def edge_detection(image_path, folder, date, algorithm):
     if algorithm == "Canny":
         edge_detected_image = canny_edge_detection(image)
     elif algorithm == "HED":
-        height, width, channels = image.shape
+        height, width, _ = image.shape
         max_length = max(height, width)
         if max_length > 3000:
             image = resizer(image, im_width=3000)
@@ -75,19 +75,71 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
             return edges
 
 
-def remove_pixels(image_path, im_width=1200, thresh=10,
-                  l_thresh=225, l_bounds=(2 / 3)):
-    image = resizer(cv2.imread(image_path), im_width=im_width)
+def remove_pixels(image, thresh=100):
     rows, cols, _ = image.shape
     threshhold = thresh  # up black pixels under this color value
 
     for row in range(rows):
-        if row == int(rows * l_bounds):
-            threshhold = l_thresh
         for col in range(cols):
             k = image[row, col]
             r, g, b = k
             if r < threshhold or g < threshhold or b < threshhold:
                 image[row, col] = [0, 0, 0]
 
-    vertical_stack_imshow_divider(image, cv2.imread(image_path))
+    return image
+
+
+def find_horizon_edge(image):
+    image_path = image
+    image = cv2.imread(image_path)
+    image = remove_pixels(image, 10)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((1, 20), np.uint8)
+    d_im = cv2.dilate(gray, kernel, iterations=1)
+    gray = cv2.erode(d_im, kernel, iterations=1)
+    rows, cols = gray.shape
+    brightest_pixels = []
+    search_area = 2
+    for col in range(search_area, cols - search_area):
+        edge_center = gray[search_area, col]
+        backtrack = False
+        for row in range(search_area, int(rows*0.75)):
+            k = gray[row, col]
+            if k > edge_center and not backtrack:
+                edge_center = k
+            elif k < edge_center and not backtrack:
+                brightest_pixels.append((row-1, col))
+                brightest_pixels.append((row-1, col+2))
+                backtrack = True
+            elif k == 0:
+                backtrack = False
+                edge_center = k
+            continue
+
+    for px in brightest_pixels:
+        x, y = px
+        color_specific_pixel(image, x, y, [0, 0, 255], search_area)
+
+    vertical_stack_imshow_divider(cv2.imread(image_path), image)
+
+
+def color_specific_pixel(image, pixel_x, pixel_y, color, size):
+    for y in range(-size, size):
+        for x in range(-size, size):
+            try:
+                image[pixel_x+x, pixel_y+y] = color
+            except IndexError:
+                continue
+
+
+def pixel_eigenvalue(image, pixel_x, pixel_y, size):
+    sum = 0
+    index = 0
+    for y in range(-size, size):
+        for x in range(-size, size):
+            try:
+                sum += image[pixel_x+x, pixel_y+y]
+                index += 1
+            except IndexError:
+                continue
+    return (sum/index)

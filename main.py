@@ -1,6 +1,6 @@
 from src.debug_tools import p_e, p_i, p_line
 from src.feature_matching import feature_matching
-from src.edge_detection import edge_detection, remove_pixels
+from src.edge_detection import edge_detection, find_horizon_edge, remove_pixels
 from src.data_getters.mountains import get_mountain_data
 from src.dem import get_date_time, render_dem
 from tkinter.filedialog import askopenfile
@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     elif mode == 3:
         image = file_chooser('Select an image to detect edges on')
-        remove_pixels(image)
+        find_horizon_edge(image)
         exit()
         edge_detection(image, folder, date, "HED")
     elif mode == 4:
