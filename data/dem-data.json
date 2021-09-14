@@ -51,5 +51,47 @@
             "longitude": 5.381081749383611,
             "height": 500
         }
+    },
+    "panoramas": {
+        "panorama1_camera": {
+            "latitude": 60.414409232345534,
+            "longitude": 5.388564527272605,
+            "height": 500
+        },
+        "panorama1_view": {
+            "latitude": 60.3772347916171,
+            "longitude": 5.381081749383611,
+            "height": 500
+        },
+        "panorama2_camera": {
+            "latitude": 60.39672484004798,
+            "longitude": 5.529010653474241,
+            "height": 500
+        },
+        "panorama2_view": {
+            "latitude": 60.39680752708766,
+            "longitude": 5.524744812572357,
+            "height": 500
+        },
+        "panorama3_camera": {
+            "latitude": 60.34088071420514,
+            "longitude": 5.48556797698576,
+            "height": 500
+        },
+        "panorama3_view": {
+            "latitude": 60.3623769089857,
+            "longitude": 5.540022475941776,
+            "height": 500
+        },
+        "panorama4_camera": {
+            "latitude": 60.36423590473352,
+            "longitude": 5.382310057603189,
+            "height": 500
+        },
+        "panorama4_view": {
+            "latitude": 60.36132241028855,
+            "longitude": 5.320899327333073,
+            "height": 500
+        }
     }
 }
