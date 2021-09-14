@@ -92,7 +92,6 @@ def feature_matching(image1, image2):
     matches = bf.match(descriptors_1, descriptors_2)
     matches = sorted(matches, key=lambda x: x.distance)
     image3 = flip(cv2.drawMatches(image1, key_points_1, image2,
-                                  key_points_2, matches[:20],
+                                  key_points_2, matches[:10],
                                   image2, flags=2), 1)
     custom_imshow(image3, "FM"), cv2.waitKey(0)
-    save_image(image3, "matched")

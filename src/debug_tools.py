@@ -14,6 +14,10 @@ def p_a(text):
     print("[ALERT]", text)
 
 
+def p_in(text):
+    return input("[INPUT] %s" % text)
+
+
 def p_line(p_list=[]):
     print("===================================================")
     if not p_list:

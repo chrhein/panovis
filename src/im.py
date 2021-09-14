@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
+from src.debug_tools import p_i, p_in
 from src.image_manipulations import resizer
+from tkinter.filedialog import askdirectory
 
 
 def custom_imshow(image, title, from_left=100, from_top=400):
@@ -8,7 +10,11 @@ def custom_imshow(image, title, from_left=100, from_top=400):
     cv2.moveWindow(title, from_left, from_top)
     cv2.imshow(title, image)
     cv2.setWindowProperty(title, cv2.WND_PROP_TOPMOST, 1)
-    cv2.waitKey(0)
+    key_pressed = cv2.waitKey()
+    cv2.destroyAllWindows()
+    if key_pressed == 115:
+        return True
+    return False
 
 
 def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
@@ -29,4 +35,10 @@ def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
     divider = np.zeros((div_thickness, m, 3), np.uint8)
     divider[:, 0:m] = (255, 255, 255)
     stack = np.vstack((im1, divider, im2))
-    custom_imshow(stack, title)
+    to_save = custom_imshow(stack, title)
+    if to_save:
+        path = askdirectory(title='Select Folder')
+        if path:
+            file_name = p_in('Filename: ')
+            cv2.imwrite('%s/%s.png' % (path, file_name), im2)
+            p_i('File was saved')
