@@ -13,8 +13,9 @@ def get_input():
     information_text = [
         "1: create 3d depth pov-ray render from DEM",
         "2: render-to-coordinates",
-        "3: edge detection in given image",
-        "4: feature matching given two images",
+        "3: create a 3d height pov-ray render from DEM",
+        "4: edge detection in given image",
+        "5: feature matching given two images",
         "0: exit program"
     ]
     p_line(information_text)
@@ -89,14 +90,14 @@ if __name__ == '__main__':
     if persistent:
         folder = 'exports/'
 
-    if mode == 1 or mode == 2:
+    if mode == 1 or mode == 2 or mode == 3:
         pano = file_chooser('Select an image to detect edges on')
         file, camera_lat, camera_lon, look_at_lat, look_at_lon = \
             get_mountain_data('data/dem-data.json', pano)
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         render_dem(file, coordinates, mode, folder, date)
 
-    elif mode == 3:
+    elif mode == 4:
         kind = edge_detection_type()
         image = file_chooser('Select an image to detect edges on')
         if kind == 1:
@@ -105,7 +106,7 @@ if __name__ == '__main__':
             edge_detection(image, "HED")
         elif kind == 3:
             edge_detection(image, "Horizon")
-    elif mode == 4:
+    elif mode == 5:
         image1 = file_chooser('Select render')
         image2 = file_chooser('Select image')
 

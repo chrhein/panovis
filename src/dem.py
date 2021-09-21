@@ -6,7 +6,7 @@ from src.colors import get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
 from src.location_handler import crs_to_wgs84
-from src.povs import color_gradient_pov, depth_pov
+from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
 def render_dem(input_file, coordinates, mode, folder, date):
@@ -29,6 +29,8 @@ def render_dem(input_file, coordinates, mode, folder, date):
     out_data = [out_width, out_height,
                 pov_filename, out_filename, folder, date]
     raster_data = get_raster_data(dem_file, coordinates)
+    max_height = raster_data[-1]
+    raster_data = raster_data[:5]
 
     if mode == 1:
         create_depth_image(raster_data[0], out_data[:4])
@@ -40,6 +42,14 @@ def render_dem(input_file, coordinates, mode, folder, date):
         p_i("Finished creating panorama for %s" % input_file)
     elif mode == 2:
         create_coordinate_gradients(raster_data, out_data)
+    elif mode == 3:
+        create_height_image(raster_data[0], out_data[:4], max_height)
+        try:
+            show_image(out_filename)
+        except FileNotFoundError:
+            p_e("There is probably an error in the .pov file")
+            exit()
+        p_i("Finished creating panorama for %s" % input_file)
 
     clear([])
 
@@ -60,11 +70,18 @@ def create_color_image(coordinates_and_dem, out_params):
     execute_pov(*out_params)
 
 
+def create_height_image(coordinates_and_dem, out_params, max_height):
+    with open(out_params[2], 'w') as pf:
+        pf.write(height_pov(*coordinates_and_dem, max_height))
+        pf.close()
+    execute_pov(*out_params, "color")
+
+
 def create_coordinate_gradients(raster_data, out_data):
     coordinates_and_dem, ds_raster, total_distance_n_s, \
         total_distance_e_w, resolution = raster_data
 
-    out_width, out_height, pov_filename, out_filename, folder, date = out_data
+    _, _, pov_filename, out_filename, folder, date = out_data
 
     # generating two gradient colored pov-ray renders
     out_filename_x = '%srendered_dem_%s_x.png' % (folder, date)
@@ -73,14 +90,14 @@ def create_coordinate_gradients(raster_data, out_data):
         pf.close()
     execute_pov(*out_data[:3], out_filename_x)
 
-    out_filename_z = '%srendered_dem_%s_z.png' % (folder, date)
+    out_filename_y = '%srendered_dem_%s_z.png' % (folder, date)
     with open(pov_filename, 'w') as pf:
         pf.write(color_gradient_pov(*coordinates_and_dem, "z"))
         pf.close()
-    execute_pov(*out_data[:3], out_filename_z)
+    execute_pov(*out_data[:3], out_filename_y)
 
     # using the colors of each photo to pinpoint where we are looking at
-    color_z, m_factor = get_color_from_image(out_filename_z)
+    color_z, m_factor = get_color_from_image(out_filename_y)
     color_x = get_color_from_image(out_filename_x)[0]
     z_index = get_color_index_in_image(color_x,
                                        [0, 0, 0],
@@ -115,13 +132,19 @@ def create_coordinate_gradients(raster_data, out_data):
                           float(str(longitude).strip("[]"))))
 
 
-def execute_pov(out_width, out_height, pov_filename, out_filename):
+def execute_pov(out_width, out_height, pov_filename,
+                out_filename, mode="standard"):
     p_i("Generating %s" % out_filename)
-    # calling subprocess which triggers the pov_filename parameter
-    subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                     'Output_File_Type=N Bits_Per_Color=32 Display=off',
-                     'Antialias=off Quality=0 File_Gamma=1.0',
-                     '+I' + pov_filename, '+O' + out_filename])
+    if mode == "color":
+        print("colormode")
+        subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
+                         'Output_File_Type=N Bits_Per_Color=8 +Q4 +UR +A',
+                         '+I' + pov_filename, '+O' + out_filename])
+    else:
+        subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
+                         'Output_File_Type=N Bits_Per_Color=32 Display=off',
+                         'Antialias=off Quality=0 File_Gamma=1.0',
+                         '+I' + pov_filename, '+O' + out_filename])
 
 
 def show_image(out_filename):
