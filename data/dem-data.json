@@ -54,14 +54,14 @@
     },
     "panoramas": {
         "panorama1_camera": {
-            "latitude": 60.414409232345534,
-            "longitude": 5.388564527272605,
+            "latitude": 60.41454411362287,
+            "longitude": 5.3896563433223585,
             "height": 500
         },
         "panorama1_view": {
-            "latitude": 60.3772347916171,
-            "longitude": 5.381081749383611,
-            "height": 500
+            "latitude": 60.37781556563401,
+            "longitude": 5.387034486694265,
+            "height": 644
         },
         "panorama2_camera": {
             "latitude": 60.39672484004798,
@@ -91,6 +91,48 @@
         "panorama4_view": {
             "latitude": 60.36132241028855,
             "longitude": 5.320899327333073,
+            "height": 500
+        },
+        "panorama5_camera": {
+            "latitude": 60.339784980829755,
+            "longitude": 5.386949075625842,
+            "height": 500
+        },
+        "panorama5_view": {
+            "latitude": 60.368726306828094,
+            "longitude": 5.403812018982875,
+            "height": 500
+        },
+        "panorama6_camera": {
+            "latitude": 60.237529814138995,
+            "longitude": 5.346079797576634,
+            "height": 500
+        },
+        "panorama6_view": {
+            "latitude": 60.170532912086635,
+            "longitude": 5.309105298444236,
+            "height": 500
+        },
+        "panorama7_camera": {
+            "latitude": 60.318317932273,
+            "longitude": 5.5446410107586415,
+            "height": 500,
+            "mountain_name": "Søtefjellet"
+        },
+        "panorama7_view": {
+            "latitude": 60.35986700237669,
+            "longitude": 5.587374318085793,
+            "height": 500
+        },
+        "panorama8_camera": {
+            "latitude": 60.35672391569111,
+            "longitude": 5.536936566715599,
+            "height": 500,
+            "mountain_name": "Austefjellet"
+        },
+        "panorama8_view": {
+            "latitude": 60.33015321454407,
+            "longitude": 5.468764877189931,
             "height": 500
         }
     }

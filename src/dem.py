@@ -9,7 +9,8 @@ from src.location_handler import crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
-def render_dem(input_file, coordinates, mode, folder, date):
+def render_dem(input_file, coordinates, mode, folder,
+               date, im_width, im_height, img):
     f = input_file.lower()
     if f.endswith('.dem') or f.endswith('.tif'):
         # convert DEM to GeoTIFF
@@ -23,7 +24,14 @@ def render_dem(input_file, coordinates, mode, folder, date):
         exit()
 
     out_filename = '%srendered_dem_%s.png' % (folder, date)
-    out_width, out_height = 2400, 800
+
+    new_width = 2800
+    new_height = int(new_width * im_height / im_width)
+    out_width, out_height = new_width, new_height
+
+    cv2.imwrite(('%s/original_panorama.png' % folder),
+                cv2.resize(img, [new_width, new_height]))
+
     pov_filename = '/tmp/pov_file.pov'
 
     out_data = [out_width, out_height,
@@ -44,14 +52,14 @@ def render_dem(input_file, coordinates, mode, folder, date):
         create_coordinate_gradients(raster_data, out_data)
     elif mode == 3:
         create_height_image(raster_data[0], out_data[:4], max_height)
-        try:
-            show_image(out_filename)
-        except FileNotFoundError:
-            p_e("There is probably an error in the .pov file")
-            exit()
+        """
+            try:
+                show_image(out_filename)
+            except FileNotFoundError:
+                p_e("There is probably an error in the .pov file")
+                exit()
+        """
         p_i("Finished creating panorama for %s" % input_file)
-
-    clear([])
 
 
 def create_depth_image(coordinates_and_dem, out_params):
@@ -136,7 +144,6 @@ def execute_pov(out_width, out_height, pov_filename,
                 out_filename, mode="standard"):
     p_i("Generating %s" % out_filename)
     if mode == "color":
-        print("colormode")
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
                          'Output_File_Type=N Bits_Per_Color=8 +Q4 +UR +A',
                          '+I' + pov_filename, '+O' + out_filename])
@@ -160,7 +167,7 @@ def visualize_point(out_params, image, width, height, m_factor):
     cv2.imwrite(point_file, cv2.circle(image,
                                        (int(width * 0.5),
                                         int(height * m_factor)),
-                18, (0, 0, 255), -1))
+                12, (0, 0, 255), -1))
 
 
 def visualize_point_on_dem(out_params, coordinates_and_dem, x_index,
@@ -177,8 +184,9 @@ def visualize_point_on_dem(out_params, coordinates_and_dem, x_index,
 
 def get_date_time():
     dt = datetime.now()
-    return "%02d%02d_%02d%02d" % (dt.date().month, dt.date().day,
-                                  dt.time().hour, dt.time().minute)
+    return "%02d%02d_%02d%02d%02d" % (dt.date().month, dt.date().day,
+                                      dt.time().hour, dt.time().minute,
+                                      dt.time().second)
 
 
 def clear(clear_list):

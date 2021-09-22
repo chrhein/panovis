@@ -6,8 +6,6 @@ def depth_pov(location_x, location_height, location_y,
     #include "colors.inc"
     #include "math.inc"
 
-    global_settings { assumed_gamma 1 }
-
     #declare CAMERAX = %f;
     #declare CAMERAHEIGHT = %f;
     #declare CAMERAY = %f;
@@ -27,8 +25,8 @@ def depth_pov(location_x, location_height, location_y,
     #declare DEPTHMAX = 0.15;
 
     camera {
-        panoramic
-        angle 300
+        cylinder 1
+        angle 220
         location CAMERAPOS
         look_at  CAMERALOOKAT
     }
@@ -96,8 +94,8 @@ def color_gradient_pov(location_x, location_height, location_y,
     #declare FILENAME = "%s";
 
     camera {
-        panoramic
-        angle 300
+        cylinder 1
+        angle 220
         location CAMERAPOS
         look_at  CAMERALOOKAT
     }
@@ -124,7 +122,7 @@ def height_pov(location_x, location_height, location_y,
                view_x, view_height, view_y,
                dem_file, max_height):
     pov_text = '''
-    #version 3.7;
+    #version 3.8;
     #include "colors.inc"
     #include "math.inc"
 
@@ -147,9 +145,9 @@ def height_pov(location_x, location_height, location_y,
 
     camera {
         cylinder 1
+        angle 210
         location CAMERAPOS
         look_at  CAMERALOOKAT
-        angle 160
     }
 
     light_source { CAMERAPOS color White }
@@ -164,7 +162,7 @@ def height_pov(location_x, location_height, location_y,
             }
         }
         finish { ambient 0.25 diffuse 1 specular 0.25 }
-        scale <1, 1, 1>
+        scale <1,0.75,1>
     }
 
     plane {

@@ -1,3 +1,4 @@
+import cv2
 from src.debug_tools import p_e, p_i, p_in, p_line
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
@@ -92,10 +93,13 @@ if __name__ == '__main__':
 
     if mode == 1 or mode == 2 or mode == 3:
         pano = file_chooser('Select an image to detect edges on')
+        img = cv2.imread(pano)
+        h, w, c = img.shape
         file, camera_lat, camera_lon, look_at_lat, look_at_lon = \
             get_mountain_data('data/dem-data.json', pano)
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
-        render_dem(file, coordinates, mode, folder, date)
+        render_dem(file, coordinates, 3, folder, get_date_time(), w, h, img)
+        # render_dem(file, coordinates, 2, folder, get_date_time(), w, h, img)
 
     elif mode == 4:
         kind = edge_detection_type()

@@ -30,10 +30,12 @@ def convert_coordinates(raster, to_espg, lat, lon, is_camera):
     height_max = (max_x - min_x)
     height_scaled = (height - height_min) / (height_max - height_min)
     height_max_mountain = h.max()
-    height_max_mountain_scaled = (height - height_min) / (height_max_mountain - height_min)
+    height_max_mountain_scaled = (height - height_min) /\
+                                 (height_max_mountain - height_min)
     if is_camera:
-        height_scaled = height_scaled * 1.56  # to place camera above horizon
-    return [lat_scaled, height_scaled, lon_scaled, height_max_mountain_scaled]
+        height_scaled = height_scaled * 1.57  # to place camera above horizon
+    return [lat_scaled, height_scaled*0.75,
+            lon_scaled, height_max_mountain_scaled*0.75]
 
 
 def cor_to_crs(to_espg, lat, lon):
