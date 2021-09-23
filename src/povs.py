@@ -120,7 +120,8 @@ def color_gradient_pov(location_x, location_height, location_y,
 
 def height_pov(location_x, location_height, location_y,
                view_x, view_height, view_y,
-               dem_file, max_height):
+               dem_file, max_height, panoramic_angle,
+               height_field_scale_factor):
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -139,15 +140,18 @@ def height_pov(location_x, location_height, location_y,
     #declare VIEWY = %f;
 
     #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, VIEWHEIGHT, VIEWY>;
+    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
     #declare FILENAME = "%s";
     #declare MAXMOUNTAIN = %f;
+    #declare PANOANGLE = %f;
+    #declare SCALEFACTOR = %f;
+
 
     camera {
         cylinder 1
-        angle 210
         location CAMERAPOS
         look_at  CAMERALOOKAT
+        angle PANOANGLE
     }
 
     light_source { CAMERAPOS color White }
@@ -162,7 +166,7 @@ def height_pov(location_x, location_height, location_y,
             }
         }
         finish { ambient 0.25 diffuse 1 specular 0.25 }
-        scale <1,0.75,1>
+        scale <1,SCALEFACTOR,1>
     }
 
     plane {
@@ -191,5 +195,5 @@ def height_pov(location_x, location_height, location_y,
 
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
-           dem_file, max_height)
+           dem_file, max_height, panoramic_angle, height_field_scale_factor)
     return pov_text

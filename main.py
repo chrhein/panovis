@@ -95,10 +95,13 @@ if __name__ == '__main__':
         pano = file_chooser('Select an image to detect edges on')
         img = cv2.imread(pano)
         h, w, c = img.shape
-        file, camera_lat, camera_lon, look_at_lat, look_at_lon = \
-            get_mountain_data('data/dem-data.json', pano)
+        file, camera_lat, camera_lon, look_at_lat, look_at_lon,\
+            panoramic_angle, height_field_scale_factor \
+            = get_mountain_data('data/dem-data.json', pano)
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
-        render_dem(file, coordinates, 3, folder, get_date_time(), w, h, img)
+        render_dem(file, coordinates, panoramic_angle, 3,
+                   folder, get_date_time(), w, h, img,
+                   height_field_scale_factor)
         # render_dem(file, coordinates, 2, folder, get_date_time(), w, h, img)
 
     elif mode == 4:

@@ -12,6 +12,9 @@ def get_mountain_data(json_path, panorama_path):
         # look_at_mountain = data['mountains']['ulriken']
         camera_lat, camera_lon = camera_mountain['latitude'], \
             camera_mountain['longitude']
+        panoramic_angle = camera_mountain['panoramic_angle']
+        height_field_scale_factor = camera_mountain['height_scale_factor']
         look_at_lat, look_at_lon = look_at_mountain['latitude'], \
             look_at_mountain['longitude']
-        return [file, camera_lat, camera_lon, look_at_lat, look_at_lon]
+        return [file, camera_lat, camera_lon, look_at_lat,
+                look_at_lon, panoramic_angle, height_field_scale_factor]

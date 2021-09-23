@@ -9,7 +9,8 @@ def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
     return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
 
 
-def convert_coordinates(raster, to_espg, lat, lon, is_camera):
+def convert_coordinates(raster, to_espg, lat, lon,
+                        is_camera, height_field_scale_factor):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
@@ -34,8 +35,8 @@ def convert_coordinates(raster, to_espg, lat, lon, is_camera):
                                  (height_max_mountain - height_min)
     if is_camera:
         height_scaled = height_scaled * 1.57  # to place camera above horizon
-    return [lat_scaled, height_scaled*0.75,
-            lon_scaled, height_max_mountain_scaled*0.75]
+    return [lat_scaled, height_scaled * height_field_scale_factor,
+            lon_scaled, height_max_mountain_scaled * height_field_scale_factor]
 
 
 def cor_to_crs(to_espg, lat, lon):

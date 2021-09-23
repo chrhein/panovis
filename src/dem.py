@@ -9,8 +9,8 @@ from src.location_handler import crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
-def render_dem(input_file, coordinates, mode, folder,
-               date, im_width, im_height, img):
+def render_dem(input_file, coordinates, panoramic_angle, mode, folder,
+               date, im_width, im_height, img, height_field_scale_factor):
     f = input_file.lower()
     if f.endswith('.dem') or f.endswith('.tif'):
         # convert DEM to GeoTIFF
@@ -36,7 +36,8 @@ def render_dem(input_file, coordinates, mode, folder,
 
     out_data = [out_width, out_height,
                 pov_filename, out_filename, folder, date]
-    raster_data = get_raster_data(dem_file, coordinates)
+    raster_data = get_raster_data(dem_file, coordinates,
+                                  height_field_scale_factor)
     max_height = raster_data[-1]
     raster_data = raster_data[:5]
 
@@ -51,7 +52,9 @@ def render_dem(input_file, coordinates, mode, folder,
     elif mode == 2:
         create_coordinate_gradients(raster_data, out_data)
     elif mode == 3:
-        create_height_image(raster_data[0], out_data[:4], max_height)
+        create_height_image(raster_data[0], out_data[:4],
+                            max_height, panoramic_angle,
+                            height_field_scale_factor)
         """
             try:
                 show_image(out_filename)
@@ -78,9 +81,12 @@ def create_color_image(coordinates_and_dem, out_params):
     execute_pov(*out_params)
 
 
-def create_height_image(coordinates_and_dem, out_params, max_height):
+def create_height_image(coordinates_and_dem, out_params,
+                        max_height, panoramic_angle,
+                        height_field_scale_factor):
     with open(out_params[2], 'w') as pf:
-        pf.write(height_pov(*coordinates_and_dem, max_height))
+        pf.write(height_pov(*coordinates_and_dem,
+                 max_height, panoramic_angle, height_field_scale_factor))
         pf.close()
     execute_pov(*out_params, "color")
 
