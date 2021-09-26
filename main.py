@@ -12,6 +12,7 @@ import os
 def get_input():
     p_i("Select one of these modes to continue:")
     information_text = [
+        "1: run through modes 2-5",
         "1: create 3d depth pov-ray render from DEM",
         "2: render-to-coordinates",
         "3: create a 3d height pov-ray render from DEM",
@@ -118,3 +119,6 @@ if __name__ == '__main__':
         image2 = file_chooser('Select image')
 
         feature_matching(image1, image2)
+    elif mode == 6:
+        pano = file_chooser('Select an image to detect edges on')
+        render_dem(pano, 1)

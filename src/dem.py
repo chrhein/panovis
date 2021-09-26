@@ -2,6 +2,7 @@ from cv2 import cv2
 import os
 import subprocess
 from datetime import datetime
+from src.data_getters.mountains import get_mountain_data
 from src.colors import get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
@@ -9,60 +10,69 @@ from src.location_handler import crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
-def render_dem(input_file, coordinates, panoramic_angle, mode, folder,
-               date, im_width, im_height, img, height_field_scale_factor):
-    f = input_file.lower()
+def render_dem(pano, mode):
+    mountain_data = get_mountain_data('data/dem-data.json', pano)
+    dem_file = mountain_data[0]
+    coordinates = mountain_data[1]
+    pov_settings = mountain_data[2]
+
+    f = dem_file.lower()
     if f.endswith('.dem') or f.endswith('.tif'):
         # convert DEM to GeoTIFF
         dem_file = 'exports/tmp_geotiff.png'
         subprocess.call(['gdal_translate', '-ot', 'UInt16',
-                         '-of', 'PNG', '%s' % input_file, '%s' % dem_file])
+                         '-of', 'PNG', '%s' % dem_file, '%s' % dem_file])
     elif f.endswith('.png') or f.endswith('.jpg'):
-        dem_file = input_file
+        pass
     else:
         p_e('please provide .dem, .tif or .png')
         exit()
 
-    out_filename = '%srendered_dem_%s.png' % (folder, date)
-
+    img = cv2.imread(pano)
+    im_height, im_width, _ = img.shape
     new_width = 2800
     new_height = int(new_width * im_height / im_width)
     out_width, out_height = new_width, new_height
 
-    cv2.imwrite(('%s/original_panorama.png' % folder),
+    filename = pano.split('/')[-1].split('.')[0]
+    folder = '%s/' % filename
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
+
+    cv2.imwrite(('%s%s.png' % (folder, filename)),
                 cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
 
+    if mode == 1:
+        suffix = '-depth'
+    elif mode == 3:
+        suffix = '-height'
+    out_filename = '%srender%s.png' % (folder, suffix)
+
     out_data = [out_width, out_height,
-                pov_filename, out_filename, folder, date]
-    raster_data = get_raster_data(dem_file, coordinates,
-                                  height_field_scale_factor)
+                pov_filename, out_filename, folder]
+
+    raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
     max_height = raster_data[-1]
     raster_data = raster_data[:5]
 
     if mode == 1:
-        create_depth_image(raster_data[0], out_data[:4])
+        create_depth_image(raster_data[0], out_data)
         try:
             show_image(out_filename)
         except FileNotFoundError:
             p_e("There is probably an error in the .pov file")
             exit()
-        p_i("Finished creating panorama for %s" % input_file)
+        p_i("Finished creating render for %s" % dem_file)
     elif mode == 2:
         create_coordinate_gradients(raster_data, out_data)
     elif mode == 3:
         create_height_image(raster_data[0], out_data[:4],
-                            max_height, panoramic_angle,
-                            height_field_scale_factor)
-        """
-            try:
-                show_image(out_filename)
-            except FileNotFoundError:
-                p_e("There is probably an error in the .pov file")
-                exit()
-        """
-        p_i("Finished creating panorama for %s" % input_file)
+                            max_height, *pov_settings)
+        p_i("Finished creating render for %s" % dem_file)
 
 
 def create_depth_image(coordinates_and_dem, out_params):
@@ -98,13 +108,13 @@ def create_coordinate_gradients(raster_data, out_data):
     _, _, pov_filename, out_filename, folder, date = out_data
 
     # generating two gradient colored pov-ray renders
-    out_filename_x = '%srendered_dem_%s_x.png' % (folder, date)
+    out_filename_x = '%s_x.png' % out_filename
     with open(pov_filename, 'w') as pf:
         pf.write(color_gradient_pov(*coordinates_and_dem, "x"))
         pf.close()
     execute_pov(*out_data[:3], out_filename_x)
 
-    out_filename_y = '%srendered_dem_%s_z.png' % (folder, date)
+    out_filename_y = '%s_y.png' % out_filename
     with open(pov_filename, 'w') as pf:
         pf.write(color_gradient_pov(*coordinates_and_dem, "z"))
         pf.close()
