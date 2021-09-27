@@ -1,4 +1,4 @@
-from cv2 import cv2
+import cv2
 import os
 import subprocess
 from datetime import datetime
@@ -17,15 +17,8 @@ def render_dem(pano, mode):
     pov_settings = mountain_data[2]
 
     f = dem_file.lower()
-    if f.endswith('.dem') or f.endswith('.tif'):
-        # convert DEM to GeoTIFF
-        dem_file = 'exports/tmp_geotiff.png'
-        subprocess.call(['gdal_translate', '-ot', 'UInt16',
-                         '-of', 'PNG', '%s' % dem_file, '%s' % dem_file])
-    elif f.endswith('.png') or f.endswith('.jpg'):
-        pass
-    else:
-        p_e('please provide .dem, .tif or .png')
+    if not f.endswith('.png') and not f.endswith('.jpg'):
+        p_e('please provide a .png file')
         exit()
 
     img = cv2.imread(pano)
@@ -36,6 +29,7 @@ def render_dem(pano, mode):
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = '%s/' % filename
+
     try:
         os.mkdir(folder)
     except FileExistsError:
@@ -45,42 +39,32 @@ def render_dem(pano, mode):
                 cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
-
-    if mode == 1:
-        suffix = '-depth'
-    elif mode == 3:
-        suffix = '-height'
-    out_filename = '%srender%s.png' % (folder, suffix)
-
-    out_data = [out_width, out_height,
-                pov_filename, out_filename, folder]
-
+    im_dimensions = [out_width, out_height]
     raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
-    max_height = raster_data[-1]
-    raster_data = raster_data[:5]
+    pov = [pov_filename, folder, im_dimensions, pov_settings]
+    pov_params = [dem_file, pov, raster_data]
 
     if mode == 1:
-        create_depth_image(raster_data[0], out_data)
-        try:
-            show_image(out_filename)
-        except FileNotFoundError:
-            p_e("There is probably an error in the .pov file")
-            exit()
-        p_i("Finished creating render for %s" % dem_file)
+        create_height_image(*pov_params)
+        create_depth_image(*pov_params)
     elif mode == 2:
-        create_coordinate_gradients(raster_data, out_data)
+        create_depth_image(*pov_params)
     elif mode == 3:
-        create_height_image(raster_data[0], out_data[:4],
-                            max_height, *pov_settings)
-        p_i("Finished creating render for %s" % dem_file)
+        create_height_image(*pov_params)
+    elif mode == 4:
+        create_coordinate_gradients(*pov_params)
 
 
-def create_depth_image(coordinates_and_dem, out_params):
+def create_depth_image(dem_file, pov, raster_data):
     # generating pov-ray render using depth mapping
-    with open(out_params[2], 'w') as pf:
-        pf.write(depth_pov(*coordinates_and_dem))
+    pov_filename, folder, im_dimensions, pov_settings = pov
+    with open(pov_filename, 'w') as pf:
+        pov = depth_pov(dem_file, raster_data, pov_settings)
+        pf.write(pov)
         pf.close()
-    execute_pov(*out_params)
+    out_filename = "%srender-depth.png" % folder
+    params = [pov_filename, out_filename, im_dimensions, "depth"]
+    execute_pov(params)
 
 
 def create_color_image(coordinates_and_dem, out_params):
@@ -91,37 +75,44 @@ def create_color_image(coordinates_and_dem, out_params):
     execute_pov(*out_params)
 
 
-def create_height_image(coordinates_and_dem, out_params,
-                        max_height, panoramic_angle,
-                        height_field_scale_factor):
-    with open(out_params[2], 'w') as pf:
-        pf.write(height_pov(*coordinates_and_dem,
-                 max_height, panoramic_angle, height_field_scale_factor))
-        pf.close()
-    execute_pov(*out_params, "color")
-
-
-def create_coordinate_gradients(raster_data, out_data):
-    coordinates_and_dem, ds_raster, total_distance_n_s, \
-        total_distance_e_w, resolution = raster_data
-
-    _, _, pov_filename, out_filename, folder, date = out_data
-
-    # generating two gradient colored pov-ray renders
-    out_filename_x = '%s_x.png' % out_filename
+def create_height_image(dem_file, pov, raster_data):
+    pov_filename, folder, im_dimensions, pov_settings = pov
     with open(pov_filename, 'w') as pf:
-        pf.write(color_gradient_pov(*coordinates_and_dem, "x"))
+        pov = height_pov(dem_file, raster_data, pov_settings)
+        pf.write(pov)
         pf.close()
-    execute_pov(*out_data[:3], out_filename_x)
+    out_filename = "%srender-height.png" % folder
+    params = [pov_filename, out_filename, im_dimensions, "color"]
+    execute_pov(params)
+    '''
+    out_width, out_height, pov_filename,
+                out_filename, mode="standard"
+    '''
 
-    out_filename_y = '%s_y.png' % out_filename
+
+def create_coordinate_gradients(dem_file, pov, raster_data):
+    pov_filename, folder, im_dimensions, pov_settings = pov
+
+    ds_raster = raster_data[1][0]
+    total_distance_n_s, total_distance_e_w = raster_data[1][1]
+    resolution = raster_data[1][2]
+
     with open(pov_filename, 'w') as pf:
-        pf.write(color_gradient_pov(*coordinates_and_dem, "z"))
+        pf.write(color_gradient_pov(dem_file, raster_data, pov_settings, "x"))
         pf.close()
-    execute_pov(*out_data[:3], out_filename_y)
+    out_filename_x = "%srender-loc_x.png" % folder
+    params = [pov_filename, out_filename_x, im_dimensions, "loc_x"]
+    execute_pov(params)
+
+    with open(pov_filename, 'w') as pf:
+        pf.write(color_gradient_pov(dem_file, raster_data, pov_settings, "z"))
+        pf.close()
+    out_filename_z = "%srender-loc_z.png" % folder
+    params = [pov_filename, out_filename_z, im_dimensions, "loc_z"]
+    execute_pov(params)
 
     # using the colors of each photo to pinpoint where we are looking at
-    color_z, m_factor = get_color_from_image(out_filename_y)
+    color_z, m_factor = get_color_from_image(out_filename_z)
     color_x = get_color_from_image(out_filename_x)[0]
     z_index = get_color_index_in_image(color_x,
                                        [0, 0, 0],
@@ -139,25 +130,26 @@ def create_coordinate_gradients(raster_data, out_data):
     y += resolution / 2
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
 
-    if(folder != "/tmp/"):
-        with open(pov_filename, 'w') as pf:
-            pf.write(depth_pov(*coordinates_and_dem))
-            pf.close()
-        execute_pov(*out_data[:3], out_filename)
-        image = cv2.imread(out_filename)
-        height, width, _ = image.shape
-        out_params = [folder, date]
-        visualize_point(out_params, image, width, height, m_factor)
-        visualize_point_on_dem(out_params, coordinates_and_dem, x_index,
-                               z_index, resolution)
+    with open(pov_filename, 'w') as pf:
+        pf.write(depth_pov(dem_file, raster_data, pov_settings))
+        pf.close()
+    out_filename = "%srender-depth.png" % folder
+    params = [pov_filename, out_filename, im_dimensions, "depth"]
+    execute_pov(params)
+
+    image = cv2.imread(out_filename)
+    height, width, _ = image.shape
+    visualize_point(folder, image, width, height, m_factor)
+    visualize_point_on_dem(folder, dem_file, x_index, z_index, resolution)
     p_line(["Latitude: %.20f" % float(str(latitude).strip("[]")),
             "Longitude: %.20f" % float(str(longitude).strip("[]"))])
     p_i("%.20f, %.20f" % (float(str(latitude).strip("[]")),
                           float(str(longitude).strip("[]"))))
 
 
-def execute_pov(out_width, out_height, pov_filename,
-                out_filename, mode="standard"):
+def execute_pov(params):
+    pov_filename, out_filename, dimensions, mode = params
+    out_width, out_height = dimensions
     p_i("Generating %s" % out_filename)
     if mode == "color":
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
@@ -176,22 +168,20 @@ def show_image(out_filename):
     cv2.waitKey(0)
 
 
-def visualize_point(out_params, image, width, height, m_factor):
+def visualize_point(folder, image, width, height, m_factor):
     # highlight sample area on original pov-ray render
-    folder, date = out_params
-    point_file = '%s/rendered_dem_%s_point.png' % (folder, date)
+    point_file = '%s/render_sample_point.png' % (folder)
     cv2.imwrite(point_file, cv2.circle(image,
                                        (int(width * 0.5),
                                         int(height * m_factor)),
                 12, (0, 0, 255), -1))
 
 
-def visualize_point_on_dem(out_params, coordinates_and_dem, x_index,
+def visualize_point_on_dem(folder, dem_file, x_index,
                            z_index, resolution):
     # highlight sample area on original DEM being used
-    folder, date = out_params
-    original_raster_dotted = '%s/original_dem%s_point.png' % (folder, date)
-    original_dem = cv2.imread(coordinates_and_dem[6])
+    original_raster_dotted = '%s/original_dem_sample_point.png' % (folder)
+    original_dem = cv2.imread(dem_file)
     cv2.imwrite(original_raster_dotted, cv2.circle(original_dem,
                                                    (int(z_index / resolution),
                                                     int(x_index / resolution)),

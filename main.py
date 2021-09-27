@@ -1,9 +1,7 @@
-import cv2
 from src.debug_tools import p_e, p_i, p_in, p_line
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
-from src.data_getters.mountains import get_mountain_data
-from src.dem import get_date_time, render_dem
+from src.dem import render_dem
 from tkinter.filedialog import askopenfile
 import tkinter as tk
 import os
@@ -84,28 +82,10 @@ def file_chooser(title):
 if __name__ == '__main__':
     mode = get_input()
 
-    # save renders to export-folder
-    persistent = True
-
-    date = get_date_time()
-    folder = '/tmp/'
-    if persistent:
-        folder = 'exports/'
-
-    if mode == 1 or mode == 2 or mode == 3:
+    if 0 < mode < 5:
         pano = file_chooser('Select an image to detect edges on')
-        img = cv2.imread(pano)
-        h, w, c = img.shape
-        file, camera_lat, camera_lon, look_at_lat, look_at_lon,\
-            panoramic_angle, height_field_scale_factor \
-            = get_mountain_data('data/dem-data.json', pano)
-        coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
-        render_dem(file, coordinates, panoramic_angle, 3,
-                   folder, get_date_time(), w, h, img,
-                   height_field_scale_factor)
-        # render_dem(file, coordinates, 2, folder, get_date_time(), w, h, img)
-
-    elif mode == 4:
+        render_dem(pano, mode)
+    elif mode == 5:
         kind = edge_detection_type()
         image = file_chooser('Select an image to detect edges on')
         if kind == 1:
@@ -114,11 +94,8 @@ if __name__ == '__main__':
             edge_detection(image, "HED")
         elif kind == 3:
             edge_detection(image, "Horizon")
-    elif mode == 5:
+    elif mode == 6:
         image1 = file_chooser('Select render')
         image2 = file_chooser('Select image')
 
         feature_matching(image1, image2)
-    elif mode == 6:
-        pano = file_chooser('Select an image to detect edges on')
-        render_dem(pano, 1)

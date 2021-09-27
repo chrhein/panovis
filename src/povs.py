@@ -1,6 +1,11 @@
-def depth_pov(location_x, location_height, location_y,
-              view_x, view_height, view_y,
-              dem_file):
+def depth_pov(dem_file, raster_data, pov_settings):
+    coordinates = raster_data[0]
+    location_x, location_height, location_y, \
+        view_x, view_height, view_y = coordinates
+    max_height = raster_data[1][3]
+    panoramic_angle = pov_settings[0]
+    height_field_scale_factor = pov_settings[1]
+
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -14,8 +19,11 @@ def depth_pov(location_x, location_height, location_y,
     #declare VIEWY = %f;
 
     #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, VIEWHEIGHT, VIEWY>;
+    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
     #declare FILENAME = "%s";
+    #declare MAXMOUNTAIN = %f;
+    #declare PANOANGLE = %f;
+    #declare SCALEFACTOR = %f;
 
     #declare CAMERAFRONT  = vnormalize(CAMERAPOS - CAMERALOOKAT);
     #declare CAMERAFRONTX = CAMERAFRONT.x;
@@ -26,9 +34,9 @@ def depth_pov(location_x, location_height, location_y,
 
     camera {
         cylinder 1
-        angle 220
         location CAMERAPOS
         look_at  CAMERALOOKAT
+        angle PANOANGLE
     }
 
     #declare clipped_scaled_gradient =
@@ -62,17 +70,21 @@ def depth_pov(location_x, location_height, location_y,
     height_field {
         png FILENAME
         texture { thetexture }
-
+        scale <1,SCALEFACTOR,1>
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
-           dem_file)
+           dem_file, max_height, panoramic_angle, height_field_scale_factor)
     return pov_text
 
 
-def color_gradient_pov(location_x, location_height, location_y,
-                       view_x, view_height, view_y,
-                       dem_file, axis):
+def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
+    coordinates = raster_data[0]
+    location_x, location_height, location_y, \
+        view_x, view_height, view_y = coordinates
+    max_height = raster_data[1][3]
+    panoramic_angle = pov_settings[0]
+    height_field_scale_factor = pov_settings[1]
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -90,15 +102,19 @@ def color_gradient_pov(location_x, location_height, location_y,
     #declare VIEWY = %f;
 
     #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, VIEWHEIGHT, VIEWY>;
+    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
     #declare FILENAME = "%s";
+    #declare MAXMOUNTAIN = %f;
+    #declare PANOANGLE = %f;
+    #declare SCALEFACTOR = %f;
 
     camera {
         cylinder 1
-        angle 220
         location CAMERAPOS
         look_at  CAMERALOOKAT
+        angle PANOANGLE
     }
+
     background { color rgb <1, 1, 1> }
     height_field {
         png FILENAME
@@ -109,19 +125,25 @@ def color_gradient_pov(location_x, location_height, location_y,
                 [1 color rgb <1,0,0>] // east if x, north if z
               }
         }
+        scale <1,SCALEFACTOR,1>
         finish {ambient 1 diffuse 0 specular 0}
 
     }
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
-           dem_file, axis)
+           dem_file, max_height, panoramic_angle, height_field_scale_factor,
+           axis)
     return pov_text
 
 
-def height_pov(location_x, location_height, location_y,
-               view_x, view_height, view_y,
-               dem_file, max_height, panoramic_angle,
-               height_field_scale_factor):
+def height_pov(dem_file, raster_data, pov_settings):
+    coordinates = raster_data[0]
+    location_x, location_height, location_y, \
+        view_x, view_height, view_y = coordinates
+    max_height = raster_data[1][3]
+    panoramic_angle = pov_settings[0]
+    height_field_scale_factor = pov_settings[1]
+
     pov_text = '''
     #version 3.8;
     #include "colors.inc"

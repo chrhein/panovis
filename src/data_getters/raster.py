@@ -25,9 +25,12 @@ def get_raster_data(dem_file, coordinates, height_field_scale_factor):
     total_distance_e_w = raster_right - raster_left
     total_distance_n_s = raster_top - raster_bottom
 
+    distances = [total_distance_n_s, total_distance_e_w]
+
     max_height = camera_lat_lon[-1]
 
-    coordinates_and_dem = [*camera_lat_lon[:3], *look_at_lat_lon[:3], dem_file]
+    normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
 
-    return [coordinates_and_dem, ds_raster, total_distance_n_s,
-            total_distance_e_w, resolution, max_height]
+    raster_metadata = [ds_raster, distances, resolution, max_height]
+
+    return [normalized_coordinates, raster_metadata]
