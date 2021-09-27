@@ -1,26 +1,31 @@
 import cv2
 import numpy as np
-from src.im import vertical_stack_imshow_divider
 from src.hed import holistically_nested
 from src.debug_tools import p_i, nothing
 from src.image_manipulations import resizer
 
 
-def edge_detection(image_path, algorithm):
+def edge_detection(image_path, algorithm, folder="", im_w=2400):
     image = cv2.imread(image_path)
     if algorithm == "Canny":
-        edge_detected_image = canny_edge_detection(image)
+        edge_detected_image = canny_edge_detection(image, False)
+        if folder:
+            cv2.imwrite('%sedge-detected-canny.png' % folder,
+                        edge_detected_image)
     elif algorithm == "HED":
         height, width, _ = image.shape
         max_length = max(height, width)
-        if max_length > 2400:
-            image = resizer(image, im_width=2400)
+        if max_length > im_w:
+            image = resizer(image, im_width=im_w)
         edge_detected_image = holistically_nested(image)
+        if folder:
+            cv2.imwrite('%sedge-detected-hed.png' % folder,
+                        edge_detected_image)
     elif algorithm == "Horizon":
         edge_detected_image = find_horizon_edge(image_path)
     else:
         return
-    vertical_stack_imshow_divider(cv2.imread(image_path), edge_detected_image)
+    # vertical_stack_imshow_divider(cv2.imread(image_path),edge_detected_image)
 
 
 def harris_corner_detection(image):
@@ -56,18 +61,12 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
     p_i('Opening external window')
     n = 'Canny Edge Detection'
     cv2.namedWindow(n)
-    switch = 'Show Contours'
-    cv2.createTrackbar(switch, n, 1, 1, nothing)
     cv2.createTrackbar('Lower Bound', n, lb, 100, nothing)
-    cv2.createTrackbar('Upper Bound', n, 25, 100, nothing)
+    cv2.createTrackbar('Upper Bound', n, ub, 100, nothing)
     while True:
-        s = cv2.getTrackbarPos(switch, n)
         lb = cv2.getTrackbarPos('Lower Bound', n)
         ub = cv2.getTrackbarPos('Upper Bound', n)
-        if s == 0:
-            edges = image
-        else:
-            edges = cv2.Canny(blurred, lb, ub)
+        edges = cv2.Canny(blurred, lb, ub)
         cv2.imshow(n, edges)
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # use escape for exiting window

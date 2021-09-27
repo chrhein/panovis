@@ -1,5 +1,5 @@
 {
-    "dem-path": "exports/tmp_geotiff.png",
+    "dem-path": "data/hordaland.png",
     "mountains": {
         "blåmanen": {
             "latitude": 60.4014,

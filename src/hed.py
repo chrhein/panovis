@@ -45,4 +45,5 @@ def holistically_nested(image):
     hed = (255 * cv2.resize(net.forward()[0, 0], (width, height)))\
         .astype("uint8")
     p_i("Holistically-Nested Edge Detection complete!")
+    cv2.dnn_unregisterLayer("Crop")
     return hed
