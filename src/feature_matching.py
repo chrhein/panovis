@@ -58,7 +58,6 @@ def skeletonize(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     lb = 0
     ub = 255
-
     n = 'Skeletonizing'
     cv2.namedWindow(n)
     switch = 'Skeletonize'
@@ -75,23 +74,34 @@ def skeletonize(image):
             thinned = thin(image, lb, ub)
         cv2.imshow(n, thinned)
         k = cv2.waitKey(1) & 0xFF
-        if k == 27:  # use escape for exiting window
+        if k == 27:
             cv2.destroyAllWindows()
             p_line(["lb: %i" % lb, "ub: %i" % ub])
             return thinned
 
 
-def feature_matching(image1, image2):
-    image1 = flip(cv2.imread(image1))
-    image2 = flip(cv2.imread(image2))
+def feature_matching(image1, image2, folder="", im_orig="", im_rendr=""):
+    im1 = flip(cv2.imread(image1))
+    im2 = flip(cv2.imread(image2))
 
-    key_points_1, descriptors_1 = sift(image1)
-    key_points_2, descriptors_2 = sift(image2)
+    key_points_1, descriptors_1 = sift(im1)
+    key_points_2, descriptors_2 = sift(im2)
 
     bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
     matches = bf.match(descriptors_1, descriptors_2)
     matches = sorted(matches, key=lambda x: x.distance)
-    image3 = flip(cv2.drawMatches(image1, key_points_1, image2,
-                                  key_points_2, matches[:10],
-                                  image2, flags=2), 1)
-    custom_imshow(image3, "FM"), cv2.waitKey(0)
+    image3 = flip(cv2.drawMatches(im1, key_points_1, im2,
+                                  key_points_2, matches[:50],
+                                  im2, flags=2), 1)
+    if im_orig and im_rendr:
+        im1 = flip(cv2.imread(im_rendr))
+        im2 = flip(cv2.imread(im_orig))
+        image4 = flip(cv2.drawMatches(im1, key_points_1, im2,
+                                      key_points_2, matches[:50],
+                                      im2, flags=2), 1)
+    if folder:
+        cv2.imwrite("%sfeature_matched.png" % folder, image3)
+        if im_orig and im_rendr:
+            cv2.imwrite("%sfeature_matched_color.png" % folder, image4)
+    else:
+        custom_imshow(image3, "FM"), cv2.waitKey(0)
