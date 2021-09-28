@@ -25,7 +25,6 @@ def edge_detection(image_path, algorithm, folder="", im_w=2400):
         edge_detected_image = find_horizon_edge(image_path)
     else:
         return
-    # vertical_stack_imshow_divider(cv2.imread(image_path),edge_detected_image)
 
 
 def harris_corner_detection(image):

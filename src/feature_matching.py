@@ -58,7 +58,6 @@ def skeletonize(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     lb = 0
     ub = 255
-
     n = 'Skeletonizing'
     cv2.namedWindow(n)
     switch = 'Skeletonize'
@@ -75,7 +74,7 @@ def skeletonize(image):
             thinned = thin(image, lb, ub)
         cv2.imshow(n, thinned)
         k = cv2.waitKey(1) & 0xFF
-        if k == 27:  # use escape for exiting window
+        if k == 27:
             cv2.destroyAllWindows()
             p_line(["lb: %i" % lb, "ub: %i" % ub])
             return thinned
