@@ -2,13 +2,15 @@ import cv2
 import os
 import subprocess
 from datetime import datetime
+from src.image_manipulations import resizer
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
 from src.data_getters.mountains import get_mountain_data
-from src.colors import get_color_from_image, get_color_index_in_image
+from src.colors import color_interpolator, \
+    get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
-from src.location_handler import crs_to_wgs84
+from src.location_handler import coordinate_lookup, crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
@@ -30,15 +32,16 @@ def render_dem(pano, mode):
     out_width, out_height = new_width, new_height
 
     filename = pano.split('/')[-1].split('.')[0]
-    folder = '%s/' % filename
+    folder = 'exports/%s/' % filename
 
     try:
         os.mkdir(folder)
     except FileExistsError:
         pass
 
-    cv2.imwrite(('%s%s.png' % (folder, filename)),
-                cv2.resize(img, [new_width, new_height]))
+    if mode < 5:
+        cv2.imwrite(('%s%s.png' % (folder, filename)),
+                    cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
@@ -64,6 +67,19 @@ def render_dem(pano, mode):
         create_height_image(*pov_params)
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
+    elif mode == 5:
+        im_width = 500  # should be a quite low number, e.g. < 500
+        try:
+            im1 = cv2.cvtColor(resizer(
+                  cv2.imread('%srender-loc_x.png' % folder),
+                  im_width=im_width), cv2.COLOR_BGR2RGB)
+            im2 = cv2.cvtColor(resizer(
+                  cv2.imread('%srender-loc_z.png' % folder),
+                  im_width=im_width), cv2.COLOR_BGR2RGB)
+            plot_filename = '%s%s.html' % (folder, filename)
+            coordinate_lookup(im1, im2, dem_file, coordinates, plot_filename)
+        except FileNotFoundError:
+            p_e('Could not find a render-loc_x or z file')
 
 
 def create_depth_image(dem_file, pov, raster_data):
@@ -121,14 +137,14 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     # using the colors of each photo to pinpoint where we are looking at
     color_z, m_factor = get_color_from_image(out_filename_z)
     color_x = get_color_from_image(out_filename_x)[0]
+    x_colors = color_interpolator([0, 0, 0], [255, 0, 0],
+                                  int(total_distance_n_s))
+    y_colors = color_interpolator([255, 0, 0], [0, 0, 0],
+                                  int(total_distance_e_w))
     z_index = get_color_index_in_image(color_x,
-                                       [0, 0, 0],
-                                       [255, 0, 0],
-                                       int(total_distance_n_s))
+                                       x_colors)
     x_index = get_color_index_in_image(color_z,
-                                       [255, 0, 0],
-                                       [0, 0, 0],
-                                       int(total_distance_e_w))
+                                       y_colors)
 
     x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
     print(x, y)
@@ -160,11 +176,13 @@ def execute_pov(params):
     p_i('Generating %s' % out_filename)
     if mode == 'color':
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=8 +Q4 +UR +A',
+                         'Output_File_Type=N Bits_Per_Color=16 +Q4 +UR +A',
+                         '-GA',
                          '+I' + pov_filename, '+O' + out_filename])
     else:
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=32 Display=off',
+                         'Output_File_Type=N Bits_Per_Color=16 Display=off',
+                         '-GA',
                          'Antialias=off Quality=0 File_Gamma=1.0',
                          '+I' + pov_filename, '+O' + out_filename])
 

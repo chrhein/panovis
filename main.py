@@ -14,8 +14,9 @@ def get_input():
         "2: create 3d depth pov-ray render from DEM",
         "3: create a 3d height pov-ray render from DEM",
         "4: render-to-coordinates",
-        "5: edge detection in given image",
-        "6: feature matching given two images",
+        "5: show geolocations in image",
+        "6: edge detection in given image",
+        "7: feature matching given two images",
         "0: exit program"
     ]
     p_line(information_text)
@@ -92,12 +93,11 @@ def file_chooser(title, multiple=False):
 if __name__ == '__main__':
     mode = get_input()
 
-    if 0 < mode < 5:
+    if 0 < mode < 6:
         panos = file_chooser('Select an image to detect edges on', True)
         for pano in panos:
             render_dem(pano, mode)
-        p_i('Autopilot complete.')
-    elif mode == 5:
+    elif mode == 6:
         kind = edge_detection_type()
         image = file_chooser('Select an image to detect edges on')
         if kind == 1:
@@ -106,7 +106,7 @@ if __name__ == '__main__':
             edge_detection(image, "HED")
         elif kind == 3:
             edge_detection(image, "Horizon")
-    elif mode == 6:
+    elif mode == 7:
         image1 = file_chooser('Select render')
         image2 = file_chooser('Select image')
         feature_matching(image1, image2)

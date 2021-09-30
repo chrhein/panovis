@@ -121,14 +121,15 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
         pigment {
             gradient %s
             color_map {
+                blend_mode 0
                 [0 color rgb <0,0,0>] // west if x, south if z
                 [1 color rgb <1,0,0>] // east if x, north if z
-              }
+            }
         }
         scale <1,SCALEFACTOR,1>
         finish {ambient 1 diffuse 0 specular 0}
-
     }
+
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle, height_field_scale_factor,

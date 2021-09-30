@@ -4,14 +4,12 @@ import numpy as np
 from src.debug_tools import p_i
 
 
-def get_image_rgb_list(image_path, m_factor=0.55, color_space=1):
-    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+def get_image_hsv_list(image, m_factor=0.55, color_space=1):
     height, width, _ = image.shape
     color = image[int(height * m_factor), int(width * 0.5)]
     color = np.array_split(color, 3)
-    r, g, b = color
-    return r[0] / color_space, g[0] / color_space, b[0] / color_space
+    h, s, v = color
+    return h[0] / color_space, s[0] / color_space, v[0] / color_space
 
 
 def color_interpolator(from_color, to_color, size):
@@ -23,15 +21,16 @@ def color_interpolator(from_color, to_color, size):
 
 
 def get_unique_colors_in_image(image):
-    image = cv2.imread(image)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return set(tuple(v) for m2d in image for v in m2d)
 
 
-def get_color_from_image(image):
+def get_color_from_image(image_path):
+    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     m_factor = 0.0
     while True:
-        color = get_image_rgb_list(image, m_factor)
+        color = get_image_hsv_list(image, m_factor)
         if color[1] == 0.0 or color[2] == 0.0:
             break
         if m_factor >= 1.0:
@@ -42,22 +41,14 @@ def get_color_from_image(image):
     return color, m_factor
 
 
-def get_color_index_in_image(color, from_color, to_color, step_size):
-    colors = color_interpolator(from_color, to_color, step_size)
-    o_r, o_g, o_b = color
-    p_i("Searching for: %i, %i, %i" % (o_r, o_g, o_b))
-
+def get_color_index_in_image(color, colors):
+    o_r, _, _ = color
     l_index = 0
     lowest = 1000
-    for i in range(len(colors)):
-        r, g, b = colors[i]
+    for i in range(1000, len(colors), 5):
+        r, _, _ = colors[i]
         new_low_r = abs(r - o_r)
         if new_low_r < lowest:
             lowest = new_low_r
             l_index = i
-
-    p_i(l_index)
-    p_i("Found nearest color: %i, %i, %i" % (
-        round(colors[l_index][0]), round(colors[l_index][1]),
-        round(colors[l_index][2])))
     return l_index
