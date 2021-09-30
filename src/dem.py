@@ -2,13 +2,15 @@ import cv2
 import os
 import subprocess
 from datetime import datetime
+from src.image_manipulations import resizer
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
 from src.data_getters.mountains import get_mountain_data
-from src.colors import color_interpolator, get_color_from_image, get_color_index_in_image
+from src.colors import color_interpolator, \
+    get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
-from src.location_handler import crs_to_wgs84
+from src.location_handler import coordinate_lookup, crs_to_wgs84
 from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
@@ -37,8 +39,9 @@ def render_dem(pano, mode):
     except FileExistsError:
         pass
 
-    cv2.imwrite(('%s%s.png' % (folder, filename)),
-                cv2.resize(img, [new_width, new_height]))
+    if mode < 5:
+        cv2.imwrite(('%s%s.png' % (folder, filename)),
+                    cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
@@ -64,6 +67,19 @@ def render_dem(pano, mode):
         create_height_image(*pov_params)
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
+    elif mode == 5:
+        im_width = 500  # should be a quite low number, e.g. < 500
+        try:
+            im1 = cv2.cvtColor(resizer(
+                  cv2.imread('%srender-loc_x.png' % folder),
+                  im_width=im_width), cv2.COLOR_BGR2RGB)
+            im2 = cv2.cvtColor(resizer(
+                  cv2.imread('%srender-loc_z.png' % folder),
+                  im_width=im_width), cv2.COLOR_BGR2RGB)
+            plot_filename = '%s%s.html' % (folder, filename)
+            coordinate_lookup(im1, im2, dem_file, coordinates, plot_filename)
+        except FileNotFoundError:
+            p_e('Could not find a render-loc_x or z file')
 
 
 def create_depth_image(dem_file, pov, raster_data):

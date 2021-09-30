@@ -45,7 +45,7 @@ def get_color_index_in_image(color, colors):
     o_r, _, _ = color
     l_index = 0
     lowest = 1000
-    for i in range(0, len(colors), 3):
+    for i in range(1000, len(colors), 5):
         r, _, _ = colors[i]
         new_low_r = abs(r - o_r)
         if new_low_r < lowest:
