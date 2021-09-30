@@ -5,7 +5,7 @@ from datetime import datetime
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
 from src.data_getters.mountains import get_mountain_data
-from src.colors import get_color_from_image, get_color_index_in_image
+from src.colors import color_interpolator, get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
 from src.location_handler import crs_to_wgs84
@@ -30,7 +30,7 @@ def render_dem(pano, mode):
     out_width, out_height = new_width, new_height
 
     filename = pano.split('/')[-1].split('.')[0]
-    folder = '%s/' % filename
+    folder = 'exports/%s/' % filename
 
     try:
         os.mkdir(folder)
@@ -121,14 +121,14 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     # using the colors of each photo to pinpoint where we are looking at
     color_z, m_factor = get_color_from_image(out_filename_z)
     color_x = get_color_from_image(out_filename_x)[0]
+    x_colors = color_interpolator([0, 0, 0], [255, 0, 0],
+                                  int(total_distance_n_s))
+    y_colors = color_interpolator([255, 0, 0], [0, 0, 0],
+                                  int(total_distance_e_w))
     z_index = get_color_index_in_image(color_x,
-                                       [0, 0, 0],
-                                       [255, 0, 0],
-                                       int(total_distance_n_s))
+                                       x_colors)
     x_index = get_color_index_in_image(color_z,
-                                       [255, 0, 0],
-                                       [0, 0, 0],
-                                       int(total_distance_e_w))
+                                       y_colors)
 
     x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
     print(x, y)
@@ -160,11 +160,13 @@ def execute_pov(params):
     p_i('Generating %s' % out_filename)
     if mode == 'color':
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=8 +Q4 +UR +A',
+                         'Output_File_Type=N Bits_Per_Color=16 +Q4 +UR +A',
+                         '-GA',
                          '+I' + pov_filename, '+O' + out_filename])
     else:
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=32 Display=off',
+                         'Output_File_Type=N Bits_Per_Color=16 Display=off',
+                         '-GA',
                          'Antialias=off Quality=0 File_Gamma=1.0',
                          '+I' + pov_filename, '+O' + out_filename])
 
