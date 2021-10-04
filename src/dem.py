@@ -68,34 +68,36 @@ def render_dem(pano, mode):
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
     elif mode == 5:
-        try:
-            start_time = datetime.now()
-            file_exist = os.path.isfile('%slocations.txt' % folder)
-            if file_exist:
-                file = open('%slocations.txt' % folder, 'r')
-                locs = [line.rstrip() for line in file.readlines()]
-                file.close()
-                locs = [(float(i[0]), float(i[1]))
-                        for i in (x.split(",") for x in locs)]
-            else:
-                im_width = 500  # should be a quite low number, e.g. < 500
-                im1 = cv2.cvtColor(resizer(
-                    cv2.imread('%srender-loc_x.png' % folder),
-                    im_width=im_width), cv2.COLOR_BGR2RGB)
-                im2 = cv2.cvtColor(resizer(
-                    cv2.imread('%srender-loc_z.png' % folder),
-                    im_width=im_width), cv2.COLOR_BGR2RGB)
-                locs = coordinate_lookup(im1, im2, dem_file)
-                file = open('%slocations.txt' % folder, 'w')
-                [file.write('%s\n' % str(i).strip('()')) for i in locs]
-                file.close()
-            plot_filename = '%s%s.html' % (folder, filename)
-            end_time = datetime.now()
-            plot_to_map(locs, coordinates, plot_filename)
-            dur = end_time - start_time
-            p_i('Total runtime: %s seconds' % str(dur.seconds))
-        except AttributeError:
-            p_e('Could not find a render-loc_x or z file')
+        start_time = datetime.now()
+        loc_x = os.path.isfile('%srender-loc_x.png' % folder)
+        loc_z = os.path.isfile('%srender-loc_z.png' % folder)
+        loc_files_exist = loc_x and loc_z
+        if not loc_files_exist:
+            render_dem(pano, 4)
+        file_exist = os.path.isfile('%slocations.txt' % folder)
+        if file_exist:
+            file = open('%slocations.txt' % folder, 'r')
+            locs = [line.rstrip() for line in file.readlines()]
+            file.close()
+            locs = [(float(i[0]), float(i[1]))
+                    for i in (x.split(',') for x in locs)]
+        else:
+            im_width = 500  # should be a quite low number, e.g. < 500
+            im1 = cv2.cvtColor(resizer(
+                cv2.imread('%srender-loc_x.png' % folder),
+                im_width=im_width), cv2.COLOR_BGR2RGB)
+            im2 = cv2.cvtColor(resizer(
+                cv2.imread('%srender-loc_z.png' % folder),
+                im_width=im_width), cv2.COLOR_BGR2RGB)
+            locs = coordinate_lookup(im1, im2, dem_file)
+            file = open('%slocations.txt' % folder, 'w')
+            [file.write('%s\n' % str(i).strip('()')) for i in locs]
+            file.close()
+        plot_filename = '%s%s.html' % (folder, filename)
+        end_time = datetime.now()
+        plot_to_map(locs, coordinates, plot_filename)
+        dur = end_time - start_time
+        p_i('Total runtime: %s seconds' % str(dur.seconds))
 
 
 def create_depth_image(dem_file, pov, raster_data):
