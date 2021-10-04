@@ -2,7 +2,7 @@ from math import radians, asin, cos, sin, atan2, degrees
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
-from src.debug_tools import p_i, p_line
+from src.debug_tools import p_i
 from src.colors import color_interpolator, get_color_index_in_image
 import pandas as pd
 import plotly
@@ -96,9 +96,8 @@ def get_loc(x_color, y_color, x_colors, y_colors, ds_raster):
             float(str(longitude).strip('[]')))
 
 
-def coordinate_lookup(im1, im2, dem_file, coordinates, filename):
+def coordinate_lookup(im1, im2, dem_file):
     p_i('Searching for locations in image')
-    c_lat, c_lon, l_lat, l_lon = coordinates
     ds = rasterio.open(dem_file)
     h1, w1, _ = im1.shape
     x_int_c = color_interpolator([255, 0, 0], [0, 0, 0], 100410)
@@ -107,7 +106,13 @@ def coordinate_lookup(im1, im2, dem_file, coordinates, filename):
                for i in range(0, h1, 3)
                for j in range(0, w1, 3)
                if im2[i, j][1] != 255)
+    p_i('Search complete.')
+    return locs
+
+
+def plot_to_map(locs, coordinates, filename):
     df = pd.DataFrame(locs, columns=['lat', 'lon'])
+    c_lat, c_lon, l_lat, l_lon = coordinates
     fig = px.scatter_geo(df, lat='lat', lon='lon')
     fig.add_scattergeo(lat=[c_lat, l_lat], lon=[c_lon, l_lon],
                        mode='markers',
@@ -123,6 +128,4 @@ def coordinate_lookup(im1, im2, dem_file, coordinates, filename):
                 projection_scale=125,
                 center=dict(lat=lat_foc, lon=lon_foc)
             ))
-    p_i('Search complete. Found these locations:')
-    p_line([str(i).strip('()') for i in locs])
     plotly.offline.plot(fig, filename=filename)
