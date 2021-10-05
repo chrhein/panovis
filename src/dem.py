@@ -7,8 +7,7 @@ from src.image_manipulations import resizer
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
 from src.data_getters.mountains import get_mountain_data, get_mountain_list
-from src.colors import color_interpolator, \
-    get_color_from_image, get_color_index_in_image
+from src.colors import color_interpolator, get_color_from_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
 from src.location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
@@ -116,10 +115,10 @@ def includes_mountain(locs):
             m_lat, m_lon = mountains[mountain].values()
             center_point = [{'lat': m_lat, 'lng': m_lon}]
             test_point = [{'lat': lat, 'lng': lon}]
-            radius = 250  # in meters
-            center_point_tuple = tuple(center_point[0].values())
-            test_point_tuple = tuple(test_point[0].values())
-            dis = distance.distance(center_point_tuple, test_point_tuple).m
+            radius = 400  # in meters
+            center_point = tuple(center_point[0].values())
+            test_point = tuple(test_point[0].values())
+            dis = distance.distance(center_point, test_point).m
             if dis <= radius:
                 mountains_in_sight.add(mountain.capitalize())
     return mountains_in_sight
@@ -180,17 +179,12 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     # using the colors of each photo to pinpoint where we are looking at
     color_z, m_factor = get_color_from_image(out_filename_z)
     color_x = get_color_from_image(out_filename_x)[0]
-    x_colors = color_interpolator([0, 0, 0], [255, 0, 0],
-                                  int(total_distance_n_s))
-    y_colors = color_interpolator([255, 0, 0], [0, 0, 0],
-                                  int(total_distance_e_w))
-    z_index = get_color_index_in_image(color_x,
-                                       x_colors)
-    x_index = get_color_index_in_image(color_z,
-                                       y_colors)
+    x_colors = color_interpolator(0, 255, int(total_distance_n_s))
+    y_colors = color_interpolator(255, 0, int(total_distance_e_w))
+    z_index = x_colors.index(color_x[0])
+    x_index = y_colors.index(color_z[0])
 
     x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
-    print(x, y)
 
     x -= resolution / 2
     y += resolution / 2

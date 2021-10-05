@@ -15,8 +15,8 @@ def get_image_hsv_list(image, m_factor=0.55, color_space=1):
 def color_interpolator(from_color, to_color, size):
     color_gradient = []
     for i in range(size + 1):
-        r = (to_color[0] - from_color[0]) * i / size + from_color[0]
-        color_gradient.append([r, 0, 0])
+        r = (to_color - from_color) * i / size + from_color
+        color_gradient.append(int(r))
     return color_gradient
 
 

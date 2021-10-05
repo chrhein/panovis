@@ -3,7 +3,7 @@ import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
 from src.debug_tools import p_i
-from src.colors import color_interpolator, get_color_index_in_image
+from src.colors import color_interpolator
 from dotenv import load_dotenv
 import folium
 import os
@@ -88,9 +88,13 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
 
 
 def get_loc(x_color, y_color, x_colors, y_colors, ds_raster):
-    x = get_color_index_in_image(x_color, x_colors)
-    y = get_color_index_in_image(y_color, y_colors)
-    x, y = ds_raster.xy(x*0.10, y*0.10)
+    x_r = x_color[0]
+    x_index = x_colors.index(x_r)
+    x = (x_index / 255) * 100000
+    y_r = y_color[0]
+    y_index = y_colors.index(y_r)
+    y = (y_index / 255) * 100000
+    x, y = ds_raster.xy(x * 0.10, y * 0.10)
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
     return (float(str(latitude).strip('[]')),
             float(str(longitude).strip('[]')))
@@ -100,11 +104,11 @@ def coordinate_lookup(im1, im2, dem_file):
     p_i('Searching for locations in image')
     ds = rasterio.open(dem_file)
     h1, w1, _ = im1.shape
-    x_int_c = color_interpolator([255, 0, 0], [0, 0, 0], 100410)
-    y_int_c = color_interpolator([0, 0, 0], [255, 0, 0], 100410)
+    x_int_c = color_interpolator(255, 0, 255)
+    y_int_c = color_interpolator(0, 255, 255)
     locs = set(get_loc(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
-               for i in range(0, h1, 3)
-               for j in range(0, w1, 3)
+               for i in range(0, h1, 5)
+               for j in range(0, w1, 5)
                if im2[i, j][1] != 255)
     p_i('Search complete.')
     return locs
