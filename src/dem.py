@@ -1,11 +1,12 @@
 import cv2
 import os
 import subprocess
+from geopy import distance
 from datetime import datetime
 from src.image_manipulations import resizer
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
-from src.data_getters.mountains import get_mountain_data
+from src.data_getters.mountains import get_mountain_data, get_mountain_list
 from src.colors import color_interpolator, \
     get_color_from_image, get_color_index_in_image
 from src.data_getters.raster import get_raster_data
@@ -15,7 +16,8 @@ from src.povs import color_gradient_pov, depth_pov, height_pov
 
 
 def render_dem(pano, mode):
-    mountain_data = get_mountain_data('data/dem-data.json', pano)
+    filename = pano.split('/')[-1].split('.')[0]
+    mountain_data = get_mountain_data('data/dem-data.json', filename)
     dem_file = mountain_data[0]
     coordinates = mountain_data[1]
     pov_settings = mountain_data[2]
@@ -68,36 +70,59 @@ def render_dem(pano, mode):
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
     elif mode == 5:
+        get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
+
+
+def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
+    loc_x = os.path.isfile('%srender-loc_x.png' % folder)
+    loc_z = os.path.isfile('%srender-loc_z.png' % folder)
+    loc_files_exist = loc_x and loc_z
+    if not loc_files_exist:
+        render_dem(pano, 4)
+    file_exist = os.path.isfile('%slocations.txt' % folder)
+    if file_exist:
+        file = open('%slocations.txt' % folder, 'r')
+        locs = [line.rstrip() for line in file.readlines()]
+        file.close()
+        locs = [(float(i[0]), float(i[1]))
+                for i in (x.split(',') for x in locs)]
+    else:
         start_time = datetime.now()
-        loc_x = os.path.isfile('%srender-loc_x.png' % folder)
-        loc_z = os.path.isfile('%srender-loc_z.png' % folder)
-        loc_files_exist = loc_x and loc_z
-        if not loc_files_exist:
-            render_dem(pano, 4)
-        file_exist = os.path.isfile('%slocations.txt' % folder)
-        if file_exist:
-            file = open('%slocations.txt' % folder, 'r')
-            locs = [line.rstrip() for line in file.readlines()]
-            file.close()
-            locs = [(float(i[0]), float(i[1]))
-                    for i in (x.split(',') for x in locs)]
-        else:
-            im_width = 500  # should be a quite low number, e.g. < 500
-            im1 = cv2.cvtColor(resizer(
-                cv2.imread('%srender-loc_x.png' % folder),
-                im_width=im_width), cv2.COLOR_BGR2RGB)
-            im2 = cv2.cvtColor(resizer(
-                cv2.imread('%srender-loc_z.png' % folder),
-                im_width=im_width), cv2.COLOR_BGR2RGB)
-            locs = coordinate_lookup(im1, im2, dem_file)
-            file = open('%slocations.txt' % folder, 'w')
-            [file.write('%s\n' % str(i).strip('()')) for i in locs]
-            file.close()
-        plot_filename = '%s%s.html' % (folder, filename)
+        im_width = 500  # should be a quite low number, e.g. < 500
+        im1 = cv2.cvtColor(resizer(
+            cv2.imread('%srender-loc_x.png' % folder),
+            im_width=im_width), cv2.COLOR_BGR2RGB)
+        im2 = cv2.cvtColor(resizer(
+            cv2.imread('%srender-loc_z.png' % folder),
+            im_width=im_width), cv2.COLOR_BGR2RGB)
+        locs = coordinate_lookup(im1, im2, dem_file)
+        file = open('%slocations.txt' % folder, 'w')
+        [file.write('%s\n' % str(i).strip('()')) for i in locs]
+        file.close()
         end_time = datetime.now()
-        plot_to_map(locs, coordinates, plot_filename)
         dur = end_time - start_time
         p_i('Total runtime: %s seconds' % str(dur.seconds))
+    p_line(includes_mountain(locs))
+    plot_filename = '%s%s.html' % (folder, filename)
+    plot_to_map(locs, coordinates, plot_filename)
+
+
+def includes_mountain(locs):
+    mountains = get_mountain_list('data/dem-data.json')
+    mountains_in_sight = set()
+    for pos in locs:
+        lat, lon = pos
+        for mountain in mountains:
+            m_lat, m_lon = mountains[mountain].values()
+            center_point = [{'lat': m_lat, 'lng': m_lon}]
+            test_point = [{'lat': lat, 'lng': lon}]
+            radius = 250  # in meters
+            center_point_tuple = tuple(center_point[0].values())
+            test_point_tuple = tuple(test_point[0].values())
+            dis = distance.distance(center_point_tuple, test_point_tuple).m
+            if dis <= radius:
+                mountains_in_sight.add(mountain.capitalize())
+    return mountains_in_sight
 
 
 def create_depth_image(dem_file, pov, raster_data):
