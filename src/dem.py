@@ -3,10 +3,10 @@ import os
 import subprocess
 from geopy import distance
 from datetime import datetime
-from src.image_manipulations import resizer
 from src.feature_matching import feature_matching
 from src.edge_detection import edge_detection
-from src.data_getters.mountains import get_mountain_data, get_mountain_list
+from src.data_getters.mountains import get_mountain_data, \
+     get_mountain_list  # read_gpx
 from src.colors import color_interpolator, get_color_from_image
 from src.data_getters.raster import get_raster_data
 from src.debug_tools import p_e, p_i, p_line
@@ -34,6 +34,9 @@ def render_dem(pano, mode):
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
+
+    # gpx_path = "data/%s.gpx" % filename
+    # read_gpx(gpx_path)
 
     try:
         os.mkdir(folder)
@@ -79,6 +82,7 @@ def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
     if not loc_files_exist:
         render_dem(pano, 4)
     file_exist = os.path.isfile('%slocations.txt' % folder)
+    # file_exist = False
     if file_exist:
         file = open('%slocations.txt' % folder, 'r')
         locs = [line.rstrip() for line in file.readlines()]
@@ -87,13 +91,10 @@ def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
                 for i in (x.split(',') for x in locs)]
     else:
         start_time = datetime.now()
-        im_width = 500  # should be a quite low number, e.g. < 500
-        im1 = cv2.cvtColor(resizer(
-            cv2.imread('%srender-loc_x.png' % folder),
-            im_width=im_width), cv2.COLOR_BGR2RGB)
-        im2 = cv2.cvtColor(resizer(
-            cv2.imread('%srender-loc_z.png' % folder),
-            im_width=im_width), cv2.COLOR_BGR2RGB)
+        im1 = cv2.cvtColor(cv2.imread('%srender-loc_x.png' % folder),
+                           cv2.COLOR_BGR2RGB)
+        im2 = cv2.cvtColor(cv2.imread('%srender-loc_z.png' % folder),
+                           cv2.COLOR_BGR2RGB)
         locs = coordinate_lookup(im1, im2, dem_file)
         file = open('%slocations.txt' % folder, 'w')
         [file.write('%s\n' % str(i).strip('()')) for i in locs]
@@ -109,18 +110,19 @@ def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
 def includes_mountain(locs):
     mountains = get_mountain_list('data/dem-data.json')
     mountains_in_sight = set()
+    radius = 500
     for pos in locs:
         lat, lon = pos
         for mountain in mountains:
-            m_lat, m_lon = mountains[mountain].values()
+            m = mountain.location
+            m_lat, m_lon = m.latitude, m.longitude
             center_point = [{'lat': m_lat, 'lng': m_lon}]
             test_point = [{'lat': lat, 'lng': lon}]
-            radius = 400  # in meters
             center_point = tuple(center_point[0].values())
             test_point = tuple(test_point[0].values())
             dis = distance.distance(center_point, test_point).m
             if dis <= radius:
-                mountains_in_sight.add(mountain.capitalize())
+                mountains_in_sight.add(mountain.name)
     return mountains_in_sight
 
 

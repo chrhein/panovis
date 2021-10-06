@@ -1,4 +1,7 @@
 import json
+import gpxpy
+import gpxpy.gpx
+from src.types import Location, Mountain
 
 
 def get_mountain_data(json_path, filename):
@@ -21,4 +24,19 @@ def get_mountain_data(json_path, filename):
 def get_mountain_list(json_path):
     with open(json_path) as json_file:
         data = json.load(json_file)
-        return data['mountains']
+        m = data['mountains']
+        mountains = [Mountain(m[i]['name'],
+                     Location(m[i]['latitude'],
+                     m[i]['longitude']))
+                     for i in m]
+        return mountains
+
+
+def read_gpx(gpx_path):
+    gpx_file = open(gpx_path, 'r')
+    gpx = gpxpy.parse(gpx_file)
+    locations = [Location(k.latitude, k.longitude, k.elevation)
+                 for i in gpx.tracks
+                 for j in i.segments
+                 for k in j.points]
+    return locations

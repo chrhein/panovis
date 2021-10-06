@@ -107,8 +107,8 @@ def coordinate_lookup(im1, im2, dem_file):
     x_int_c = color_interpolator(255, 0, 255)
     y_int_c = color_interpolator(0, 255, 255)
     locs = set(get_loc(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
-               for i in range(0, h1, 5)
-               for j in range(0, w1, 5)
+               for i in range(0, h1, 10)
+               for j in range(0, w1, 10)
                if im2[i, j][1] != 255)
     p_i('Search complete.')
     return locs
