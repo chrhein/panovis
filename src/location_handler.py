@@ -2,8 +2,8 @@ from math import radians, asin, cos, sin, atan2, degrees
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
-from src.debug_tools import p_i
-from src.colors import color_interpolator
+from debug_tools import p_i
+from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
 import os
@@ -11,6 +11,16 @@ import os
 
 def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
     return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
+
+
+def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
+    min_x, min_y, max_x, max_y = bounds
+    coordinate_pair = cor_to_crs(to_espg, lat, lon)
+    polar_lat = coordinate_pair.GetX()
+    polar_lon = coordinate_pair.GetY()
+    lat_scaled = (polar_lat - min_x) / (max_x - min_x)
+    lon_scaled = (polar_lon - min_y) / (max_y - min_y)
+    return [lat_scaled, lon_scaled]
 
 
 def convert_coordinates(raster, to_espg, lat, lon,

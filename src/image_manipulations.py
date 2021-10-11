@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from src.debug_tools import p_i
+from debug_tools import p_i
 
 
 def change_brightness(img, value=30):

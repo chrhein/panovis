@@ -1,5 +1,5 @@
 import rasterio
-from src.location_handler import convert_coordinates
+from location_handler import convert_coordinates
 
 
 def get_raster_data(dem_file, coordinates, height_field_scale_factor):

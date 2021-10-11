@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from src.debug_tools import p_i
+from debug_tools import p_i
 
 
 def get_image_hsv_list(image, m_factor=0.55, color_space=1):

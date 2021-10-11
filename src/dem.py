@@ -3,15 +3,15 @@ import os
 import subprocess
 from geopy import distance
 from datetime import datetime
-from src.feature_matching import feature_matching
-from src.edge_detection import edge_detection
-from src.data_getters.mountains import get_mountain_data, \
+from feature_matching import feature_matching
+from edge_detection import edge_detection
+from data_getters.mountains import get_mountain_data, \
      get_mountain_list  # read_gpx
-from src.colors import color_interpolator, get_color_from_image
-from src.data_getters.raster import get_raster_data
-from src.debug_tools import p_e, p_i, p_line
-from src.location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
-from src.povs import color_gradient_pov, depth_pov, height_pov
+from colors import color_interpolator, get_color_from_image
+from data_getters.raster import get_raster_data
+from debug_tools import p_e, p_i, p_line
+from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
+from povs import color_gradient_pov, depth_pov, height_pov
 
 
 def render_dem(pano, mode):

@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-from src.hed import holistically_nested
-from src.debug_tools import p_i, nothing
-from src.image_manipulations import resizer
+from hed import holistically_nested
+from debug_tools import p_i, nothing
+from image_manipulations import resizer
 
 
 def edge_detection(image_path, algorithm, folder="", im_w=2400):

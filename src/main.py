@@ -1,7 +1,7 @@
-from src.debug_tools import p_e, p_i, p_in, p_line
-from src.feature_matching import feature_matching
-from src.edge_detection import edge_detection
-from src.dem import render_dem
+from debug_tools import p_e, p_i, p_in, p_line
+from feature_matching import feature_matching
+from edge_detection import edge_detection
+from dem import render_dem
 from tkinter.filedialog import askopenfile, askopenfilenames
 import tkinter as tk
 import os
@@ -90,7 +90,7 @@ def file_chooser(title, multiple=False):
         exit()
 
 
-if __name__ == '__main__':
+def main():
     mode = get_input()
 
     if 0 < mode < 6:

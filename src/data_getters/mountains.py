@@ -1,7 +1,7 @@
 import json
 import gpxpy
 import gpxpy.gpx
-from src.types import Location, Mountain
+from tools.types import Location, Mountain
 
 
 def get_mountain_data(json_path, filename):

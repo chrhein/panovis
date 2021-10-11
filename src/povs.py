@@ -65,7 +65,7 @@ def depth_pov(dem_file, raster_data, pov_settings):
             }
         }
 
-    light_source { CAMERAPOS color White }
+    light_source { <0, 3000, 0> color <1,1,1> }
 
     height_field {
         png FILENAME
@@ -107,6 +107,7 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     #declare MAXMOUNTAIN = %f;
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
+    #declare AXIS = %s;
 
     camera {
         cylinder 1
@@ -119,12 +120,8 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     height_field {
         png FILENAME
         pigment {
-            gradient %s
-            color_map {
-                blend_mode 0
-                [0 color rgb <0,0,0>] // west if x, south if z
-                [1 color rgb <1,0,0>] // east if x, north if z
-            }
+            image_map { png "data/panorama2_hike.png" }
+            rotate <90,0,0>
         }
         scale <1,SCALEFACTOR,1>
         finish {ambient 1 diffuse 0 specular 0}
@@ -177,16 +174,12 @@ def height_pov(dem_file, raster_data, pov_settings):
         angle PANOANGLE
     }
 
-    light_source { CAMERAPOS color White }
+    light_source { <0, 3000, 0> color <1,1,1> }
 
     height_field {
         png FILENAME
         pigment {
-            gradient y
-            color_map {
-                [0.000000001 color BakersChoc]
-                [MAXMOUNTAIN color White]
-            }
+            image_map { png "data/color_gradient.png" }
         }
         finish { ambient 0.25 diffuse 1 specular 0.25 }
         scale <1,SCALEFACTOR,1>
