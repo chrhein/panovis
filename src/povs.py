@@ -78,6 +78,62 @@ def depth_pov(dem_file, raster_data, pov_settings):
     return pov_text
 
 
+def texture_pov(dem_file, raster_data, pov_settings):
+    coordinates = raster_data[0]
+    location_x, location_height, location_y, \
+        view_x, view_height, view_y = coordinates
+    max_height = raster_data[1][3]
+    panoramic_angle = pov_settings[0]
+    height_field_scale_factor = pov_settings[1]
+    texture_path = pov_settings[2]
+    pov_text = '''
+    #version 3.8;
+    #include "colors.inc"
+    #include "math.inc"
+
+    global_settings {
+        assumed_gamma 1
+    }
+
+    #declare CAMERAX = %f;
+    #declare CAMERAHEIGHT = %f;
+    #declare CAMERAY = %f;
+    #declare VIEWX = %f;
+    #declare VIEWHEIGHT = %f;
+    #declare VIEWY = %f;
+
+    #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
+    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
+    #declare FILENAME = "%s";
+    #declare MAXMOUNTAIN = %f;
+    #declare PANOANGLE = %f;
+    #declare SCALEFACTOR = %f;
+    #declare TEXTURE = "%s";
+
+    camera {
+        cylinder 1
+        location CAMERAPOS
+        look_at  CAMERALOOKAT
+        angle PANOANGLE
+    }
+
+    height_field {
+        png FILENAME
+        pigment {
+            image_map { png TEXTURE }
+            rotate <90, 0, 0>
+        }
+        scale <1, SCALEFACTOR, 1>
+        finish {ambient 1 diffuse 0 specular 0}
+    }
+
+    ''' % (location_x, location_height, location_y,
+           view_x, view_height, view_y,
+           dem_file, max_height, panoramic_angle,
+           height_field_scale_factor, texture_path)
+    return pov_text
+
+
 def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     coordinates = raster_data[0]
     location_x, location_height, location_y, \
@@ -107,7 +163,6 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     #declare MAXMOUNTAIN = %f;
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
-    #declare AXIS = %s;
 
     camera {
         cylinder 1
@@ -120,8 +175,12 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     height_field {
         png FILENAME
         pigment {
-            image_map { png "data/panorama2_hike.png" }
-            rotate <90,0,0>
+            gradient %s
+            color_map {
+                blend_mode 0
+                [0 color rgb <0,0,0>] // west if x, south if z
+                [1 color rgb <1,0,0>] // east if x, north if z
+            }
         }
         scale <1,SCALEFACTOR,1>
         finish {ambient 1 diffuse 0 specular 0}
@@ -174,12 +233,16 @@ def height_pov(dem_file, raster_data, pov_settings):
         angle PANOANGLE
     }
 
-    light_source { <0, 3000, 0> color <1,1,1> }
+    light_source { CAMERAPOS color White }
 
     height_field {
         png FILENAME
         pigment {
-            image_map { png "data/color_gradient.png" }
+            gradient y
+            color_map {
+                [0.000000001 color BakersChoc]
+                [MAXMOUNTAIN color White]
+            }
         }
         finish { ambient 0.25 diffuse 1 specular 0.25 }
         scale <1,SCALEFACTOR,1>

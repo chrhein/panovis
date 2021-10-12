@@ -17,6 +17,7 @@ def get_input():
         "5: show geolocations in image",
         "6: edge detection in given image",
         "7: feature matching given two images",
+        "8: render with hike-paths visible",
         "0: exit program"
     ]
     p_line(information_text)
@@ -93,7 +94,7 @@ def file_chooser(title, multiple=False):
 def main():
     mode = get_input()
 
-    if 0 < mode < 6:
+    if 0 < mode < 6 or mode >= 8:
         panos = file_chooser('Select an image to detect edges on', True)
         for pano in panos:
             render_dem(pano, mode)

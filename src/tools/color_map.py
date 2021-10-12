@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import rasterio
+from math import ceil
 from data_getters.mountains import read_gpx
 from location_handler import convert_single_coordinate_pair
 
@@ -39,20 +40,19 @@ def create_color_gradient_image():
     cv2.imwrite('data/color_gradient.png', img)
 
 
-def create_hike_path_image():
-    dem = './data/hordaland.png'
-    im = cv2.imread(dem)
+def create_hike_path_image(dem_file, gpx_path):
+    im = cv2.imread(dem_file)
     h, w, c = im.shape
-    mns = read_gpx('./data/panorama2.gpx')
-    img = np.zeros([h, w, c], dtype=np.uint8)
-
+    mns = read_gpx(gpx_path)
+    img = np.zeros([h, w, 4], dtype=np.uint8)
     """
-    cv2.imshow('test', img)
-    cv2.w(0)
-    exit()
+    tmp = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+    b, g, r = cv2.split(img)
+    rgba = [b, g, r, alpha]
+    dst = cv2.merge(rgba, 4)
     """
-
-    ds_raster = rasterio.open(dem)
+    ds_raster = rasterio.open(dem_file)
 
     crs = int(ds_raster.crs.to_authority()[1])
     b = ds_raster.bounds
@@ -61,10 +61,11 @@ def create_hike_path_image():
             i.latitude, i.longitude) for i in mns]
     for i in locs:
         lat, lon = i
-        x = int(((100.0 * lat) / 100) * w)
-        y = int(100-((100.0 * lon) / 100) * h)
-        img[y][x-1:x+1] = (255, 255, 255)
+        x = ceil(((100.0 * lat) / 100) * w)
+        y = ceil(100-((100.0 * lon) / 100) * h)
+        img[y][x] = (0, 0, 255, 255)
 
-    cv2.imshow('Result', img)
-    cv2.waitKey(0)
-    cv2.imwrite('data/panorama2_hike.png', img)
+    filename = gpx_path.split('/')[-1].split('.')[0]
+    im_path = 'exports/%s/%s_texture.png' % (filename, filename)
+    cv2.imwrite(im_path, img)
+    return im_path
