@@ -35,7 +35,7 @@ def render_dem(pano, mode):
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
-    gpx_file = 'data/%s.gpx' % filename
+    gpx_file = 'data/hikes/%s.gpx' % filename
 
     # gpx_path = "data/%s.gpx" % filename
     # read_gpx(gpx_path)
@@ -76,9 +76,13 @@ def render_dem(pano, mode):
     elif mode == 5:
         get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
     elif mode == 8:
-        pov_params[1][3].append(create_hike_path_image(dem_file, gpx_file))
-        print(pov_params[1][3][1])
-        create_texture_image(*pov_params)
+        hp = create_hike_path_image(dem_file, gpx_file)
+        if hp:
+            pov_params[1][3].append(hp)
+            print(pov_params[1][3][1])
+            create_texture_image(*pov_params)
+        else:
+            p_e('Could not find corresponding GPX')
 
 
 def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):

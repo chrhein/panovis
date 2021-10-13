@@ -33,7 +33,10 @@ def get_mountain_list(json_path):
 
 
 def read_gpx(gpx_path):
-    gpx_file = open(gpx_path, 'r')
+    try:
+        gpx_file = open(gpx_path, 'r')
+    except FileNotFoundError:
+        return []
     gpx = gpxpy.parse(gpx_file)
     locations = [Location(k.latitude, k.longitude, k.elevation)
                  for i in gpx.tracks

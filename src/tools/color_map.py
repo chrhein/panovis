@@ -4,6 +4,9 @@ import rasterio
 from math import ceil
 from data_getters.mountains import read_gpx
 from location_handler import convert_single_coordinate_pair
+import collections
+import pickle
+
 
 # stolen from
 # https://www.cocyer.com/python-pillow-generate-gradient-image-with-numpy/
@@ -28,7 +31,7 @@ def get_gradient_3d(width, height, start_list, stop_list, is_horizontal_list):
 
 
 def create_color_gradient_image():
-    dem = './data/hordaland.png'
+    dem = './data/bergen.png'
     im = cv2.imread(dem)
     h, w, _ = im.shape
     upper_left_color = (0, 0, 192)
@@ -40,20 +43,32 @@ def create_color_gradient_image():
     cv2.imwrite('data/color_gradient.png', img)
 
 
+def color_gradient_to_index():
+    im = cv2.imread('data/color_gradient.png')
+    h, w, _ = im.shape
+    tbl = collections.defaultdict(list)
+    for y in range(h):
+        print(y)
+        for x in range(w):
+            tbl[str(im[y][x])].append([y, x])
+
+    with open('data/color_gradient.pkl', 'wb') as f:
+        pickle.dump(tbl, f)
+
+
+def load_gradient():
+    with open('data/color_gradient.pkl', 'rb') as f:
+        return pickle.load(f)
+
+
 def create_hike_path_image(dem_file, gpx_path):
     im = cv2.imread(dem_file)
-    h, w, c = im.shape
+    h, w, _ = im.shape
     mns = read_gpx(gpx_path)
+    if not mns:
+        return ""
     img = np.zeros([h, w, 4], dtype=np.uint8)
-    """
-    tmp = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
-    b, g, r = cv2.split(img)
-    rgba = [b, g, r, alpha]
-    dst = cv2.merge(rgba, 4)
-    """
     ds_raster = rasterio.open(dem_file)
-
     crs = int(ds_raster.crs.to_authority()[1])
     b = ds_raster.bounds
     bounds = [b.left, b.bottom, b.right, b.top]
@@ -64,7 +79,6 @@ def create_hike_path_image(dem_file, gpx_path):
         x = ceil(((100.0 * lat) / 100) * w)
         y = ceil(100-((100.0 * lon) / 100) * h)
         img[y][x] = (0, 0, 255, 255)
-
     filename = gpx_path.split('/')[-1].split('.')[0]
     im_path = 'exports/%s/%s_texture.png' % (filename, filename)
     cv2.imwrite(im_path, img)
