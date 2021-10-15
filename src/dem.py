@@ -10,7 +10,8 @@ from data_getters.mountains import get_mountain_data, \
 from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
-from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
+from location_handler import coordinate_lookup, crs_to_wgs84, \
+    plot_to_map, convert_single_coordinate_pair
 from povs import color_gradient_pov, depth_pov, height_pov, texture_pov
 from tools.color_map import create_hike_path_image
 
@@ -76,11 +77,12 @@ def render_dem(pano, mode):
     elif mode == 5:
         get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
     elif mode == 8:
-        hp = create_hike_path_image(dem_file, gpx_file)
+        hp, minimums = create_hike_path_image(dem_file, gpx_file)
         if hp:
             pov_params[1][3].append(hp)
             print(pov_params[1][3][1])
             create_texture_image(*pov_params)
+            print(minimums)
         else:
             p_e('Could not find corresponding GPX')
 

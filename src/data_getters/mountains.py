@@ -2,6 +2,7 @@ import json
 import gpxpy
 import gpxpy.gpx
 from tools.types import Location, Mountain
+from operator import attrgetter
 
 
 def get_mountain_data(json_path, filename):
@@ -32,6 +33,12 @@ def get_mountain_list(json_path):
         return mountains
 
 
+def find_minimums(locations):
+    min_lat = min(locations, key=attrgetter('latitude'))
+    min_lon = min(locations, key=attrgetter('longitude'))
+    return [min_lat, min_lon]
+
+
 def read_gpx(gpx_path):
     try:
         gpx_file = open(gpx_path, 'r')
@@ -42,4 +49,4 @@ def read_gpx(gpx_path):
                  for i in gpx.tracks
                  for j in i.segments
                  for k in j.points]
-    return locations
+    return [locations, find_minimums(locations)]

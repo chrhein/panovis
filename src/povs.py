@@ -120,8 +120,9 @@ def texture_pov(dem_file, raster_data, pov_settings):
     height_field {
         png FILENAME
         pigment {
-            image_map { png TEXTURE }
-            rotate <90, 0, 0>
+                image_map { png TEXTURE }
+                rotate <90, 0, 0>
+                translate <0, 0, 0>
         }
         scale <1, SCALEFACTOR, 1>
         finish {ambient 1 diffuse 0 specular 0}
