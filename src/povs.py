@@ -89,6 +89,8 @@ def texture_pov(dem_file, raster_data, pov_settings):
     tex_bounds = pov_settings[3]
     scale_x = tex_bounds.min_y[0]
     scale_y = tex_bounds.min_x[1]
+    x_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
+    print(x_l)
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -113,6 +115,7 @@ def texture_pov(dem_file, raster_data, pov_settings):
     #declare SCALEFACTOR = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
+    #declare SCALE = <%f, %f, 0.0>;
     camera {
         perspective
         location <0.5, 0.6, 0.5>
@@ -154,7 +157,7 @@ def texture_pov(dem_file, raster_data, pov_settings):
                     png TEXTURE
                     once
                 }
-                scale <0.1, 0.1, 0.0>
+                scale SCALE
                 translate SKEW
             }
             rotate <90, 0, 0>
@@ -165,7 +168,7 @@ def texture_pov(dem_file, raster_data, pov_settings):
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
            height_field_scale_factor, texture_path,
-           scale_x, scale_y)
+           scale_x, scale_y, x_l, x_l)
     return pov_text
 
 
