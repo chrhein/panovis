@@ -39,6 +39,12 @@ def find_minimums(locations):
     return [min_lat, min_lon]
 
 
+def find_maximums(locations):
+    max_lat = max(locations, key=attrgetter('latitude'))
+    max_lon = max(locations, key=attrgetter('longitude'))
+    return [max_lat, max_lon]
+
+
 def read_gpx(gpx_path):
     try:
         gpx_file = open(gpx_path, 'r')
@@ -49,4 +55,4 @@ def read_gpx(gpx_path):
                  for i in gpx.tracks
                  for j in i.segments
                  for k in j.points]
-    return [locations, find_minimums(locations)]
+    return [locations, find_minimums(locations), find_maximums(locations)]

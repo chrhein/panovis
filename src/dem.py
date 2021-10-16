@@ -1,6 +1,7 @@
 import cv2
 import os
 import subprocess
+from sympy import symbols, solve
 from geopy import distance
 from datetime import datetime
 from feature_matching import feature_matching
@@ -32,7 +33,7 @@ def render_dem(pano, mode):
     im_height, im_width, _ = img.shape
     new_width = 2800
     new_height = int(new_width * im_height / im_width)
-    out_width, out_height = new_width, new_height
+    out_width, out_height = 1000, 1000
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
@@ -77,12 +78,11 @@ def render_dem(pano, mode):
     elif mode == 5:
         get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
     elif mode == 8:
-        hp, minimums = create_hike_path_image(dem_file, gpx_file)
+        hp, tex_bounds = create_hike_path_image(dem_file, gpx_file)
         if hp:
             pov_params[1][3].append(hp)
-            print(pov_params[1][3][1])
+            pov_params[1][3].append(tex_bounds)
             create_texture_image(*pov_params)
-            print(minimums)
         else:
             p_e('Could not find corresponding GPX')
 
@@ -160,6 +160,7 @@ def create_texture_image(dem_file, pov, raster_data):
     out_filename = '%srender-texture.png' % folder
     params = [pov_filename, out_filename, im_dimensions, 'depth']
     execute_pov(params)
+    '''
     height = '%srender-height.png' % folder
     background = cv2.imread(height)
     overlay = cv2.imread(out_filename)
@@ -174,6 +175,7 @@ def create_texture_image(dem_file, pov, raster_data):
         (1 - overlay[:, :, 3:] / 255) + \
         overlay[:, :, :3] * (overlay[:, :, 3:] / 255)
     cv2.imwrite(super, background)
+    '''
 
 
 def create_color_image(coordinates_and_dem, out_params):

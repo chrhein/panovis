@@ -86,6 +86,9 @@ def texture_pov(dem_file, raster_data, pov_settings):
     panoramic_angle = pov_settings[0]
     height_field_scale_factor = pov_settings[1]
     texture_path = pov_settings[2]
+    tex_bounds = pov_settings[3]
+    scale_x = tex_bounds.min_y[0]
+    scale_y = tex_bounds.min_x[1]
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -109,29 +112,60 @@ def texture_pov(dem_file, raster_data, pov_settings):
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
     #declare TEXTURE = "%s";
-
+    #declare SKEW = <%f, %f, 0.0>;
     camera {
-        cylinder 1
-        location CAMERAPOS
-        look_at  CAMERALOOKAT
-        angle PANOANGLE
+        perspective
+        location <0.5, 0.6, 0.5>
+        look_at  <0.5, 0, 0.5>
+        angle 100
     }
 
-    height_field {
-        png FILENAME
+    sky_sphere {
         pigment {
-                image_map { png TEXTURE }
-                rotate <90, 0, 0>
-                translate <0, 0, 0>
+            gradient y
+            color_map {
+                [0.4 color rgb<1 1 1>]
+                [0.8 color rgb<0.1,0.25,0.75>]
+                [1 color rgb<0.1,0.25,0.75>]
+            }
+            scale 2
+            translate -1
         }
+    }
+
+    object{
+        height_field {
+            png FILENAME
+            pigment {
+            gradient y
+            color_map {
+                [0 color NewTan]
+                [0.001 color CadetBlue]
+                [0.01 color SkyBlue]
+                [0.02 color Silver]
+            }
+        }
+        finish { ambient 0.25 diffuse 1 specular 0.25 }
         scale <1, SCALEFACTOR, 1>
-        finish {ambient 1 diffuse 0 specular 0}
+        }
+        texture{
+            pigment {
+                image_map {
+                    png TEXTURE
+                    once
+                }
+                scale <0.1, 0.1, 0.0>
+                translate SKEW
+            }
+            rotate <90, 0, 0>
+        }
     }
 
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
-           height_field_scale_factor, texture_path)
+           height_field_scale_factor, texture_path,
+           scale_x, scale_y)
     return pov_text
 
 
@@ -276,4 +310,67 @@ def height_pov(dem_file, raster_data, pov_settings):
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle, height_field_scale_factor)
+    return pov_text
+
+
+def debug_pov(dem_file, texture_path):
+    pov_text = '''
+    #version 3.8;
+    #include "colors.inc"
+    #include "math.inc"
+
+    global_settings {
+        assumed_gamma 2.2
+    }
+
+    #declare CAMERAPOS = <0.5, 0.6, 0.5>;
+    #declare CAMERALOOKAT = <0.5, 0.0, 0.5>;
+    #declare FILENAME = "%s";
+    #declare TEXTURE = "%s";
+    #declare SKEW = <0, 0, 0>;
+    camera {
+        perspective
+        location CAMERAPOS
+        look_at  CAMERALOOKAT
+    }
+
+    sky_sphere {
+        pigment {
+            gradient y
+            color_map {
+                [0.4 color rgb<1 1 1>]
+                [0.8 color rgb<0.1,0.25,0.75>]
+                [1 color rgb<0.1,0.25,0.75>]
+            }
+            scale 2
+            translate -1
+        }
+    }
+
+    object{
+        height_field {
+            png FILENAME
+            pigment {
+            gradient y
+            color_map {
+                [0.00000000000001 color BakersChoc]
+                [0.01 color White]
+            }
+        }
+        finish { ambient 0.25 diffuse 1 specular 0.25 }
+        scale <1, SCALEFACTOR, 1>
+        }
+        texture{
+            pigment {
+                image_map {
+                    png TEXTURE
+                    once
+                }
+                scale <0.1, 0.1, 0.0>
+                translate <0.73, 0.27, 0.0>
+            }
+            rotate <90, 0, 0>
+        }
+    }
+    ''' % (dem_file, texture_path)
     return pov_text

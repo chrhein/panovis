@@ -6,6 +6,7 @@ from location_handler import convert_single_coordinate_pair
 import collections
 import pickle
 from image_manipulations import resizer
+from tools.types import TextureBounds
 
 
 # stolen from
@@ -67,9 +68,9 @@ def create_hike_path_image(dem_file, gpx_path):
     rs = 1
     h = h * rs
     w = w * rs
-    mns, minimums = read_gpx(gpx_path)
+    mns, minimums, maximums = read_gpx(gpx_path)
     if not mns:
-        return ""
+        return ["", ""]
     img = np.ones([h, w, 4], dtype=np.uint8)
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
@@ -92,12 +93,21 @@ def create_hike_path_image(dem_file, gpx_path):
     print(southernmost, easternmost)
     min_lat_p = minimums[0]
     min_lon_p = minimums[1]
-    mla = convert_single_coordinate_pair(bounds, crs,
-                                         min_lat_p.latitude,
-                                         min_lat_p.longitude)
-    mlo = convert_single_coordinate_pair(bounds, crs,
-                                         min_lon_p.latitude,
-                                         min_lon_p.longitude)
+    max_lat_p = maximums[0]
+    max_lon_p = maximums[1]
+
+    min_x = convert_single_coordinate_pair(bounds, crs,
+                                           min_lat_p.latitude,
+                                           min_lat_p.longitude)
+    min_y = convert_single_coordinate_pair(bounds, crs,
+                                           min_lon_p.latitude,
+                                           min_lon_p.longitude)
+    max_x = convert_single_coordinate_pair(bounds, crs,
+                                           max_lat_p.latitude,
+                                           max_lat_p.longitude)
+    max_y = convert_single_coordinate_pair(bounds, crs,
+                                           max_lon_p.latitude,
+                                           max_lon_p.longitude)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh,
@@ -109,4 +119,16 @@ def create_hike_path_image(dem_file, gpx_path):
     filename = gpx_path.split('/')[-1].split('.')[0]
     im_path = 'exports/%s/%s_texture.png' % (filename, filename)
     cv2.imwrite(im_path, crop)
-    return [im_path, [mla, mlo]]
+
+    tex_bounds = TextureBounds(
+        min_lat=min_lat_p,
+        min_lon=min_lon_p,
+        max_lat=max_lat_p,
+        max_lon=max_lon_p,
+        min_x=min_x,
+        min_y=min_y,
+        max_x=max_x,
+        max_y=max_y,
+    )
+
+    return [im_path, tex_bounds]

@@ -12,3 +12,15 @@ class Location:
 class Mountain:
     name: str
     location: Location
+
+
+@dataclass
+class TextureBounds:
+    min_lat: float
+    min_lon: float
+    max_lat: float
+    max_lon: float
+    min_x: float
+    min_y: float
+    max_x: float
+    max_y: float
