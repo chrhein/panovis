@@ -24,7 +24,10 @@ def get_input():
 
     while True:
         try:
-            mode = int(p_in("Select mode: "))
+            mode = p_in("Select mode: ")
+            if mode == 'debug':
+                return mode
+            mode = int(mode)
         except ValueError:
             p_e('No valid mode given.')
             continue
@@ -94,6 +97,11 @@ def file_chooser(title, multiple=False):
 def main():
     mode = get_input()
 
+    if mode == 'debug':
+        panos = file_chooser('Select an image to detect edges on', True)
+        for pano in panos:
+            render_dem(pano, mode)
+        exit()
     if 0 < mode < 6 or mode >= 8:
         panos = file_chooser('Select an image to detect edges on', True)
         for pano in panos:

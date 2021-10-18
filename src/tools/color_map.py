@@ -62,7 +62,7 @@ def load_gradient():
         return pickle.load(f)
 
 
-def create_hike_path_image(dem_file, gpx_path):
+def create_route_texture(dem_file, gpx_path):
     im = cv2.imread(dem_file)
     h, w, _ = im.shape
     rs = 1
@@ -87,7 +87,7 @@ def create_hike_path_image(dem_file, gpx_path):
         lat, lon = i
         x = h-abs(int(100.0-((100.0 * lon) / 100.0) * h))
         y = abs(int(((100.0 * lat) / 100.0) * w))
-        cv2.line(img, (prev_lat, prev_lon), (y, x), (0, 0, 255, 255), 3*rs)
+        cv2.line(img, (prev_lat, prev_lon), (y, x), (0, 0, 255, 255), 1*rs)
         prev_lat, prev_lon = y, x
     img = resizer(img, im_width=w/rs)
     print(southernmost, easternmost)

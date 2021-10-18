@@ -24,3 +24,14 @@ class TextureBounds:
     min_y: float
     max_x: float
     max_y: float
+
+
+@dataclass
+class Texture:
+    dem: str
+    texture: str
+    camera: Location
+    viewpoint: Location
+    angle: int
+    scale: float
+    bounds: TextureBounds

@@ -1,11 +1,10 @@
 import cv2
 from main import main
-from tools.color_map import create_hike_path_image
 
 if __name__ == '__main__':
     main()
     exit()
-    create_hike_path_image('data/bergen.png', 'data/hikes/panorama4.gpx')
+    create_route_texture('data/bergen.png', 'data/hikes/panorama4.gpx')
     # color_gradient_to_index()
     # p = load_gradient()
     exit()

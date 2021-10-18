@@ -1,20 +1,18 @@
 import cv2
 import os
 import subprocess
-from sympy import symbols, solve
 from geopy import distance
 from datetime import datetime
 from feature_matching import feature_matching
 from edge_detection import edge_detection
-from data_getters.mountains import get_mountain_data, \
-     get_mountain_list  # read_gpx
+from data_getters.mountains import get_mountain_data, get_mountain_list
 from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
-from location_handler import coordinate_lookup, crs_to_wgs84, \
-    plot_to_map, convert_single_coordinate_pair
-from povs import color_gradient_pov, depth_pov, height_pov, texture_pov
-from tools.color_map import create_hike_path_image
+from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
+from povs import color_gradient_pov, depth_pov, height_pov, texture_pov, debug_pov
+from tools.types import Texture, Location
+from tools.color_map import create_route_texture
 
 
 def render_dem(pano, mode):
@@ -33,7 +31,7 @@ def render_dem(pano, mode):
     im_height, im_width, _ = img.shape
     new_width = 2800
     new_height = int(new_width * im_height / im_width)
-    out_width, out_height = 1000, 1000
+    out_width, out_height = new_width, new_height
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
@@ -47,9 +45,7 @@ def render_dem(pano, mode):
     except FileExistsError:
         pass
 
-    if mode < 5:
-        cv2.imwrite(('%s%s.png' % (folder, filename)),
-                    cv2.resize(img, [new_width, new_height]))
+    cv2.imwrite(('%s%s.png' % (folder, filename)), cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
@@ -57,7 +53,10 @@ def render_dem(pano, mode):
     pov = [pov_filename, folder, im_dimensions, pov_settings]
     pov_params = [dem_file, pov, raster_data]
 
-    if mode == 1:
+    if mode == 'debug':
+        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
+        debug_texture(dem_file, route_texture, texture_bounds, pov, raster_data[1][3])
+    elif mode == 1:
         create_height_image(*pov_params)
         create_depth_image(*pov_params)
         edge_detection('%s%s.png' % (folder, filename), 'HED',
@@ -78,10 +77,30 @@ def render_dem(pano, mode):
     elif mode == 5:
         get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
     elif mode == 8:
-        hp, tex_bounds = create_hike_path_image(dem_file, gpx_file)
-        if hp:
-            pov_params[1][3].append(hp)
-            pov_params[1][3].append(tex_bounds)
+        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
+        if route_texture:
+            pov_params[1][3].append(route_texture)
+            pov_params[1][3].append(texture_bounds)
+            scaled_coordinates = raster_data[0]
+            camera_location = Location(
+                latitude=scaled_coordinates[0],
+                longitude=scaled_coordinates[2],
+                elevation=scaled_coordinates[1]
+            )
+            viewpoint_location = Location(
+                latitude=scaled_coordinates[3],
+                longitude=scaled_coordinates[5],
+                elevation=scaled_coordinates[4]
+            )
+            tex = Texture(
+                dem=dem_file,
+                texture=route_texture,
+                camera=camera_location,
+                viewpoint=viewpoint_location,
+                angle=120,
+                scale=0.75,
+                bounds=texture_bounds
+            )
             create_texture_image(*pov_params)
         else:
             p_e('Could not find corresponding GPX')
@@ -158,7 +177,7 @@ def create_texture_image(dem_file, pov, raster_data):
         pf.write(pov)
         pf.close()
     out_filename = '%srender-texture.png' % folder
-    params = [pov_filename, out_filename, im_dimensions, 'depth']
+    params = [pov_filename, out_filename, im_dimensions, 'color']
     execute_pov(params)
     '''
     height = '%srender-height.png' % folder
@@ -255,7 +274,7 @@ def execute_pov(params):
     p_i('Generating %s' % out_filename)
     if mode == 'color':
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=16 +Q4 +UR +A',
+                         'Output_File_Type=N Bits_Per_Color=16 +Q8 +UR +A',
                          '-GA',
                          '+I' + pov_filename, '+O' + out_filename])
     else:
@@ -304,3 +323,15 @@ def clear(clear_list):
         os.remove(item)
     subprocess.call(['rm', '-r', 'src/__pycache__'])
     subprocess.call(['rm', '-r', 'src/data_getters/__pycache__'])
+
+
+def debug_texture(dem_file, texture, bounds, pov, mh):
+    # generating pov-ray render with image texture map
+    pov_filename, folder, _, _ = pov
+    with open(pov_filename, 'w') as pf:
+        pov = debug_pov(dem_file, texture, bounds, mh)
+        pf.write(pov)
+        pf.close()
+    out_filename = '%srender-debug.png' % folder
+    params = [pov_filename, out_filename, [2400, 2400], 'color']
+    execute_pov(params)
