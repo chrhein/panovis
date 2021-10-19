@@ -146,9 +146,11 @@ def texture_pov(dem_file, raster_data, pov_settings):
             pigment {
                 gradient y
                 color_map {
-                    [0.0000000000000000000001 color BakersChoc]
-                    [MAXMOUNTAIN/5 color rgb<0.74, 0.69, 0.62>]
-                    [MAXMOUNTAIN color White]
+                    [MAXMOUNTAIN/1000 color rgb<0.62, 0.66, 0.46>]
+                    [MAXMOUNTAIN/100 color rgb<0.79, 0.63, 0.48>]
+                    [MAXMOUNTAIN/50 color rgb<0.74, 0.69, 0.62>]
+                    [MAXMOUNTAIN/25 color rgb<0.51, 0.25, 0.35>]
+                    [MAXMOUNTAIN/12.5 color rgb<1, 1, 1>]
                 }
             }
             finish { ambient 0.25 diffuse 1 specular 0.25 }
@@ -165,8 +167,7 @@ def texture_pov(dem_file, raster_data, pov_settings):
             finish { ambient 1 diffuse 0 specular 0 }
             rotate <90, 0, 0>
         }
-        scale <1, SCALEFACTOR*3.75, 1>
-
+        scale <1, SCALEFACTOR * 3.75, 1>
     }
 
     plane {
@@ -293,12 +294,15 @@ def height_pov(dem_file, raster_data, pov_settings):
         pigment {
             gradient y
             color_map {
-                [0.000000001 color BakersChoc]
-                [MAXMOUNTAIN color White]
+                [MAXMOUNTAIN/1000 color rgb<0.62, 0.66, 0.46>]
+                [MAXMOUNTAIN/100 color rgb<0.79, 0.63, 0.48>]
+                [MAXMOUNTAIN/50 color rgb<0.74, 0.69, 0.62>]
+                [MAXMOUNTAIN/25 color rgb<0.51, 0.25, 0.35>]
+                [MAXMOUNTAIN/12.5 color rgb<1, 1, 1>]
             }
         }
         finish { ambient 0.25 diffuse 1 specular 0.25 }
-        scale <1,SCALEFACTOR,1>
+        scale <1, SCALEFACTOR*3.75, 1>
     }
 
     plane {

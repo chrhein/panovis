@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import rasterio
@@ -62,6 +63,23 @@ def load_gradient():
 
 
 def create_route_texture(dem_file, gpx_path, debugging=False):
+    filename = gpx_path.split('/')[-1].split('.')[0]
+    folder = 'exports/%s/texture' % filename
+    if debugging:
+        im_path = '%s/%s-texture-debug.png' % (folder, filename)
+    else:
+        im_path = '%s/%s-texture.png' % (folder, filename)
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
+    texture_bounds_path = '%s/%s-texture-bounds.pkl' % (folder, filename)
+    texture_exist = os.path.isfile('%s' % im_path)
+    bounds_exist = os.path.isfile('%s' % texture_bounds_path)
+    if texture_exist and bounds_exist:
+        with open(texture_bounds_path, 'rb') as f:
+            tex_bounds = pickle.load(f)
+        return [im_path, tex_bounds]
     im = cv2.imread(dem_file)
     h, w, _ = im.shape
     rs = 3
@@ -114,8 +132,6 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     cnt = contours[0]
     x, y, w, h = cv2.boundingRect(cnt)
     crop = img[y:y+h, x:x+w]
-    filename = gpx_path.split('/')[-1].split('.')[0]
-    im_path = 'exports/%s/%s_texture.png' % (filename, filename)
     cv2.imwrite(im_path, crop)
 
     tex_bounds = TextureBounds(
@@ -128,5 +144,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         max_x=max_x,
         max_y=max_y,
     )
+
+    with open(texture_bounds_path, 'wb') as f:
+        pickle.dump(tex_bounds, f)
 
     return [im_path, tex_bounds]

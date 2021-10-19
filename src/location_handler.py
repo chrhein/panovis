@@ -1,4 +1,5 @@
-from math import radians, asin, cos, sin, atan2, degrees
+from math import radians, asin, cos, sin, atan2, degrees, pi
+import numpy as np
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
@@ -151,3 +152,25 @@ def plot_to_map(locs, coordinates, filename):
         icon=folium.Icon(color='darkblue', icon='mountain'),
     ).add_to(m)) for i in locs]
     m.save(filename)
+
+
+def displace_camera(camera_lat, camera_lon, degrees, distance):
+    earth_radius = 6371
+    delta = distance / earth_radius
+
+    def to_radians(theta):
+        return np.dot(theta, np.pi) / np.float32(180.0)
+
+    def to_degrees(theta):
+        return np.dot(theta, np.float32(180.0)) / np.pi
+
+    degrees = to_radians(degrees)
+    camera_lat = to_radians(camera_lat)
+    camera_lon = to_radians(camera_lon)
+
+    displaced_lat = asin(sin(camera_lat) * cos(delta) +
+                         cos(camera_lat) * sin(delta) * cos(degrees))
+    displaced_lon = camera_lon + atan2(sin(degrees) * sin(delta) * cos(camera_lat),
+                                       cos(delta) - sin(camera_lat) * sin(displaced_lat))
+    displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
+    return to_degrees(displaced_lat), to_degrees(displaced_lon)

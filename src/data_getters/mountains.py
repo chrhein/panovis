@@ -1,6 +1,7 @@
 import json
 import gpxpy
 import gpxpy.gpx
+from location_handler import displace_camera
 from tools.types import Location, Mountain
 from operator import attrgetter
 
@@ -10,13 +11,15 @@ def get_mountain_data(json_path, filename):
         data = json.load(json_file)
         dem_file = data['dem-path']
         camera_mountain = data['panoramas']['%s_camera' % filename]
-        look_at_mountain = data['panoramas']['%s_view' % filename]
         camera_lat, camera_lon = camera_mountain['latitude'], \
             camera_mountain['longitude']
+        displacement_distance = 10  # in kms
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
-        look_at_lat, look_at_lon = look_at_mountain['latitude'], \
-            look_at_mountain['longitude']
+        look_at_lat, look_at_lon = displace_camera(camera_lat,
+                                                   camera_lon,
+                                                   camera_mountain['view_direction'],
+                                                   displacement_distance)
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         pov_settings = [panoramic_angle, height_field_scale_factor]
         return [dem_file, coordinates, pov_settings]
