@@ -10,7 +10,7 @@ from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
 from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
-from povs import color_gradient_pov, depth_pov, height_pov, texture_pov, debug_pov
+from povs import color_gradient_pov, primary_pov, debug_pov
 from tools.color_map import create_route_texture
 
 
@@ -35,9 +35,6 @@ def render_dem(pano, mode):
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
     gpx_file = 'data/hikes/%s.gpx' % filename
-
-    # gpx_path = "data/%s.gpx" % filename
-    # read_gpx(gpx_path)
 
     try:
         os.mkdir(folder)
@@ -139,7 +136,7 @@ def create_depth_image(dem_file, pov, raster_data):
     # generating pov-ray render using depth mapping
     pov_filename, folder, im_dimensions, pov_settings = pov
     with open(pov_filename, 'w') as pf:
-        pov = depth_pov(dem_file, raster_data, pov_settings)
+        pov = primary_pov(dem_file, raster_data, pov_settings, 'depth')
         pf.write(pov)
         pf.close()
     out_filename = '%srender-depth.png' % folder
@@ -151,28 +148,12 @@ def create_texture_image(dem_file, pov, raster_data):
     # generating pov-ray render with image texture map
     pov_filename, folder, im_dimensions, pov_settings = pov
     with open(pov_filename, 'w') as pf:
-        pov = texture_pov(dem_file, raster_data, pov_settings)
+        pov = primary_pov(dem_file, raster_data, pov_settings, 'texture')
         pf.write(pov)
         pf.close()
     out_filename = '%srender-texture.png' % folder
     params = [pov_filename, out_filename, im_dimensions, 'color']
     execute_pov(params)
-    '''
-    height = '%srender-height.png' % folder
-    background = cv2.imread(height)
-    overlay = cv2.imread(out_filename)
-    tmp = cv2.cvtColor(overlay, cv2.COLOR_BGR2GRAY)
-    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
-    b, g, r = cv2.split(overlay)
-    rgba = [b, g, r, alpha]
-    overlay = cv2.merge(rgba, 4)
-    super = '%srender-merged.png' % folder
-    x1, y1, x2, y2 = 0, 0, background.shape[1], background.shape[0]
-    background[y1:y2, x1:x2] = background[y1:y2, x1:x2] * \
-        (1 - overlay[:, :, 3:] / 255) + \
-        overlay[:, :, :3] * (overlay[:, :, 3:] / 255)
-    cv2.imwrite(super, background)
-    '''
 
 
 def create_color_image(coordinates_and_dem, out_params):
@@ -186,7 +167,7 @@ def create_color_image(coordinates_and_dem, out_params):
 def create_height_image(dem_file, pov, raster_data):
     pov_filename, folder, im_dimensions, pov_settings = pov
     with open(pov_filename, 'w') as pf:
-        pov = height_pov(dem_file, raster_data, pov_settings)
+        pov = primary_pov(dem_file, raster_data, pov_settings, 'height')
         pf.write(pov)
         pf.close()
     out_filename = '%srender-height.png' % folder
@@ -230,7 +211,7 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
 
     with open(pov_filename, 'w') as pf:
-        pf.write(depth_pov(dem_file, raster_data, pov_settings))
+        pf.write(primary_pov(dem_file, raster_data, pov_settings, 'depth'))
         pf.close()
     out_filename = '%srender-depth.png' % folder
     params = [pov_filename, out_filename, im_dimensions, 'depth']

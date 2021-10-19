@@ -66,29 +66,32 @@
             "longitude": 5.529010653474241,
             "mountain_name": "Herlandsfjellet",
             "panoramic_angle": 330,
-            "height_scale_factor": 0.6,
-            "view_direction": 190
+            "height_scale_factor": 0.4,
+            "view_direction": 270
         },
         "panorama3_camera": {
             "latitude": 60.34088071420514,
             "longitude": 5.48556797698576,
             "mountain_name": "Livarden",
             "panoramic_angle": 160,
-            "height_scale_factor": 0.6
+            "height_scale_factor": 0.6,
+            "view_direction": 50
         },
         "panorama4_camera": {
             "latitude": 60.36423590473352,
             "longitude": 5.382310057603189,
             "mountain_name": "Ormhaugen",
             "panoramic_angle": 210,
-            "height_scale_factor": 0.8
+            "height_scale_factor": 0.8,
+            "view_direction": 280
         },
         "panorama5_camera": {
             "latitude": 60.33953799964349,
             "longitude": 5.386844476693633,
             "mountain_name": "Helldalssåta",
             "panoramic_angle": 300,
-            "height_scale_factor": 1
+            "height_scale_factor": 1,
+            "view_direction": 30
         },
         "panorama6_camera": {
             "latitude": 60.237529814138995,

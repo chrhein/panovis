@@ -13,7 +13,7 @@ def get_mountain_data(json_path, filename):
         camera_mountain = data['panoramas']['%s_camera' % filename]
         camera_lat, camera_lon = camera_mountain['latitude'], \
             camera_mountain['longitude']
-        displacement_distance = 10  # in kms
+        displacement_distance = 1  # in kms
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
         look_at_lat, look_at_lon = displace_camera(camera_lat,
