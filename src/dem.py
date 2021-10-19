@@ -1,21 +1,22 @@
 import cv2
 import os
 import subprocess
+from geopy import distance
 from datetime import datetime
-from src.image_manipulations import resizer
-from src.feature_matching import feature_matching
-from src.edge_detection import edge_detection
-from src.data_getters.mountains import get_mountain_data
-from src.colors import color_interpolator, \
-    get_color_from_image, get_color_index_in_image
-from src.data_getters.raster import get_raster_data
-from src.debug_tools import p_e, p_i, p_line
-from src.location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
-from src.povs import color_gradient_pov, depth_pov, height_pov
+from feature_matching import feature_matching
+from edge_detection import edge_detection
+from data_getters.mountains import get_mountain_data, get_mountain_list
+from colors import color_interpolator, get_color_from_image
+from data_getters.raster import get_raster_data
+from debug_tools import p_e, p_i, p_line
+from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
+from povs import color_gradient_pov, depth_pov, height_pov, texture_pov, debug_pov
+from tools.color_map import create_route_texture
 
 
 def render_dem(pano, mode):
-    mountain_data = get_mountain_data('data/dem-data.json', pano)
+    filename = pano.split('/')[-1].split('.')[0]
+    mountain_data = get_mountain_data('data/dem-data.json', filename)
     dem_file = mountain_data[0]
     coordinates = mountain_data[1]
     pov_settings = mountain_data[2]
@@ -33,15 +34,15 @@ def render_dem(pano, mode):
 
     filename = pano.split('/')[-1].split('.')[0]
     folder = 'exports/%s/' % filename
+    gpx_file = 'data/hikes/%s.gpx' % filename
+
+    # gpx_path = "data/%s.gpx" % filename
+    # read_gpx(gpx_path)
 
     try:
         os.mkdir(folder)
     except FileExistsError:
         pass
-
-    if mode < 5:
-        cv2.imwrite(('%s%s.png' % (folder, filename)),
-                    cv2.resize(img, [new_width, new_height]))
 
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
@@ -49,7 +50,11 @@ def render_dem(pano, mode):
     pov = [pov_filename, folder, im_dimensions, pov_settings]
     pov_params = [dem_file, pov, raster_data]
 
-    if mode == 1:
+    if mode == 'debug':
+        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file, True)
+        debug_texture(dem_file, route_texture, texture_bounds, pov, raster_data[1][3])
+    elif mode == 1:
+        cv2.imwrite(('%s%s.png' % (folder, filename)), cv2.resize(img, [new_width, new_height]))
         create_height_image(*pov_params)
         create_depth_image(*pov_params)
         edge_detection('%s%s.png' % (folder, filename), 'HED',
@@ -68,36 +73,66 @@ def render_dem(pano, mode):
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
     elif mode == 5:
-        start_time = datetime.now()
-        loc_x = os.path.isfile('%srender-loc_x.png' % folder)
-        loc_z = os.path.isfile('%srender-loc_z.png' % folder)
-        loc_files_exist = loc_x and loc_z
-        if not loc_files_exist:
-            render_dem(pano, 4)
-        file_exist = os.path.isfile('%slocations.txt' % folder)
-        if file_exist:
-            file = open('%slocations.txt' % folder, 'r')
-            locs = [line.rstrip() for line in file.readlines()]
-            file.close()
-            locs = [(float(i[0]), float(i[1]))
-                    for i in (x.split(',') for x in locs)]
+        get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
+    elif mode == 8:
+        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
+        if route_texture:
+            pov_params[1][3].append(route_texture)
+            pov_params[1][3].append(texture_bounds)
+            create_texture_image(*pov_params)
         else:
-            im_width = 500  # should be a quite low number, e.g. < 500
-            im1 = cv2.cvtColor(resizer(
-                cv2.imread('%srender-loc_x.png' % folder),
-                im_width=im_width), cv2.COLOR_BGR2RGB)
-            im2 = cv2.cvtColor(resizer(
-                cv2.imread('%srender-loc_z.png' % folder),
-                im_width=im_width), cv2.COLOR_BGR2RGB)
-            locs = coordinate_lookup(im1, im2, dem_file)
-            file = open('%slocations.txt' % folder, 'w')
-            [file.write('%s\n' % str(i).strip('()')) for i in locs]
-            file.close()
-        plot_filename = '%s%s.html' % (folder, filename)
+            p_e('Could not find corresponding GPX')
+
+
+def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
+    loc_x = os.path.isfile('%srender-loc_x.png' % folder)
+    loc_z = os.path.isfile('%srender-loc_z.png' % folder)
+    loc_files_exist = loc_x and loc_z
+    if not loc_files_exist:
+        render_dem(pano, 4)
+    file_exist = os.path.isfile('%slocations.txt' % folder)
+    # file_exist = False
+    if file_exist:
+        file = open('%slocations.txt' % folder, 'r')
+        locs = [line.rstrip() for line in file.readlines()]
+        file.close()
+        locs = [(float(i[0]), float(i[1]))
+                for i in (x.split(',') for x in locs)]
+    else:
+        start_time = datetime.now()
+        im1 = cv2.cvtColor(cv2.imread('%srender-loc_x.png' % folder),
+                           cv2.COLOR_BGR2RGB)
+        im2 = cv2.cvtColor(cv2.imread('%srender-loc_z.png' % folder),
+                           cv2.COLOR_BGR2RGB)
+        locs = coordinate_lookup(im1, im2, dem_file)
+        file = open('%slocations.txt' % folder, 'w')
+        [file.write('%s\n' % str(i).strip('()')) for i in locs]
+        file.close()
         end_time = datetime.now()
-        plot_to_map(locs, coordinates, plot_filename)
         dur = end_time - start_time
         p_i('Total runtime: %s seconds' % str(dur.seconds))
+    p_line(includes_mountain(locs))
+    plot_filename = '%s%s.html' % (folder, filename)
+    plot_to_map(locs, coordinates, plot_filename)
+
+
+def includes_mountain(locs):
+    mountains = get_mountain_list('data/dem-data.json')
+    mountains_in_sight = set()
+    radius = 500
+    for pos in locs:
+        lat, lon = pos
+        for mountain in mountains:
+            m = mountain.location
+            m_lat, m_lon = m.latitude, m.longitude
+            center_point = [{'lat': m_lat, 'lng': m_lon}]
+            test_point = [{'lat': lat, 'lng': lon}]
+            center_point = tuple(center_point[0].values())
+            test_point = tuple(test_point[0].values())
+            dis = distance.distance(center_point, test_point).m
+            if dis <= radius:
+                mountains_in_sight.add(mountain.name)
+    return mountains_in_sight
 
 
 def create_depth_image(dem_file, pov, raster_data):
@@ -110,6 +145,34 @@ def create_depth_image(dem_file, pov, raster_data):
     out_filename = '%srender-depth.png' % folder
     params = [pov_filename, out_filename, im_dimensions, 'depth']
     execute_pov(params)
+
+
+def create_texture_image(dem_file, pov, raster_data):
+    # generating pov-ray render with image texture map
+    pov_filename, folder, im_dimensions, pov_settings = pov
+    with open(pov_filename, 'w') as pf:
+        pov = texture_pov(dem_file, raster_data, pov_settings)
+        pf.write(pov)
+        pf.close()
+    out_filename = '%srender-texture.png' % folder
+    params = [pov_filename, out_filename, im_dimensions, 'color']
+    execute_pov(params)
+    '''
+    height = '%srender-height.png' % folder
+    background = cv2.imread(height)
+    overlay = cv2.imread(out_filename)
+    tmp = cv2.cvtColor(overlay, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+    b, g, r = cv2.split(overlay)
+    rgba = [b, g, r, alpha]
+    overlay = cv2.merge(rgba, 4)
+    super = '%srender-merged.png' % folder
+    x1, y1, x2, y2 = 0, 0, background.shape[1], background.shape[0]
+    background[y1:y2, x1:x2] = background[y1:y2, x1:x2] * \
+        (1 - overlay[:, :, 3:] / 255) + \
+        overlay[:, :, :3] * (overlay[:, :, 3:] / 255)
+    cv2.imwrite(super, background)
+    '''
 
 
 def create_color_image(coordinates_and_dem, out_params):
@@ -155,17 +218,12 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     # using the colors of each photo to pinpoint where we are looking at
     color_z, m_factor = get_color_from_image(out_filename_z)
     color_x = get_color_from_image(out_filename_x)[0]
-    x_colors = color_interpolator([0, 0, 0], [255, 0, 0],
-                                  int(total_distance_n_s))
-    y_colors = color_interpolator([255, 0, 0], [0, 0, 0],
-                                  int(total_distance_e_w))
-    z_index = get_color_index_in_image(color_x,
-                                       x_colors)
-    x_index = get_color_index_in_image(color_z,
-                                       y_colors)
+    x_colors = color_interpolator(0, 255, int(total_distance_n_s))
+    y_colors = color_interpolator(255, 0, int(total_distance_e_w))
+    z_index = x_colors.index(color_x[0])
+    x_index = y_colors.index(color_z[0])
 
     x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
-    print(x, y)
 
     x -= resolution / 2
     y += resolution / 2
@@ -194,7 +252,7 @@ def execute_pov(params):
     p_i('Generating %s' % out_filename)
     if mode == 'color':
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
-                         'Output_File_Type=N Bits_Per_Color=16 +Q4 +UR +A',
+                         'Output_File_Type=N Bits_Per_Color=16 +Q8 +UR +A',
                          '-GA',
                          '+I' + pov_filename, '+O' + out_filename])
     else:
@@ -243,3 +301,15 @@ def clear(clear_list):
         os.remove(item)
     subprocess.call(['rm', '-r', 'src/__pycache__'])
     subprocess.call(['rm', '-r', 'src/data_getters/__pycache__'])
+
+
+def debug_texture(dem_file, texture, bounds, pov, mh):
+    # generating pov-ray render with image texture map
+    pov_filename, folder, _, _ = pov
+    with open(pov_filename, 'w') as pf:
+        pov = debug_pov(dem_file, texture, bounds, mh)
+        pf.write(pov)
+        pf.close()
+    out_filename = '%srender-debug.png' % folder
+    params = [pov_filename, out_filename, [2400, 2400], 'color']
+    execute_pov(params)

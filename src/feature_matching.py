@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-from src.debug_tools import nothing, p_line
-from src.edge_detection import sift
-from src.im import custom_imshow
+from debug_tools import nothing, p_line
+from edge_detection import sift
+from im import custom_imshow
 
 
 def save_image(image, filename):

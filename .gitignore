@@ -312,4 +312,7 @@ fabric.properties
 
 hed_model
 *.pov-state
+*.gpx
+*.pkl
 *.html
+*.txt

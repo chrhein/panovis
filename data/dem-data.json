@@ -1,45 +1,55 @@
 {
-    "dem-path": "data/hordaland.png",
+    "dem-path": "data/bergen.png",
     "mountains": {
         "blåmanen": {
+            "name": "Blåmanen",
             "latitude": 60.4014,
             "longitude": 5.3633
         },
         "damsgårdsfjellet": {
+            "name": "Damsgårdsfjellet",
             "latitude": 60.3774,
             "longitude": 5.2914
         },
         "fløyen": {
+            "name": "Fløyen",
             "latitude": 60.3944,
             "longitude": 5.3432
         },
         "gulfjellet": {
+            "name": "Gulfjellet",
             "latitude": 60.3731,
             "longitude": 5.5804
         },
         "løvstakken": {
+            "name": "Løvstakken",
             "latitude": 60.3609,
             "longitude": 5.3191
         },
         "lyderhorn": {
+            "name": "Lyderhorn",
             "latitude": 60.3739,
             "longitude": 5.2419
         },
         "rundemanen": {
+            "name": "Rundemanen",
             "latitude": 60.4112,
             "longitude": 5.3613
         },
         "sandviksfjellet": {
+            "name": "Sandviksfjellet",
             "latitude": 60.4094,
             "longitude": 5.3402
         },
         "strandafjellet": {
-            "latitude": 60.37214161757205,
-            "longitude": 5.3226537916231305
+            "name": "Strandafjellet",
+            "latitude": 60.3721,
+            "longitude": 5.3226
         },
         "ulriken": {
-            "latitude": 60.3772347916171,
-            "longitude": 5.381081749383611
+            "name": "Ulriken",
+            "latitude": 60.3772,
+            "longitude": 5.381
         }
     },
     "panoramas": {
