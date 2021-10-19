@@ -11,7 +11,6 @@ from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
 from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
 from povs import color_gradient_pov, depth_pov, height_pov, texture_pov, debug_pov
-from tools.types import Texture, Location
 from tools.color_map import create_route_texture
 
 
@@ -45,8 +44,6 @@ def render_dem(pano, mode):
     except FileExistsError:
         pass
 
-    cv2.imwrite(('%s%s.png' % (folder, filename)), cv2.resize(img, [new_width, new_height]))
-
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
     raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
@@ -54,9 +51,10 @@ def render_dem(pano, mode):
     pov_params = [dem_file, pov, raster_data]
 
     if mode == 'debug':
-        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
+        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file, True)
         debug_texture(dem_file, route_texture, texture_bounds, pov, raster_data[1][3])
     elif mode == 1:
+        cv2.imwrite(('%s%s.png' % (folder, filename)), cv2.resize(img, [new_width, new_height]))
         create_height_image(*pov_params)
         create_depth_image(*pov_params)
         edge_detection('%s%s.png' % (folder, filename), 'HED',
@@ -81,26 +79,6 @@ def render_dem(pano, mode):
         if route_texture:
             pov_params[1][3].append(route_texture)
             pov_params[1][3].append(texture_bounds)
-            scaled_coordinates = raster_data[0]
-            camera_location = Location(
-                latitude=scaled_coordinates[0],
-                longitude=scaled_coordinates[2],
-                elevation=scaled_coordinates[1]
-            )
-            viewpoint_location = Location(
-                latitude=scaled_coordinates[3],
-                longitude=scaled_coordinates[5],
-                elevation=scaled_coordinates[4]
-            )
-            tex = Texture(
-                dem=dem_file,
-                texture=route_texture,
-                camera=camera_location,
-                viewpoint=viewpoint_location,
-                angle=120,
-                scale=0.75,
-                bounds=texture_bounds
-            )
             create_texture_image(*pov_params)
         else:
             p_e('Could not find corresponding GPX')

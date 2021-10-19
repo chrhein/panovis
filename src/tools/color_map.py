@@ -5,7 +5,6 @@ from data_getters.mountains import read_gpx
 from location_handler import convert_single_coordinate_pair
 import collections
 import pickle
-from image_manipulations import resizer
 from tools.types import TextureBounds
 
 
@@ -62,12 +61,17 @@ def load_gradient():
         return pickle.load(f)
 
 
-def create_route_texture(dem_file, gpx_path):
+def create_route_texture(dem_file, gpx_path, debugging=False):
     im = cv2.imread(dem_file)
     h, w, _ = im.shape
-    rs = 1
-    h = h * rs
-    w = w * rs
+    rs = 3
+    if debugging:
+        rs = 20
+
+    multiplier = 10
+
+    h = h * multiplier
+    w = w * multiplier
     mns, minimums, maximums = read_gpx(gpx_path)
     if not mns:
         return ["", ""]
@@ -80,22 +84,16 @@ def create_route_texture(dem_file, gpx_path):
             i.latitude, i.longitude) for i in mns]
     prev_lat = abs(int(((100.0 * locs[0][0]) / 100) * w))
     prev_lon = h-abs(int(100.0-((100.0 * locs[0][1]) / 100.0) * h))
-    print(prev_lat, prev_lon)
-    easternmost = [1, 1]
-    southernmost = [1, 1]
     for i in locs:
         lat, lon = i
         x = h-abs(int(100.0-((100.0 * lon) / 100.0) * h))
         y = abs(int(((100.0 * lat) / 100.0) * w))
-        cv2.line(img, (prev_lat, prev_lon), (y, x), (0, 0, 255, 255), 1*rs)
+        cv2.line(img, (prev_lat, prev_lon), (y, x), (0, 0, 255, 255), 3*rs)
         prev_lat, prev_lon = y, x
-    img = resizer(img, im_width=w/rs)
-    print(southernmost, easternmost)
     min_lat_p = minimums[0]
     min_lon_p = minimums[1]
     max_lat_p = maximums[0]
     max_lon_p = maximums[1]
-
     min_x = convert_single_coordinate_pair(bounds, crs,
                                            min_lat_p.latitude,
                                            min_lat_p.longitude)

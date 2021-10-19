@@ -146,7 +146,7 @@ def texture_pov(dem_file, raster_data, pov_settings):
             pigment {
                 gradient y
                 color_map {
-                    [0.000000001 color BakersChoc]
+                    [0.0000000000000000000001 color BakersChoc]
                     [MAXMOUNTAIN/5 color rgb<0.74, 0.69, 0.62>]
                     [MAXMOUNTAIN color White]
                 }
@@ -165,12 +165,12 @@ def texture_pov(dem_file, raster_data, pov_settings):
             finish { ambient 1 diffuse 0 specular 0 }
             rotate <90, 0, 0>
         }
-        scale <1, SCALEFACTOR*3.5, 1>
+        scale <1, SCALEFACTOR*3.75, 1>
 
     }
 
     plane {
-        y, 0.000000001
+        y, 0.0000000000000000000001
         texture {
             pigment { color rgb<0.1,0.25,0.75> }
             finish {
