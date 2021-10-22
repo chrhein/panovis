@@ -5,13 +5,16 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     panoramic_angle = pov_settings[0]
     max_height = raster_data[1][3]
     height_field_scale_factor = pov_settings[1]
-    if mode == 'texture' or mode == 'route':
+    if mode == 'texture' or mode == 'route' or 'gradient':
         texture_path = pov_settings[2]
-        tex_bounds = pov_settings[3]
-        scale_y = tex_bounds.min_x[1]
-        scale_x = tex_bounds.min_y[0]
-        x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
-        y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
+        if mode == 'gradient':
+            scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
+        else:
+            tex_bounds = pov_settings[3]
+            scale_y = tex_bounds.min_x[1]
+            scale_x = tex_bounds.min_y[0]
+            x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
+            y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
     else:
         texture_path = ''
         scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
@@ -74,11 +77,16 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         }
     #end
 
-
+    #if (MODE="gradient")
+    global_settings {
+        assumed_gamma 1
+    }
+    #else
     global_settings {
         assumed_gamma 1
         ambient_light 1.5
     }
+    #end
 
     camera {
         cylinder 1
@@ -135,6 +143,18 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         #end
         #if (MODE="depth")
             texture { DEPTHTEXTURE }
+        #end
+        #if (MODE="gradient")
+            texture{
+                pigment {
+                    image_map {
+                        png TEXTURE
+                        once
+                    }
+                }
+                finish { ambient 1 diffuse 0 specular 0 }
+                rotate <90, 0, 0>
+            }
         #end
         scale <1, SCALEFACTOR * 3.75, 1>
     }

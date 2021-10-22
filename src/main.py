@@ -3,6 +3,7 @@ from feature_matching import feature_matching
 from edge_detection import edge_detection
 from dem import render_dem
 from tkinter.filedialog import askopenfile, askopenfilenames
+from tools.file_handling import select_file
 import tkinter as tk
 import os
 
@@ -31,13 +32,12 @@ def get_input():
         except ValueError:
             p_e('No valid mode given.')
             continue
-        else:
-            if mode == 0:
-                exit()
-            if mode < 1 or mode > len(information_text):
-                p_e('No valid mode given.')
-                continue
-            return mode
+        if mode == 0:
+            exit()
+        if mode < 1 or mode > len(information_text):
+            p_e('No valid mode given.')
+            continue
+        return mode
 
 
 def edge_detection_type():
@@ -95,15 +95,17 @@ def file_chooser(title, multiple=False):
 
 
 def main():
-    mode = get_input()
-
+    mode = 5
+    multiselect = False
     if mode == 'debug':
         panos = file_chooser('Select an image to detect edges on', True)
         for pano in panos:
             render_dem(pano, mode)
         exit()
     if 0 < mode < 6 or mode >= 8:
-        panos = file_chooser('Select an image to detect edges on', True)
+        pano_folder = 'data/panoramas/'
+        panos = file_chooser('Select one or more panoramas') \
+            if multiselect else [select_file(pano_folder)]
         for pano in panos:
             render_dem(pano, mode)
     elif mode == 6:

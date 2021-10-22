@@ -8,6 +8,7 @@ from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
 import os
+from tools.types import Location
 
 
 def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
@@ -75,7 +76,9 @@ def crs_to_cor(to_espg, lat, lon):
     coordinate_pair.AddPoint(lat, lon)
     coordinate_pair.AssignSpatialReference(out_sr)
     coordinate_pair.TransformTo(in_sr)
-    return coordinate_pair
+    lat = coordinate_pair.GetX()
+    lon = coordinate_pair.GetY()
+    return Location(latitude=float(lat), longitude=float(lon))
 
 
 def crs_to_wgs84(dataset, x, y):
@@ -98,14 +101,7 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     return lat2, lon2
 
 
-def get_loc(x_color, y_color, x_colors, y_colors, ds_raster):
-    x_r = x_color[0]
-    x_index = x_colors.index(x_r)
-    x = (x_index / 255) * 100000
-    y_r = y_color[0]
-    y_index = y_colors.index(y_r)
-    y = (y_index / 255) * 100000
-    x, y = ds_raster.xy(x * 0.10, y * 0.10)
+def to_latlon(x, y, ds_raster):
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
     return (float(str(latitude).strip('[]')),
             float(str(longitude).strip('[]')))
@@ -117,7 +113,7 @@ def coordinate_lookup(im1, im2, dem_file):
     h1, w1, _ = im1.shape
     x_int_c = color_interpolator(255, 0, 255)
     y_int_c = color_interpolator(0, 255, 255)
-    locs = set(get_loc(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
+    locs = set(to_latlon(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
                for i in range(0, h1, 10)
                for j in range(0, w1, 10)
                if im2[i, j][1] != 255)
@@ -147,7 +143,7 @@ def plot_to_map(locs, coordinates, filename):
         icon=folium.Icon(color='red', icon='map-pin', prefix='fa'),
     ).add_to(m)
     [(folium.Marker(
-        location=i,
+        location=(float(i.latitude), float(i.longitude)),
         popup='%s' % str(i).strip('()'),
         icon=folium.Icon(color='darkblue', icon='mountain'),
     ).add_to(m)) for i in locs]

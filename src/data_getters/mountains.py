@@ -2,6 +2,8 @@ import json
 import gpxpy
 import gpxpy.gpx
 from location_handler import displace_camera
+from debug_tools import p_line, p_i, p_in, p_e
+from tools.file_handling import get_files
 from tools.types import Location, Mountain
 from operator import attrgetter
 
@@ -48,7 +50,7 @@ def find_maximums(locations):
     return [max_lat, max_lon]
 
 
-def read_gpx(gpx_path):
+def read_hike_gpx(gpx_path):
     try:
         gpx_file = open(gpx_path, 'r')
     except FileNotFoundError:
@@ -59,3 +61,43 @@ def read_gpx(gpx_path):
                  for j in i.segments
                  for k in j.points]
     return [locations, find_minimums(locations), find_maximums(locations)]
+
+
+def read_mountain_gpx(gpx_path):
+    try:
+        gpx_file = open(gpx_path, 'r')
+    except FileNotFoundError:
+        return []
+    gpx = gpxpy.parse(gpx_file)
+    mountains = [Mountain(i.name,
+                 Location(i.latitude, i.longitude, i.elevation))
+                 for i in gpx.waypoints]
+    return mountains
+
+
+def get_mountains(folder):
+    files_in_folder = get_files(folder)
+    info_text = []
+    for i in range(len(files_in_folder)):
+        file = files_in_folder[i].split('/')[-1]
+        number_of_mountains_in_set = int(file.split('--')[0])
+        mountain_name = file.split('--')[1].split('.')[0]
+        info_text.append('%i: %s, size: %i' %
+                         (i + 1, mountain_name,
+                          number_of_mountains_in_set))
+    p_i("Select one of these files to continue:")
+    p_line(info_text)
+    while True:
+        try:
+            selected_file = p_in("Select file: ")
+            selected_file = int(selected_file)
+        except ValueError:
+            p_e('No valid file chosen.')
+            continue
+        if selected_file < 1 or selected_file > len(info_text):
+            p_e('No valid file chosen.')
+            continue
+        dataset = files_in_folder[selected_file - 1]
+        p_i('%s was selected' % dataset.split('/')[-1])
+        break
+    return read_mountain_gpx(dataset)

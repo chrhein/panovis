@@ -3,15 +3,18 @@ import os
 import subprocess
 from geopy import distance
 from datetime import datetime
+
+import numpy as np
 from feature_matching import feature_matching
 from edge_detection import edge_detection
-from data_getters.mountains import get_mountain_data, get_mountain_list
+from data_getters.mountains import get_mountain_data, get_mountains
 from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
 from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
 from povs import color_gradient_pov, primary_pov, debug_pov
-from tools.color_map import create_route_texture
+from tools.color_map import create_route_texture, rgb_to_hex, \
+    create_color_gradient_image, load_pickle, colors_to_coordinates
 
 
 def render_dem(pano, mode):
@@ -82,13 +85,8 @@ def render_dem(pano, mode):
 
 
 def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
-    loc_x = os.path.isfile('%srender-loc_x.png' % folder)
-    loc_z = os.path.isfile('%srender-loc_z.png' % folder)
-    loc_files_exist = loc_x and loc_z
-    if not loc_files_exist:
-        render_dem(pano, 4)
+    """
     file_exist = os.path.isfile('%slocations.txt' % folder)
-    # file_exist = False
     if file_exist:
         file = open('%slocations.txt' % folder, 'r')
         locs = [line.rstrip() for line in file.readlines()]
@@ -108,17 +106,25 @@ def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
         end_time = datetime.now()
         dur = end_time - start_time
         p_i('Total runtime: %s seconds' % str(dur.seconds))
+    """
+    gradient_path, _ = create_color_gradient_image()
+    locs = colors_to_coordinates(gradient_path, folder, dem_file)
     p_line(includes_mountain(locs))
     plot_filename = '%s%s.html' % (folder, filename)
     plot_to_map(locs, coordinates, plot_filename)
 
 
 def includes_mountain(locs):
-    mountains = get_mountain_list('data/dem-data.json')
+    mountains = get_mountains('data/mountains/')
     mountains_in_sight = set()
     radius = 500
-    for pos in locs:
-        lat, lon = pos
+    print(len(locs))
+    l_ = len(locs)
+    div = 10
+    for i in range(0, l_, div):
+        p_i('%i/%i' % (int(i/div), int(l_/div)))
+        pos = locs[i]
+        lat, lon = pos.latitude, pos.longitude
         for mountain in mountains:
             m = mountain.location
             m_lat, m_lon = m.latitude, m.longitude
@@ -177,6 +183,36 @@ def create_height_image(dem_file, pov, raster_data):
 
 def create_coordinate_gradients(dem_file, pov, raster_data):
     pov_filename, folder, im_dimensions, pov_settings = pov
+    gradient_path, _ = create_color_gradient_image()
+    pov_settings.append(gradient_path)
+    p = colors_to_coordinates(gradient_path, folder, dem_file)
+    print(p)
+    exit()
+    pic = load_pickle('%s/coordinates/coordinates.pkl' % folder)
+    print(len(pic))
+    gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
+    for key, val in pic.items():
+        for coordinate_pair in pic[key]:
+            print(key, rgb_to_hex(gradient[coordinate_pair]))
+    exit()
+
+    coordinates = {}
+    for u in unique_colors:
+        x, y = np.where(np.all(gradient == u, axis=-1))
+        if len(x) > 0:
+            coordinates[str(u)] = list(zip(x, y))
+    with open('test.txt', 'w') as f:
+        f.write(str(coordinates))
+    exit()
+
+    with open(pov_filename, 'w') as pf:
+        pf.write(primary_pov(dem_file, raster_data, pov_settings, 'gradient'))
+        pf.close()
+    out_filename = '%srender-gradient.png' % folder
+    params = [pov_filename, out_filename, im_dimensions, 'gradient']
+    execute_pov(params)
+
+    exit()
 
     ds_raster = raster_data[1][0]
     total_distance_n_s, total_distance_e_w = raster_data[1][1]
@@ -231,7 +267,7 @@ def execute_pov(params):
     pov_filename, out_filename, dimensions, mode = params
     out_width, out_height = dimensions
     p_i('Generating %s' % out_filename)
-    if mode == 'color':
+    if mode == 'color' or mode == 'gradient':
         subprocess.call(['povray', '+W%d' % out_width, '+H%d' % out_height,
                          'Output_File_Type=N Bits_Per_Color=16 +Q8 +UR +A',
                          '-GA',
