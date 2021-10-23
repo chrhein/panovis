@@ -1,7 +1,6 @@
 import cv2
 import os
 import subprocess
-from geopy import distance
 from datetime import datetime
 import numpy as np
 from feature_matching import feature_matching
@@ -10,7 +9,7 @@ from data_getters.mountains import get_mountain_data, get_mountains
 from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
-from location_handler import crs_to_wgs84, plot_to_map
+from location_handler import crs_to_wgs84, plot_to_map, get_mountains_in_sight
 from povs import color_gradient_pov, primary_pov, debug_pov
 from tools.color_map import create_route_texture, rgb_to_hex, \
     create_color_gradient_image, load_pickle, colors_to_coordinates
@@ -72,7 +71,7 @@ def render_dem(pano, mode):
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
     elif mode == 5:
-        get_coordinates_in_image(dem_file, coordinates, folder, filename)
+        show_mountains_in_sight(dem_file, coordinates, folder, filename)
     elif mode == 8:
         route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
         if route_texture:
@@ -83,36 +82,13 @@ def render_dem(pano, mode):
             p_e('Could not find corresponding GPX')
 
 
-def get_coordinates_in_image(dem_file, coordinates, folder, filename):
+def show_mountains_in_sight(dem_file, coordinates, folder, filename):
     gradient_path, _ = create_color_gradient_image()
+    mountains = get_mountains('data/mountains/')  # TODO use min and max height from this set
     locs = colors_to_coordinates(gradient_path, folder, dem_file)
-    # p_line(includes_mountain(locs))
+    mountains_in_sight = get_mountains_in_sight(locs, mountains)
     plot_filename = '%s%s.html' % (folder, filename)
-    plot_to_map(locs, coordinates, plot_filename)
-
-
-def includes_mountain(locs):
-    mountains = get_mountains('data/mountains/')
-    mountains_in_sight = set()
-    radius = 500
-    print(len(locs))
-    l_ = len(locs)
-    div = 10
-    for i in range(0, l_, div):
-        p_i('%i/%i' % (int(i/div), int(l_/div)))
-        pos = locs[i]
-        lat, lon = pos.latitude, pos.longitude
-        for mountain in mountains:
-            m = mountain.location
-            m_lat, m_lon = m.latitude, m.longitude
-            center_point = [{'lat': m_lat, 'lng': m_lon}]
-            test_point = [{'lat': lat, 'lng': lon}]
-            center_point = tuple(center_point[0].values())
-            test_point = tuple(test_point[0].values())
-            dis = distance.distance(center_point, test_point).m
-            if dis <= radius:
-                mountains_in_sight.add(mountain.name)
-    return mountains_in_sight
+    plot_to_map(mountains_in_sight, coordinates, plot_filename)
 
 
 def create_depth_image(dem_file, pov, raster_data):
@@ -139,14 +115,6 @@ def create_texture_image(dem_file, pov, raster_data):
     execute_pov(params)
 
 
-def create_color_image(coordinates_and_dem, out_params):
-    # generating gradient colored pov-ray render
-    with open(out_params[2], 'w') as pf:
-        pf.write(color_gradient_pov(*coordinates_and_dem, 'z'))
-        pf.close()
-    execute_pov(*out_params)
-
-
 def create_height_image(dem_file, pov, raster_data):
     pov_filename, folder, im_dimensions, pov_settings = pov
     with open(pov_filename, 'w') as pf:
@@ -162,25 +130,6 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     pov_filename, folder, im_dimensions, pov_settings = pov
     gradient_path, _ = create_color_gradient_image()
     pov_settings.append(gradient_path)
-    p = colors_to_coordinates(gradient_path, folder, dem_file)
-    print(p)
-    exit()
-    pic = load_pickle('%s/coordinates/coordinates.pkl' % folder)
-    print(len(pic))
-    gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-    for key, val in pic.items():
-        for coordinate_pair in pic[key]:
-            print(key, rgb_to_hex(gradient[coordinate_pair]))
-    exit()
-
-    coordinates = {}
-    for u in unique_colors:
-        x, y = np.where(np.all(gradient == u, axis=-1))
-        if len(x) > 0:
-            coordinates[str(u)] = list(zip(x, y))
-    with open('test.txt', 'w') as f:
-        f.write(str(coordinates))
-    exit()
 
     with open(pov_filename, 'w') as pf:
         pf.write(primary_pov(dem_file, raster_data, pov_settings, 'gradient'))
@@ -188,56 +137,6 @@ def create_coordinate_gradients(dem_file, pov, raster_data):
     out_filename = '%srender-gradient.png' % folder
     params = [pov_filename, out_filename, im_dimensions, 'gradient']
     execute_pov(params)
-
-    exit()
-
-    ds_raster = raster_data[1][0]
-    total_distance_n_s, total_distance_e_w = raster_data[1][1]
-    resolution = raster_data[1][2]
-
-    with open(pov_filename, 'w') as pf:
-        pf.write(color_gradient_pov(dem_file, raster_data, pov_settings, 'x'))
-        pf.close()
-    out_filename_x = '%srender-loc_x.png' % folder
-    params = [pov_filename, out_filename_x, im_dimensions, 'loc_x']
-    execute_pov(params)
-
-    with open(pov_filename, 'w') as pf:
-        pf.write(color_gradient_pov(dem_file, raster_data, pov_settings, 'z'))
-        pf.close()
-    out_filename_z = '%srender-loc_z.png' % folder
-    params = [pov_filename, out_filename_z, im_dimensions, 'loc_z']
-    execute_pov(params)
-
-    # using the colors of each photo to pinpoint where we are looking at
-    color_z, m_factor = get_color_from_image(out_filename_z)
-    color_x = get_color_from_image(out_filename_x)[0]
-    x_colors = color_interpolator(0, 255, int(total_distance_n_s))
-    y_colors = color_interpolator(255, 0, int(total_distance_e_w))
-    z_index = x_colors.index(color_x[0])
-    x_index = y_colors.index(color_z[0])
-
-    x, y = ds_raster.xy(x_index / resolution, z_index / resolution)
-
-    x -= resolution / 2
-    y += resolution / 2
-    latitude, longitude = crs_to_wgs84(ds_raster, x, y)
-
-    with open(pov_filename, 'w') as pf:
-        pf.write(primary_pov(dem_file, raster_data, pov_settings, 'depth'))
-        pf.close()
-    out_filename = '%srender-depth.png' % folder
-    params = [pov_filename, out_filename, im_dimensions, 'depth']
-    execute_pov(params)
-
-    image = cv2.imread(out_filename)
-    height, width, _ = image.shape
-    visualize_point(folder, image, width, height, m_factor)
-    visualize_point_on_dem(folder, dem_file, x_index, z_index, resolution)
-    p_line(['Latitude: %.20f' % float(str(latitude).strip('[]')),
-            'Longitude: %.20f' % float(str(longitude).strip('[]'))])
-    p_i('%.20f, %.20f' % (float(str(latitude).strip('[]')),
-                          float(str(longitude).strip('[]'))))
 
 
 def execute_pov(params):

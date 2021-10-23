@@ -3,10 +3,10 @@ import cv2
 import numpy as np
 import rasterio
 from data_getters.mountains import read_hike_gpx
-from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
+from location_handler import convert_single_coordinate_pair, crs_to_cor
 import pickle
 from image_manipulations import resizer
-from tools.types import TextureBounds, Location
+from tools.types import TextureBounds
 from debug_tools import p_i
 
 
@@ -146,7 +146,7 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(gradient_path, folder, dem_file):
+def colors_to_coordinates(gradient_path, folder, dem_file, min_ele=50, max_ele=10000):
     render_path = '%srender-gradient.png' % folder
     coordinates_seen_in_render_path = '%s/coordinates/coordinates.pkl' % folder
     pickle_exists = os.path.isfile('%s' % coordinates_seen_in_render_path)
@@ -158,10 +158,10 @@ def colors_to_coordinates(gradient_path, folder, dem_file):
         l_ = len(unique_colors)
 
         color_coordinates = dict()
-        div = 10
+        div = 1
         for i in range(0, l_, div):
             color = unique_colors[i]
-            p_i('%i/%i' % (int(i/div), int(l_/div)))
+            p_i('%i/%i' % (int((i+1)/div), int(l_/div)))
             indices = np.where(np.all(gradient == color, axis=2))
             if len(indices[0]) > 0:
                 coordinates = zip(indices[0], indices[1])
@@ -177,19 +177,23 @@ def colors_to_coordinates(gradient_path, folder, dem_file):
         color_coordinates = load_pickle(coordinates_seen_in_render_path)
     latlon_color_coordinates = []
     ds_raster = rasterio.open(dem_file)
+    h = ds_raster.read(1)
     crs = int(ds_raster.crs.to_authority()[1])
+    use_all_coordinates = False
     for coordinates in color_coordinates.values():
-        """ to get all coordinates for the same color
-        for coordinate in coordinates:
-            x, y = coordinate
+        if use_all_coordinates:
+            for coordinate in coordinates:
+                x, y = coordinate
+                px, py = ds_raster.xy(x, y)
+                height = h[x][y]
+                latlon = crs_to_cor(crs, px, py, height)
+                latlon_color_coordinates.append(latlon) if height >= min_ele and height <= max_ele else None
+        else:
+            x, y = coordinates[len(coordinates)//2]
             px, py = ds_raster.xy(x, y)
-            latlon = crs_to_cor(crs, px, py)
-            latlon_color_coordinates.append(latlon)
-        """
-        x, y = coordinates[len(coordinates)//2]
-        px, py = ds_raster.xy(x, y)
-        latlon = crs_to_cor(crs, px, py)
-        latlon_color_coordinates.append(latlon)
+            height = h[x][y]
+            latlon = crs_to_cor(crs, px, py, height)
+            latlon_color_coordinates.append(latlon) if height >= min_ele and height <= max_ele else None
 
     return latlon_color_coordinates
 

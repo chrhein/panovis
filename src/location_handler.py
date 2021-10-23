@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import folium
 import os
 from tools.types import Location
+from geopy import distance
 
 
 def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
@@ -67,7 +68,7 @@ def cor_to_crs(to_espg, lat, lon):
     return coordinate_pair
 
 
-def crs_to_cor(to_espg, lat, lon):
+def crs_to_cor(to_espg, lat, lon, ele):
     in_sr = osr.SpatialReference()
     in_sr.ImportFromEPSG(4326)
     out_sr = osr.SpatialReference()
@@ -78,7 +79,7 @@ def crs_to_cor(to_espg, lat, lon):
     coordinate_pair.TransformTo(in_sr)
     lat = coordinate_pair.GetX()
     lon = coordinate_pair.GetY()
-    return Location(latitude=float(lat), longitude=float(lon))
+    return Location(latitude=float(lat), longitude=float(lon), elevation=ele)
 
 
 def crs_to_wgs84(dataset, x, y):
@@ -121,8 +122,8 @@ def coordinate_lookup(im1, im2, dem_file):
     return locs
 
 
-def plot_to_map(locs, coordinates, filename):
-    c_lat, c_lon, l_lat, l_lon = coordinates
+def plot_to_map(mountains_in_sight, coordinates, filename, locs=[]):
+    c_lat, c_lon, _, _ = coordinates
     load_dotenv()
     MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
     MAPBOX_STYLE_URL = os.getenv('MAPBOX_STYLE_URL')
@@ -137,17 +138,47 @@ def plot_to_map(locs, coordinates, filename):
         popup='Camera Location',
         icon=folium.Icon(color='green', icon='camera'),
     ).add_to(m)
+    """
     folium.Marker(
         location=[l_lat, l_lon],
         popup='Look at Location',
         icon=folium.Icon(color='red', icon='map-pin', prefix='fa'),
     ).add_to(m)
+    """
+    if locs:
+        [(folium.Marker(
+            location=(float(i.latitude), float(i.longitude)),
+            popup='%s' % str(i).strip('()'),
+            icon=folium.Icon(color='darkblue', icon='mountain'),
+        ).add_to(m)) for i in locs]
     [(folium.Marker(
-        location=(float(i.latitude), float(i.longitude)),
-        popup='%s' % str(i).strip('()'),
-        icon=folium.Icon(color='darkblue', icon='mountain'),
-    ).add_to(m)) for i in locs]
+        location=(float(i.location.latitude), float(i.location.longitude)),
+        popup='%s\n%s' % (str(i.name), str(i.location).strip('()')),
+        icon=folium.Icon(color='pink', icon='mountain'),
+    ).add_to(m)) for i in mountains_in_sight.values()]
     m.save(filename)
+
+
+def get_mountains_in_sight(locs, mountains):
+    mountains_in_sight = dict()
+    radius = 500
+    l_ = len(locs)
+    div = 1
+    for i in range(0, l_, div):
+        # p_i('%i/%i' % (int((i + 1)/div), int(l_/div)))
+        pos = locs[i]
+        lat, lon = pos.latitude, pos.longitude
+        for mountain in mountains:
+            m = mountain.location
+            m_lat, m_lon = m.latitude, m.longitude
+            center_point = [{'lat': m_lat, 'lng': m_lon}]
+            test_point = [{'lat': lat, 'lng': lon}]
+            center_point = tuple(center_point[0].values())
+            test_point = tuple(test_point[0].values())
+            dis = distance.distance(center_point, test_point).m
+            if dis <= radius:
+                mountains_in_sight[mountain.name] = mountain
+    return mountains_in_sight
 
 
 def displace_camera(camera_lat, camera_lon, degrees, distance):
