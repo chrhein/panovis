@@ -95,7 +95,7 @@ def file_chooser(title, multiple=False):
 
 
 def main():
-    mode = 5
+    mode = 'debug'
     multiselect = False
     if mode == 'debug':
         panos = file_chooser('Select an image to detect edges on', True)

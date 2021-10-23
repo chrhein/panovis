@@ -159,13 +159,14 @@ def colors_to_coordinates(gradient_path, folder, dem_file):
 
         color_coordinates = dict()
         div = 10
-        for i in range(0, len(unique_colors), div):
+        for i in range(0, l_, div):
             color = unique_colors[i]
             p_i('%i/%i' % (int(i/div), int(l_/div)))
             indices = np.where(np.all(gradient == color, axis=2))
-            coordinates = zip(indices[0], indices[1])
-            unique_coordinates = list(set(list(coordinates)))
-            color_coordinates[rgb_to_hex(color)] = unique_coordinates
+            if len(indices[0]) > 0:
+                coordinates = zip(indices[0], indices[1])
+                unique_coordinates = list(set(list(coordinates)))
+                color_coordinates[rgb_to_hex(color)] = unique_coordinates
         try:
             os.mkdir('%s/coordinates' % folder)
         except FileExistsError:
@@ -177,15 +178,19 @@ def colors_to_coordinates(gradient_path, folder, dem_file):
     latlon_color_coordinates = []
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
-    h, w, _ = gradient.shape
     for coordinates in color_coordinates.values():
+        """ to get all coordinates for the same color
         for coordinate in coordinates:
             x, y = coordinate
-            x = x/w
-            y = y/h
-            py, px = ds_raster.xy(y, x)
-            latlon = crs_to_cor(crs, py, px)
+            px, py = ds_raster.xy(x, y)
+            latlon = crs_to_cor(crs, px, py)
             latlon_color_coordinates.append(latlon)
+        """
+        x, y = coordinates[len(coordinates)//2]
+        px, py = ds_raster.xy(x, y)
+        latlon = crs_to_cor(crs, px, py)
+        latlon_color_coordinates.append(latlon)
+
     return latlon_color_coordinates
 
 

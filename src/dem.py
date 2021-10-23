@@ -3,7 +3,6 @@ import os
 import subprocess
 from geopy import distance
 from datetime import datetime
-
 import numpy as np
 from feature_matching import feature_matching
 from edge_detection import edge_detection
@@ -11,7 +10,7 @@ from data_getters.mountains import get_mountain_data, get_mountains
 from colors import color_interpolator, get_color_from_image
 from data_getters.raster import get_raster_data
 from debug_tools import p_e, p_i, p_line
-from location_handler import coordinate_lookup, crs_to_wgs84, plot_to_map
+from location_handler import crs_to_wgs84, plot_to_map
 from povs import color_gradient_pov, primary_pov, debug_pov
 from tools.color_map import create_route_texture, rgb_to_hex, \
     create_color_gradient_image, load_pickle, colors_to_coordinates
@@ -73,7 +72,7 @@ def render_dem(pano, mode):
     elif mode == 4:
         create_coordinate_gradients(*pov_params)
     elif mode == 5:
-        get_coordinates_in_image(dem_file, pano, coordinates, folder, filename)
+        get_coordinates_in_image(dem_file, coordinates, folder, filename)
     elif mode == 8:
         route_texture, texture_bounds = create_route_texture(dem_file, gpx_file)
         if route_texture:
@@ -84,32 +83,10 @@ def render_dem(pano, mode):
             p_e('Could not find corresponding GPX')
 
 
-def get_coordinates_in_image(dem_file, pano, coordinates, folder, filename):
-    """
-    file_exist = os.path.isfile('%slocations.txt' % folder)
-    if file_exist:
-        file = open('%slocations.txt' % folder, 'r')
-        locs = [line.rstrip() for line in file.readlines()]
-        file.close()
-        locs = [(float(i[0]), float(i[1]))
-                for i in (x.split(',') for x in locs)]
-    else:
-        start_time = datetime.now()
-        im1 = cv2.cvtColor(cv2.imread('%srender-loc_x.png' % folder),
-                           cv2.COLOR_BGR2RGB)
-        im2 = cv2.cvtColor(cv2.imread('%srender-loc_z.png' % folder),
-                           cv2.COLOR_BGR2RGB)
-        locs = coordinate_lookup(im1, im2, dem_file)
-        file = open('%slocations.txt' % folder, 'w')
-        [file.write('%s\n' % str(i).strip('()')) for i in locs]
-        file.close()
-        end_time = datetime.now()
-        dur = end_time - start_time
-        p_i('Total runtime: %s seconds' % str(dur.seconds))
-    """
+def get_coordinates_in_image(dem_file, coordinates, folder, filename):
     gradient_path, _ = create_color_gradient_image()
     locs = colors_to_coordinates(gradient_path, folder, dem_file)
-    p_line(includes_mountain(locs))
+    # p_line(includes_mountain(locs))
     plot_filename = '%s%s.html' % (folder, filename)
     plot_to_map(locs, coordinates, plot_filename)
 
