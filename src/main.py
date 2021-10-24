@@ -96,16 +96,13 @@ def file_chooser(title, multiple=False):
 
 def main():
     mode = get_input()
-    multiselect = False
-    if mode == 'debug':
-        panos = file_chooser('Select an image to detect edges on', True)
-        for pano in panos:
-            render_dem(pano, mode)
-        exit()
-    if 0 < mode < 6 or mode >= 8:
+    debug_mode = mode == 'debug'
+    dem_mode = False
+    if not debug_mode:
+        dem_mode = 0 < mode < 6 or mode >= 8
+    if dem_mode or debug_mode:
         pano_folder = 'data/panoramas/'
-        panos = file_chooser('Select one or more panoramas') \
-            if multiselect else [select_file(pano_folder)]
+        panos = select_file(pano_folder)
         for pano in panos:
             render_dem(pano, mode)
     elif mode == 6:

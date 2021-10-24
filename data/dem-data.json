@@ -98,21 +98,24 @@
             "longitude": 5.346079797576634,
             "mountain_name": "Tverrfjellet",
             "panoramic_angle": 180,
-            "height_scale_factor": 1
+            "height_scale_factor": 1,
+            "view_direction": 180
         },
         "panorama7_camera": {
             "latitude": 60.318317932273,
             "longitude": 5.5446410107586415,
             "mountain_name": "Søtefjellet",
             "panoramic_angle": 300,
-            "height_scale_factor": 0.65
+            "height_scale_factor": 0.65,
+            "view_direction": 30
         },
         "panorama8_camera": {
             "latitude": 60.35672391569111,
             "longitude": 5.536936566715599,
             "mountain_name": "Austefjellet",
             "panoramic_angle": 280,
-            "height_scale_factor": 0.5
+            "height_scale_factor": 0.5,
+            "view_direction": 30
         }
     }
 }

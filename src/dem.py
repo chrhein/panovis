@@ -45,6 +45,8 @@ def render_dem(pano, mode):
     pov_filename = '/tmp/pov_file.pov'
     im_dimensions = [out_width, out_height]
     raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
+    if not raster_data:
+        return
     pov = [pov_filename, folder, im_dimensions, pov_settings]
     pov_params = [dem_file, pov, raster_data]
 

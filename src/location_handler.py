@@ -3,7 +3,7 @@ import numpy as np
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
-from debug_tools import p_i
+from debug_tools import p_i, p_e
 from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
@@ -43,7 +43,10 @@ def convert_coordinates(raster, to_espg, lat, lon,
     new_y = new_y[0]
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
-    height = h[row][col]
+    try:
+        height = h[row][col]
+    except IndexError:
+        return
     height_min = h.min()
     height_max = (max_x - min_x)
     height_scaled = (height - height_min) / (height_max - height_min)

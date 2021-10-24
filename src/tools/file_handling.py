@@ -22,17 +22,27 @@ def select_file(folder):
         info_text.append('%i: %s' % (i + 1, file))
     p_i("Select one of these files to continue:")
     p_line(info_text)
+    files_chosen = []
     while True:
         try:
             selected_file = p_in("Select file: ")
             selected_file = int(selected_file)
         except ValueError:
-            p_e('No valid file chosen.')
+            try:
+                x, y = selected_file.split('-')
+                if min(int(x), int(y)) < 1 or max(int(x), int(y)) > len(info_text):
+                    p_e('No valid file chosen.')
+                    continue
+                for i in range(min(int(x), int(y)), max(int(x)+1, int(y)+1)):
+                    files_chosen.append(files_in_folder[i - 1])
+                break
+            except ValueError:
+                p_e('No valid file chosen.')
             continue
         if selected_file < 1 or selected_file > len(info_text):
             p_e('No valid file chosen.')
             continue
-        file = files_in_folder[selected_file - 1]
-        p_i('%s was selected' % file.split('/')[-1])
+        files_chosen.append(files_in_folder[selected_file - 1])
         break
-    return file
+    p_i('%s was selected' % str([i.split('/')[-1] for i in files_chosen]).strip('[]'))
+    return files_chosen
