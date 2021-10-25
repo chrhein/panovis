@@ -1,145 +1,69 @@
 {
     "dem-path": "data/bergen.png",
-    "mountains": {
-        "blåmanen": {
-            "name": "Blåmanen",
-            "latitude": 60.4014,
-            "longitude": 5.3633
-        },
-        "damsgårdsfjellet": {
-            "name": "Damsgårdsfjellet",
-            "latitude": 60.3774,
-            "longitude": 5.2914
-        },
-        "fløyen": {
-            "name": "Fløyen",
-            "latitude": 60.3944,
-            "longitude": 5.3432
-        },
-        "gulfjellet": {
-            "name": "Gulfjellet",
-            "latitude": 60.3731,
-            "longitude": 5.5804
-        },
-        "løvstakken": {
-            "name": "Løvstakken",
-            "latitude": 60.3609,
-            "longitude": 5.3191
-        },
-        "lyderhorn": {
-            "name": "Lyderhorn",
-            "latitude": 60.3739,
-            "longitude": 5.2419
-        },
-        "rundemanen": {
-            "name": "Rundemanen",
-            "latitude": 60.4112,
-            "longitude": 5.3613
-        },
-        "sandviksfjellet": {
-            "name": "Sandviksfjellet",
-            "latitude": 60.4094,
-            "longitude": 5.3402
-        },
-        "strandafjellet": {
-            "name": "Strandafjellet",
-            "latitude": 60.3721,
-            "longitude": 5.3226
-        },
-        "ulriken": {
-            "name": "Ulriken",
-            "latitude": 60.3772,
-            "longitude": 5.381
-        }
-    },
     "panoramas": {
         "panorama1_camera": {
             "latitude": 60.41454411362287,
             "longitude": 5.3896563433223585,
             "mountain_name": "Vidden",
             "panoramic_angle": 205,
-            "height_scale_factor": 0.5
-        },
-        "panorama1_view": {
-            "latitude": 60.37781556563401,
-            "longitude": 5.387034486694265
+            "height_scale_factor": 0.5,
+            "view_direction": 190
         },
         "panorama2_camera": {
             "latitude": 60.39672484004798,
             "longitude": 5.529010653474241,
             "mountain_name": "Herlandsfjellet",
             "panoramic_angle": 330,
-            "height_scale_factor": 0.6
-        },
-        "panorama2_view": {
-            "latitude": 60.39680752708766,
-            "longitude": 5.524744812572357
+            "height_scale_factor": 0.4,
+            "view_direction": 270
         },
         "panorama3_camera": {
             "latitude": 60.34088071420514,
             "longitude": 5.48556797698576,
             "mountain_name": "Livarden",
             "panoramic_angle": 160,
-            "height_scale_factor": 0.6
-        },
-        "panorama3_view": {
-            "latitude": 60.3623769089857,
-            "longitude": 5.540022475941776
+            "height_scale_factor": 0.6,
+            "view_direction": 50
         },
         "panorama4_camera": {
             "latitude": 60.36423590473352,
             "longitude": 5.382310057603189,
             "mountain_name": "Ormhaugen",
             "panoramic_angle": 210,
-            "height_scale_factor": 0.8
-        },
-        "panorama4_view": {
-            "latitude": 60.36132241028855,
-            "longitude": 5.320899327333073
+            "height_scale_factor": 0.8,
+            "view_direction": 280
         },
         "panorama5_camera": {
             "latitude": 60.33953799964349,
             "longitude": 5.386844476693633,
             "mountain_name": "Helldalssåta",
             "panoramic_angle": 300,
-            "height_scale_factor": 1
-        },
-        "panorama5_view": {
-            "latitude": 60.35065292844849,
-            "longitude": 5.396999650612283
+            "height_scale_factor": 1,
+            "view_direction": 30
         },
         "panorama6_camera": {
             "latitude": 60.237529814138995,
             "longitude": 5.346079797576634,
             "mountain_name": "Tverrfjellet",
             "panoramic_angle": 180,
-            "height_scale_factor": 1
-        },
-        "panorama6_view": {
-            "latitude": 60.15872349162255,
-            "longitude": 5.331404793596098
+            "height_scale_factor": 1,
+            "view_direction": 185
         },
         "panorama7_camera": {
             "latitude": 60.318317932273,
             "longitude": 5.5446410107586415,
             "mountain_name": "Søtefjellet",
             "panoramic_angle": 300,
-            "height_scale_factor": 0.65
-        },
-        "panorama7_view": {
-            "latitude": 60.36160302613756,
-            "longitude": 5.598676197326929
+            "height_scale_factor": 0.5,
+            "view_direction": 15
         },
         "panorama8_camera": {
             "latitude": 60.35672391569111,
             "longitude": 5.536936566715599,
             "mountain_name": "Austefjellet",
             "panoramic_angle": 280,
-            "height_scale_factor": 0.5
-        },
-        "panorama8_view": {
-            "latitude": 60.33015321454407,
-            "longitude": 5.468764877189931
+            "height_scale_factor": 0.5,
+            "view_direction": 245
         }
     }
 }

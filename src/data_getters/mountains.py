@@ -1,6 +1,9 @@
 import json
 import gpxpy
 import gpxpy.gpx
+from location_handler import displace_camera
+from debug_tools import p_i
+from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain
 from operator import attrgetter
 
@@ -10,27 +13,18 @@ def get_mountain_data(json_path, filename):
         data = json.load(json_file)
         dem_file = data['dem-path']
         camera_mountain = data['panoramas']['%s_camera' % filename]
-        look_at_mountain = data['panoramas']['%s_view' % filename]
         camera_lat, camera_lon = camera_mountain['latitude'], \
             camera_mountain['longitude']
+        displacement_distance = 0.1  # in kms
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
-        look_at_lat, look_at_lon = look_at_mountain['latitude'], \
-            look_at_mountain['longitude']
+        look_at_lat, look_at_lon = displace_camera(camera_lat,
+                                                   camera_lon,
+                                                   camera_mountain['view_direction'],
+                                                   displacement_distance)
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         pov_settings = [panoramic_angle, height_field_scale_factor]
         return [dem_file, coordinates, pov_settings]
-
-
-def get_mountain_list(json_path):
-    with open(json_path) as json_file:
-        data = json.load(json_file)
-        m = data['mountains']
-        mountains = [Mountain(m[i]['name'],
-                     Location(m[i]['latitude'],
-                     m[i]['longitude']))
-                     for i in m]
-        return mountains
 
 
 def find_minimums(locations):
@@ -45,7 +39,7 @@ def find_maximums(locations):
     return [max_lat, max_lon]
 
 
-def read_gpx(gpx_path):
+def read_hike_gpx(gpx_path):
     try:
         gpx_file = open(gpx_path, 'r')
     except FileNotFoundError:
@@ -56,3 +50,34 @@ def read_gpx(gpx_path):
                  for j in i.segments
                  for k in j.points]
     return [locations, find_minimums(locations), find_maximums(locations)]
+
+
+def read_mountain_gpx(gpx_path):
+    try:
+        gpx_file = open(gpx_path, 'r')
+    except FileNotFoundError:
+        return []
+    gpx = gpxpy.parse(gpx_file)
+    mountains = [Mountain(i.name,
+                 Location(i.latitude, i.longitude, i.elevation))
+                 for i in gpx.waypoints]
+    return mountains
+
+
+def get_mountains(folder):
+    files_in_folder = get_files(folder)
+    info_text = []
+    info_title = 'Select one of these files to continue:'
+    input_text = 'Select file: '
+    error_text = 'No valid file chosen.'
+    for i in range(len(files_in_folder)):
+        file = files_in_folder[i].split('/')[-1]
+        number_of_mountains_in_set = int(file.split('--')[0])
+        mountain_name = file.split('--')[1].split('.')[0]
+        info_text.append('%s, size: %i' %
+                         (mountain_name,
+                          number_of_mountains_in_set))
+    selected_file = tui_select(info_text, info_title, input_text, error_text)
+    dataset = files_in_folder[selected_file - 1]
+    p_i('%s was selected' % dataset.split('/')[-1])
+    return read_mountain_gpx(dataset)

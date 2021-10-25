@@ -3,28 +3,28 @@ from osgeo import gdal
 
 
 def p_i(text):
-    print("[INFO]", text)
+    print('[INFO]  %s' % text)
 
 
 def p_e(text):
-    print("[ERROR]", text)
+    print('[ERROR] %s' % text)
 
 
 def p_a(text):
-    print("[ALERT]", text)
+    print('[ALERT] %s' % text)
 
 
 def p_in(text):
-    return input("[INPUT] %s" % text)
+    return input('[INPUT] %s' % text)
 
 
 def p_line(p_list=[]):
-    print("===================================================")
+    print('===================================================')
     if not p_list:
         return
     for item in p_list:
         print(item)
-    print("===================================================")
+    print('===================================================')
 
 
 def dem_data_debugger(in_dem, lat, lon, view_lat, view_lon):
