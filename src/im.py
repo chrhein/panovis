@@ -42,3 +42,9 @@ def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
             file_name = p_in('Filename: ')
             cv2.imwrite('%s/%s.png' % (path, file_name), im2)
             p_i('File was saved')
+
+
+def get_image_shape(img, new_width=2800):
+    im_height, im_width, _ = img.shape
+    new_height = int(new_width * im_height / im_width)
+    return new_width, new_height

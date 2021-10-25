@@ -2,8 +2,8 @@ import json
 import gpxpy
 import gpxpy.gpx
 from location_handler import displace_camera
-from debug_tools import p_line, p_i, p_in, p_e
-from tools.file_handling import get_files
+from debug_tools import p_i
+from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain
 from operator import attrgetter
 
@@ -15,7 +15,7 @@ def get_mountain_data(json_path, filename):
         camera_mountain = data['panoramas']['%s_camera' % filename]
         camera_lat, camera_lon = camera_mountain['latitude'], \
             camera_mountain['longitude']
-        displacement_distance = 1  # in kms
+        displacement_distance = 0.1  # in kms
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
         look_at_lat, look_at_lon = displace_camera(camera_lat,
@@ -25,17 +25,6 @@ def get_mountain_data(json_path, filename):
         coordinates = [camera_lat, camera_lon, look_at_lat, look_at_lon]
         pov_settings = [panoramic_angle, height_field_scale_factor]
         return [dem_file, coordinates, pov_settings]
-
-
-def get_mountain_list(json_path):
-    with open(json_path) as json_file:
-        data = json.load(json_file)
-        m = data['mountains']
-        mountains = [Mountain(m[i]['name'],
-                     Location(m[i]['latitude'],
-                     m[i]['longitude']))
-                     for i in m]
-        return mountains
 
 
 def find_minimums(locations):
@@ -78,26 +67,17 @@ def read_mountain_gpx(gpx_path):
 def get_mountains(folder):
     files_in_folder = get_files(folder)
     info_text = []
+    info_title = 'Select one of these files to continue:'
+    input_text = 'Select file: '
+    error_text = 'No valid file chosen.'
     for i in range(len(files_in_folder)):
         file = files_in_folder[i].split('/')[-1]
         number_of_mountains_in_set = int(file.split('--')[0])
         mountain_name = file.split('--')[1].split('.')[0]
-        info_text.append('%i: %s, size: %i' %
-                         (i + 1, mountain_name,
+        info_text.append('%s, size: %i' %
+                         (mountain_name,
                           number_of_mountains_in_set))
-    p_i("Select one of these files to continue:")
-    p_line(info_text)
-    while True:
-        try:
-            selected_file = p_in("Select file: ")
-            selected_file = int(selected_file)
-        except ValueError:
-            p_e('No valid file chosen.')
-            continue
-        if selected_file < 1 or selected_file > len(info_text):
-            p_e('No valid file chosen.')
-            continue
-        dataset = files_in_folder[selected_file - 1]
-        p_i('%s was selected' % dataset.split('/')[-1])
-        break
+    selected_file = tui_select(info_text, info_title, input_text, error_text)
+    dataset = files_in_folder[selected_file - 1]
+    p_i('%s was selected' % dataset.split('/')[-1])
     return read_mountain_gpx(dataset)

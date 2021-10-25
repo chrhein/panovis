@@ -12,6 +12,43 @@ from tools.types import Location
 from geopy import distance
 
 
+# constants
+EARTH_RADIUS = 6378.1
+
+
+def get_raster_data(dem_file, coordinates, height_field_scale_factor):
+    ds_raster = rasterio.open(dem_file)
+    # get resolution (points per square meter)
+    resolution = ds_raster.transform[0]
+    # get coordinate reference system
+    crs = int(ds_raster.crs.to_authority()[1])
+    # convert lat_lon to grid coordinates in the interval [0, 1]
+    camera_lat_lon = convert_coordinates(ds_raster, crs,
+                                         coordinates[0], coordinates[1],
+                                         True, height_field_scale_factor)
+    if not camera_lat_lon:
+        p_e('Camera location is out of bounds')
+        return
+    look_at_lat_lon = convert_coordinates(ds_raster, crs,
+                                          coordinates[2], coordinates[3],
+                                          False, height_field_scale_factor)
+    if not look_at_lat_lon:
+        p_e('Viewpoint location is out of bounds')
+        return
+    raster_left, raster_bottom, raster_right, raster_top = ds_raster.bounds
+    # get total sample points across x and y axis
+    total_distance_e_w = raster_right - raster_left
+    total_distance_n_s = raster_top - raster_bottom
+    distances = [total_distance_n_s, total_distance_e_w]
+    try:
+        max_height = camera_lat_lon[-1]
+    except TypeError:
+        pass
+    normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
+    raster_metadata = [ds_raster, distances, resolution, max_height]
+    return [normalized_coordinates, raster_metadata]
+
+
 def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
     return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
 
@@ -92,14 +129,13 @@ def crs_to_wgs84(dataset, x, y):
 
 
 def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
-    earth_radius = 6378.1
     bearing = radians(true_course)
     d = dist_in_kms
     lat1, lon1 = radians(in_lat), radians(in_lon)
-    lat2 = asin(sin(lat1) * cos(d / earth_radius)
-                + cos(lat1) * sin(d / earth_radius) * cos(bearing))
-    lon2 = lon1 + atan2(sin(bearing) * sin(d / earth_radius)
-                                     * cos(lat1), cos(d / earth_radius)
+    lat2 = asin(sin(lat1) * cos(d / EARTH_RADIUS)
+                + cos(lat1) * sin(d / EARTH_RADIUS) * cos(bearing))
+    lon2 = lon1 + atan2(sin(bearing) * sin(d / EARTH_RADIUS)
+                                     * cos(lat1), cos(d / EARTH_RADIUS)
                         - sin(lat1) * sin(lat2))
     lat2, lon2 = degrees(lat2), degrees(lon2)
     return lat2, lon2
@@ -164,7 +200,8 @@ def plot_to_map(mountains_in_sight, coordinates, filename, locs=[]):
 
 def get_mountains_in_sight(locs, mountains):
     mountains_in_sight = dict()
-    radius = 500
+    radius = 500  # in meters
+    p_i('Finding mountains in sight with a %i meter radius' % radius)
     l_ = len(locs)
     div = 1
     for i in range(0, l_, div):
@@ -185,8 +222,7 @@ def get_mountains_in_sight(locs, mountains):
 
 
 def displace_camera(camera_lat, camera_lon, degrees, distance):
-    earth_radius = 6371
-    delta = distance / earth_radius
+    delta = distance / EARTH_RADIUS
 
     def to_radians(theta):
         return np.dot(theta, np.pi) / np.float32(180.0)

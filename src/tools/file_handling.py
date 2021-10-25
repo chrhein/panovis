@@ -1,5 +1,7 @@
 import os
 from debug_tools import p_i, p_in, p_line, p_e
+from tkinter.filedialog import askopenfile, askopenfilenames
+import tkinter as tk
 
 
 def get_files(folder):
@@ -46,3 +48,57 @@ def select_file(folder):
         break
     p_i('%s was selected' % str([i.split('/')[-1] for i in files_chosen]).strip('[]'))
     return files_chosen
+
+
+def tui_select(it, itt='', in_t='', e_t='', afd=False):
+    formatted_text = []
+    for i in range(len(it)):
+        formatted_text.append('%i: %s' % (i+1, it[i]))
+    formatted_text.append('0: exit')
+    p_line()
+    p_i(itt)
+    p_line(formatted_text)
+    while True:
+        try:
+            mode = p_in(in_t)
+            if mode == 'debug' and afd:
+                return mode
+            mode = int(mode)
+        except ValueError:
+            p_e(e_t)
+            continue
+        if mode == 0:
+            exit()
+        if mode < 1 or mode > len(it):
+            p_e(e_t)
+            continue
+        return mode
+
+
+def file_chooser(title, multiple=False):
+    # Set environment variable
+    os.environ['TK_SILENCE_DEPRECATION'] = '1'
+    root = tk.Tk()
+    root.withdraw()
+    p_i('Opening File Explorer')
+    if multiple:
+        files = askopenfilenames(title=title,
+                                 filetypes=[('PNGs', '*.png'),
+                                            ('JPEGs', '*.jpeg'),
+                                            ('JPGs', '*.jpg')])
+    else:
+        filename = askopenfile(title=title,
+                               mode='r',
+                               filetypes=[('PNGs', '*.png'),
+                                          ('JPEGs', '*.jpeg'),
+                                          ('JPGs', '*.jpg')])
+    try:
+        if multiple:
+            p_i('%s was selected' % [i.split('/')[-1] for i in files])
+            return files
+        else:
+            p_i('%s was selected' % filename.name.split('/')[-1])
+            return filename.name
+    except AttributeError:
+        p_i('Exiting...')
+        exit()

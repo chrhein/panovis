@@ -1,3 +1,6 @@
+import rasterio
+
+
 def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     coordinates = raster_data[0]
     location_x, location_height, location_y, \
@@ -5,7 +8,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     panoramic_angle = pov_settings[0]
     max_height = raster_data[1][3]
     height_field_scale_factor = pov_settings[1]
-    if mode == 'texture' or mode == 'route' or 'gradient':
+    if mode == 'texture' or mode == 'route' or mode == 'gradient':
         texture_path = pov_settings[2]
         if mode == 'gradient':
             scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
@@ -18,6 +21,17 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     else:
         texture_path = ''
         scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
+
+    ds_raster = rasterio.open(dem_file)
+    resolution = ds_raster.transform[0]
+    print(resolution)
+    print(ds_raster.shape)
+    scale_multiplier = 10000 / max(ds_raster.shape)
+    print(scale_multiplier)
+    print(height_field_scale_factor)
+    print(height_field_scale_factor * scale_multiplier)
+    print(height_field_scale_factor * 3.75)
+
     pov_text = '''
     #version 3.8;
     #include "colors.inc"
@@ -38,7 +52,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #declare SCALEFACTOR = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
-    #declare SCALE = <%f, %f, 0.0>;
+    #declare SCALE = <%f, %f * %f, 0.0>;
 
     #declare MODE = "%s";
 
@@ -156,7 +170,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
                 rotate <90, 0, 0>
             }
         #end
-        scale <1, SCALEFACTOR * 3.75, 1>
+        scale <1, SCALEFACTOR, 1>
     }
 
     #if (MODE="texture" | MODE="height")
@@ -175,7 +189,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
            height_field_scale_factor, texture_path,
-           scale_x, scale_y, y_l, x_l, mode)
+           scale_x, scale_y, y_l, x_l, scale_multiplier, mode)
     return pov_text
 
 
