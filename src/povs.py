@@ -8,6 +8,9 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     panoramic_angle = pov_settings[0]
     max_height = raster_data[1][3]
     height_field_scale_factor = pov_settings[1]
+
+    tilt = 10
+
     if mode == 'texture' or mode == 'route' or mode == 'gradient':
         texture_path = pov_settings[2]
         if mode == 'gradient':
@@ -47,6 +50,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
     #declare SCALEMULTIPLIER = %f;
+    #declare TILTDEGREE = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
@@ -99,14 +103,17 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #end
 
     camera {
-        cylinder 1
+        perspective
         location CAMERAPOS
-        look_at  CAMERALOOKAT
-        angle PANOANGLE
+        look_at CAMERALOOKAT
+        angle 120
+        translate -CAMERAPOS
+        rotate <4.5, 0, 15>
+        translate CAMERAPOS
     }
 
     #if (MODE="texture" | MODE="height")
-    light_source { CAMERAPOS color White }
+    light_source { <0.5, 1000, 0.5> color White }
     sky_sphere {
         pigment {
             gradient y
@@ -135,7 +142,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
             #else
             pigment { color rgb<0, 0, 0> }
             #end
-            finish { ambient 0.25 diffuse 1 specular 0.25 }
+            finish { ambient 0.2 diffuse 0.55 specular 0.15 }
         }
         #if (MODE="texture" | MODE="route")
             texture{
@@ -184,7 +191,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
-           height_field_scale_factor, scale_multiplier, texture_path,
+           height_field_scale_factor, scale_multiplier, tilt, texture_path,
            skew_x, skew_y, y_l, x_l, mode)
     return pov_text
 
