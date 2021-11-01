@@ -11,26 +11,22 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     if mode == 'texture' or mode == 'route' or mode == 'gradient':
         texture_path = pov_settings[2]
         if mode == 'gradient':
-            scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
+            skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
         else:
             tex_bounds = pov_settings[3]
-            scale_y = tex_bounds.min_x[1]
-            scale_x = tex_bounds.min_y[0]
+            skew_y = tex_bounds.min_x[1]
+            skew_x = tex_bounds.min_y[0]
             x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
             y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
     else:
         texture_path = ''
-        scale_x, scale_y, x_l, y_l = 0, 0, 0, 0
+        skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
 
     ds_raster = rasterio.open(dem_file)
     resolution = ds_raster.transform[0]
     print(resolution)
     print(ds_raster.shape)
-    scale_multiplier = 10000 / max(ds_raster.shape)
-    print(scale_multiplier)
-    print(height_field_scale_factor)
-    print(height_field_scale_factor * scale_multiplier)
-    print(height_field_scale_factor * 3.75)
+    scale_multiplier = 10400 / max(ds_raster.shape)
 
     pov_text = '''
     #version 3.8;
@@ -50,10 +46,10 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #declare MAXMOUNTAIN = %f;
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
+    #declare SCALEMULTIPLIER = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
-    #declare SCALE = <%f, %f * %f, 0.0>;
-
+    #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
 
     #if (MODE="depth")
@@ -170,12 +166,12 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
                 rotate <90, 0, 0>
             }
         #end
-        scale <1, SCALEFACTOR, 1>
+        scale <1, SCALEFACTOR * SCALEMULTIPLIER, 1>
     }
 
     #if (MODE="texture" | MODE="height")
     plane {
-        y, 0.0000000000000000000001
+        y, 0.00000000000001
         texture {
             pigment { color rgb<0.1,0.25,0.75> }
             finish {
@@ -188,8 +184,8 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
-           height_field_scale_factor, texture_path,
-           scale_x, scale_y, y_l, x_l, scale_multiplier, mode)
+           height_field_scale_factor, scale_multiplier, texture_path,
+           skew_x, skew_y, y_l, x_l, mode)
     return pov_text
 
 

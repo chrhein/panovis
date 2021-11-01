@@ -30,7 +30,7 @@
             "longitude": 5.382310057603189,
             "mountain_name": "Ormhaugen",
             "panoramic_angle": 210,
-            "height_scale_factor": 0.8,
+            "height_scale_factor": 0.75,
             "view_direction": 280
         },
         "panorama5_camera": {
