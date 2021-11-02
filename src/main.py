@@ -2,13 +2,11 @@ from feature_matching import feature_matching
 from edge_detection import edge_detection
 from dem import render_dem
 from data_getters.mountains import get_mountains
-from im import custom_imshow
 from tools.file_handling import select_file, tui_select, file_chooser
 
 
 def main():
     render_dem('data/panoramas/panorama4.jpg', 2, '')
-    custom_imshow('exports/panorama4/render-height.png', 'Preview')
     exit()
     info_title = 'Select one of these modes to continue:'
     main_modes = [

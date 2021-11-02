@@ -205,7 +205,6 @@ def get_mountains_in_sight(locs, mountains):
     l_ = len(locs)
     div = 1
     for i in range(0, l_, div):
-        # p_i('%i/%i' % (int((i + 1)/div), int(l_/div)))
         pos = locs[i]
         lat, lon = pos.latitude, pos.longitude
         for mountain in mountains:

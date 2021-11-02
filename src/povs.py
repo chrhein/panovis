@@ -106,14 +106,14 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         perspective
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle 120
+        angle PANOANGLE/3
         translate -CAMERAPOS
-        rotate <4.5, 0, 15>
+        rotate <0, 5, 0>
         translate CAMERAPOS
     }
 
     #if (MODE="texture" | MODE="height")
-    light_source { <0.5, 1000, 0.5> color White }
+    light_source { CAMERAPOS color White }
     sky_sphere {
         pigment {
             gradient y
