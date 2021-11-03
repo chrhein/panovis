@@ -6,8 +6,6 @@ from tools.file_handling import select_file, tui_select, file_chooser
 
 
 def main():
-    render_dem('data/panoramas/panorama4.jpg', 2, '')
-    exit()
     info_title = 'Select one of these modes to continue:'
     main_modes = [
         'DEM Rendering',

@@ -2,13 +2,11 @@ import cv2
 import os
 import time
 import subprocess
-
-import numpy as np
 from data_getters.mountains import get_mountain_data
 from debug_tools import p_e, p_i, p_line
 from location_handler import plot_to_map, get_mountains_in_sight, get_raster_data
 from povs import primary_pov, debug_pov
-from im import get_image_shape, custom_imshow
+from im import get_image_shape
 from tools.color_map import create_route_texture, \
     create_color_gradient_image, colors_to_coordinates
 
@@ -24,8 +22,8 @@ def render_dem(panorama_path, mode, mountains):
     except FileExistsError:
         pass
 
-    dem_file, all_cordinates, pov_settings = get_mountain_data('data/dem-data.json',
-                                                               panorama_filename)
+    dem_file, coordinates, pov_settings = get_mountain_data('data/dem-data.json',
+                                                            panorama_filename)
     f = dem_file.lower()
     if not f.endswith('.png') and not f.endswith('.jpg'):
         p_e('please provide a .png file')
@@ -36,19 +34,7 @@ def render_dem(panorama_path, mode, mountains):
     pov_filename = '/tmp/pov_file.pov'
     render_shape = [image_width, image_height]
 
-    render_shape = [int(image_width / 2), image_height]
-    c_lat, c_lon, view_points_l, view_points_r = all_cordinates
-    v_lat_l, v_lon_l = view_points_l
-    v_lat_r, v_lon_r = view_points_r
-    coordinates_l = [c_lat, c_lon, v_lat_l, v_lon_l]
-    coordinates_r = [c_lat, c_lon, v_lat_r, v_lon_r]
-
-    coors = {
-        'l': coordinates_l,
-        'r': coordinates_r
-    }
-
-    raster_data = get_raster_data(dem_file, coordinates_l, pov_settings[1])
+    raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
     if not raster_data:
         return
 
@@ -77,20 +63,16 @@ def render_dem(panorama_path, mode, mountains):
             pf.close()
             execute_pov(params)
         elif mode == 2:
-            for key, val in coors.items():
-                raster_data = get_raster_data(dem_file, val, pov_settings[1])
-                pov_mode = 'height'
-                pov = primary_pov(dem_file, raster_data, pov_settings, pov_mode)
-                out_filename = '%srender-%s-%s.png' % (folder, pov_mode, key)
-                params = [pov_filename, out_filename, im_dimensions, 'color']
-                with open(pov_filename, 'w') as pf:
-                    pf.write(pov)
-                pf.close()
-                execute_pov(params)
-            img1 = cv2.imread('%srender-%s-%s.png' % (folder, pov_mode, 'l'))
-            img2 = cv2.imread('%srender-%s-%s.png' % (folder, pov_mode, 'r'))
-            vis = np.concatenate((img1, img2), axis=1)
-            custom_imshow(vis, 'Preview')
+            raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
+            pov_mode = 'height'
+            pov = primary_pov(dem_file, raster_data, pov_settings, pov_mode)
+            out_filename = '%srender-%s.png' % (folder, pov_mode)
+            params = [pov_filename, out_filename, im_dimensions, 'color']
+            with open(pov_filename, 'w') as pf:
+                pf.write(pov)
+            pf.close()
+            execute_pov(params)
+            # custom_imshow(out_filename, 'Preview')
         elif mode == 3:
             pov_mode = 'texture'
             gpx_exists = os.path.isfile('%s' % gpx_file)

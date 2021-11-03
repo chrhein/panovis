@@ -62,7 +62,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #declare CAMERAFRONTY = CAMERAFRONT.y;
     #declare CAMERAFRONTZ = CAMERAFRONT.z;
     #declare DEPTHMIN = -1;
-    #declare DEPTHMAX = 0.15;
+    #declare DEPTHMAX = 0;
 
     #declare clipped_scaled_gradient =
         function(x, y, z, gradx, grady, gradz, gradmin, gradmax) {
@@ -73,20 +73,19 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         }
 
     #declare DEPTHTEXTURE = texture {
-        pigment {
-            function {
-                clipped_scaled_gradient(
-                    x, y, z, CAMERAFRONTX, CAMERAFRONTY,
-                    CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
-            }
-            color_map {
-                [0.0 color rgb <0,0,0>]
-                [1 color rgb <1,1,1>]
-            }
-            translate CAMERALOOKAT
+            pigment {
+                function {
+                    clipped_scaled_gradient(
+                        x, y, z, CAMERAFRONTX, CAMERAFRONTY,
+                        CAMERAFRONTZ, DEPTHMIN, DEPTHMAX)
+                }
+                color_map {
+                    [0 color Black]
+                    [1 color rgb White]
+                }
             }
             finish {
-                ambient 1 diffuse 0 specular 0
+                ambient 0 diffuse 0 specular 0 emission 1
             }
         }
     #end
@@ -103,90 +102,95 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #end
 
     camera {
-        perspective
+        ultra_wide_angle
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle PANOANGLE/3
-        translate -CAMERAPOS
-        rotate <0, 5, 0>
-        translate CAMERAPOS
+        angle PANOANGLE
     }
 
-    #if (MODE="texture" | MODE="height")
-    light_source { CAMERAPOS color White }
-    sky_sphere {
-        pigment {
-            gradient y
-            color_map {
-                [0.4 color rgb<1 1 1>]
-                [0.8 color rgb<0.1,0.25,0.75>]
-                [1 color rgb<0.1,0.25,0.75>]
-            }
-            scale 2
-            translate -1
-        }
-    }
-    #end
-
-    object{
-        height_field {
-            png FILENAME
-            #if (MODE="texture" | MODE="height")
+    merge {
+        #if (MODE="texture" | MODE="height")
+        light_source { CAMERAPOS color White }
+        sky_sphere {
             pigment {
                 gradient y
                 color_map {
-                    [0.0000000000000000000001 color BakersChoc]
-                    [MAXMOUNTAIN color White]
+                    [0.4 color rgb<1 1 1>]
+                    [0.8 color rgb<0.1,0.25,0.75>]
+                    [1 color rgb<0.1,0.25,0.75>]
                 }
+                scale 2
+                translate -1
             }
-            #else
-            pigment { color rgb<0, 0, 0> }
-            #end
-            finish { ambient 0.2 diffuse 0.55 specular 0.15 }
         }
-        #if (MODE="texture" | MODE="route")
-            texture{
-                pigment {
-                    image_map {
-                        png TEXTURE
-                        once
-                    }
-                    scale SCALE
-                    translate SKEW
-                }
-                finish { ambient 1 diffuse 0 specular 0 }
-                rotate <90, 0, 0>
-            }
         #end
-        #if (MODE="depth")
-            texture { DEPTHTEXTURE }
-        #end
-        #if (MODE="gradient")
-            texture{
+        object{
+            height_field {
+                png FILENAME
+                #if (MODE="texture" | MODE="height")
                 pigment {
-                    image_map {
-                        png TEXTURE
-                        once
+                    gradient y
+                    color_map {
+                        [0.0000000000000000000001 color BakersChoc]
+                        [MAXMOUNTAIN color White]
                     }
                 }
-                finish { ambient 1 diffuse 0 specular 0 }
-                rotate <90, 0, 0>
+                #else
+                pigment { color rgb<0, 0, 0> }
+                #end
+                finish { ambient 0.2 diffuse 0.55 specular 0.15 }
             }
+            #if (MODE="texture" | MODE="route")
+                texture{
+                    pigment {
+                        image_map {
+                            png TEXTURE
+                            once
+                        }
+                        scale SCALE
+                        translate SKEW
+                    }
+                    finish { ambient 1 diffuse 0 specular 0 }
+                    rotate <90, 0, 0>
+                }
+            #end
+            #if (MODE="depth")
+                texture {
+                    DEPTHTEXTURE
+                    translate CAMERAPOS
+                }
+            #end
+            #if (MODE="gradient")
+                texture{
+                    pigment {
+                        image_map {
+                            png TEXTURE
+                            once
+                        }
+                    }
+                    finish { ambient 1 diffuse 0 specular 0 }
+                    rotate <90, 0, 0>
+                }
+            #end
+        }
+        #if (MODE="texture" | MODE="height")
+        plane {
+            y, 0.00000000000001
+            texture {
+                #if (MODE="no-going-to-use-this")
+                DEPTHTEXTURE
+                translate CAMERAPOS
+                #else
+                pigment { color rgb<0.1,0.25,0.75> }
+                finish {
+                    reflection 0 ambient 1 diffuse 0 specular 0
+                }
+                #end
+            }
+        }
         #end
         scale <1, SCALEFACTOR * SCALEMULTIPLIER, 1>
     }
-
-    #if (MODE="texture" | MODE="height")
-    plane {
-        y, 0.00000000000001
-        texture {
-            pigment { color rgb<0.1,0.25,0.75> }
-            finish {
-                reflection 0 ambient 1 diffuse 0 specular 0
-            }
-        }
-    }
-    #end
 
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,

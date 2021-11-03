@@ -19,13 +19,10 @@ def get_mountain_data(json_path, filename):
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
         v_dir = camera_mountain['view_direction']
-        v_dir_l = (v_dir - (panoramic_angle/6)) % 360
-        v_dir_r = (v_dir + (panoramic_angle/6)) % 360
-        v_dirs = [v_dir_l, v_dir_r]
-        look_ats = [displace_camera(camera_lat,
-                                    camera_lon,
-                                    i,
-                                    displacement_distance) for i in v_dirs]
+        look_ats = displace_camera(camera_lat,
+                                   camera_lon,
+                                   v_dir,
+                                   displacement_distance)
         coordinates = [camera_lat, camera_lon, *look_ats]
         pov_settings = [panoramic_angle, height_field_scale_factor]
         return [dem_file, coordinates, pov_settings]
