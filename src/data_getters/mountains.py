@@ -1,4 +1,7 @@
 import json
+import os
+from dotenv.main import load_dotenv
+import folium
 import gpxpy
 import gpxpy.gpx
 from location_handler import displace_camera
@@ -73,7 +76,10 @@ def get_mountains(folder):
     error_text = 'No valid file chosen.'
     for i in range(len(files_in_folder)):
         file = files_in_folder[i].split('/')[-1]
-        number_of_mountains_in_set = int(file.split('--')[0])
+        try:
+            number_of_mountains_in_set = int(file.split('--')[0])
+        except ValueError:
+            continue
         mountain_name = file.split('--')[1].split('.')[0]
         mountain_dataset[mountain_name] = {
             'number_of_mountains': number_of_mountains_in_set,
@@ -81,7 +87,9 @@ def get_mountains(folder):
         }
     mountain_dataset = dict(sorted(mountain_dataset.items(),
                             key=lambda item: item[1].get('number_of_mountains')))
-    info_text = ['%s, size: %i' % (i, j['number_of_mountains']) for (i, j) in mountain_dataset.items()]
+    info_text = ['%-38s size: %s' % (i[:35] + '...' if len(i) > 35 else i,
+                 str(j['number_of_mountains']).rjust(3))
+                 for (i, j) in mountain_dataset.items()]
     selected_file = tui_select(info_text, info_title, input_text, error_text)
     dataset = tuple(mountain_dataset.items())[selected_file - 1][1]['file_name']
     p_i('%s was selected' % dataset.split('/')[-1])
@@ -102,13 +110,48 @@ def compare_two_mountain_lists():
     mtns_un_1 = sorted([i for i in mn1 if i not in mn2], key=lambda n: n.name)
     mtns_un_2 = sorted([i for i in mn2 if i not in mn1], key=lambda n: n.name)
 
+    all_mtns = set(mn1 + mn2)
+
     ds = {
         list(mtns_1.keys())[0]: mtns_un_1,
         list(mtns_2.keys())[0]: mtns_un_2
     }
 
-    for key, val in ds.items():
-        print('\nMoutains unique to the following dataset:')
-        print('%s:' % key.split('/')[-1])
-        p_line(['%s' % i.name for i in val])
-        break
+    key, val = list(ds.items())[0]
+    t = ['Moutains unique to the following dataset:',
+         '%s' % key.split('/')[-1]]
+    p_line(t)
+    p_line(['%-19s %-3s' % (i.name, str(int(i.location.elevation)) + 'm') for i in val])
+    f = 'data/compared_ds/%s.html' % (list(mtns_1.keys())[0].split('/')[-1].split('.')[0] +
+                                      '_' + list(mtns_2.keys())[0].split('/')[-1].split('.')[0])
+    compare_mtns_on_map(all_mtns, mn1, mn2, f)
+
+
+def compare_mtns_on_map(all_mtns, mn1, mn2, filename):
+    def get_marker_color(i):
+        if i in mn1 and i in mn2:
+            return 'green'
+        elif i in mn1:
+            return 'red'
+        elif i in mn2:
+            return 'blue'
+        else:
+            return 'white'
+    load_dotenv()
+    MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
+    MAPBOX_STYLE_URL = os.getenv('MAPBOX_STYLE_URL')
+    lats, lons = zip(*[(i.location.latitude, i.location.longitude) for i in mn1])
+    m = folium.Map(
+        location=[(sum(lats)/len(lats)), (sum(lons)/len(lons))],
+        tiles=MAPBOX_STYLE_URL,
+        API_key=MAPBOX_TOKEN,
+        zoom_start=12,
+        attr='Christian Hein')
+    [(folium.Marker(
+            location=(float(i.location.latitude), float(i.location.longitude)),
+            popup='%s\n%.4f, %.4f\n%im'
+                  % (str(i.name), i.location.latitude,
+                     i.location.longitude, i.location.elevation),
+            icon=folium.Icon(color=get_marker_color(i), icon='mountain'),
+        ).add_to(m)) for i in all_mtns]
+    m.save(filename)

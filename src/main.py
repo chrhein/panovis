@@ -6,13 +6,12 @@ from tools.file_handling import select_file, tui_select
 
 
 def main():
-    compare_two_mountain_lists()
-    exit()
     info_title = 'Select one of these modes to continue:'
     main_modes = [
         'DEM Rendering',
         'Edge Detection',
-        'Feature Matching'
+        'Feature Matching',
+        'Compare Datasets'
     ]
     input_text = 'Select mode: '
     error_text = 'No valid mode given.'
@@ -24,7 +23,7 @@ def main():
             'Render DEM with Depth Map Texture',
             'Render DEM with Height Coloring',
             'Render DEM with Hike Route Texture',
-            'Mountains In-Sight Lookup',
+            'Mountains in-sight Lookup',
         ]
         input_text = 'Select mode: '
         error_text = 'No valid mode given.'
@@ -32,7 +31,7 @@ def main():
         pano_folder = 'data/panoramas/'
         panos = select_file(pano_folder)
         if dem_mode_selected == 4:
-            mountains = get_mountains('data/mountains/')
+            mountains = list(get_mountains('data/mountains/').values())[0]['mountains']
         else:
             mountains = ''
         for pano in panos:
@@ -65,3 +64,5 @@ def main():
             im1 = '%s%s/edge-detected-canny.png' % (exports_folder, pano_filename)
             im2 = '%s%s/edge-detected-hed.png' % (exports_folder, pano_filename)
             feature_matching(im1, im2)
+    elif mode == 4:
+        compare_two_mountain_lists()

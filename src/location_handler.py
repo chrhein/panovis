@@ -161,7 +161,8 @@ def coordinate_lookup(im1, im2, dem_file):
     return locs
 
 
-def plot_to_map(mountains_in_sight, coordinates, filename, locs=[]):
+def plot_to_map(mountains_in_sight, coordinates,
+                filename, locs=[], custom_color='darkblue'):
     c_lat, c_lon, _, _ = coordinates
     load_dotenv()
     MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
@@ -171,28 +172,23 @@ def plot_to_map(mountains_in_sight, coordinates, filename, locs=[]):
         tiles=MAPBOX_STYLE_URL,
         API_key=MAPBOX_TOKEN,
         zoom_start=12,
-        attr='CH')
+        attr='Christian Hein')
     folium.Marker(
         location=[c_lat, c_lon],
         popup='Camera Location',
         icon=folium.Icon(color='green', icon='camera'),
     ).add_to(m)
-    """
-    folium.Marker(
-        location=[l_lat, l_lon],
-        popup='Look at Location',
-        icon=folium.Icon(color='red', icon='map-pin', prefix='fa'),
-    ).add_to(m)
-    """
     if locs:
         [(folium.Marker(
             location=(float(i.latitude), float(i.longitude)),
             popup='%s' % str(i).strip('()'),
-            icon=folium.Icon(color='darkblue', icon='mountain'),
+            icon=folium.Icon(color=custom_color, icon='mountain'),
         ).add_to(m)) for i in locs]
     [(folium.Marker(
         location=(float(i.location.latitude), float(i.location.longitude)),
-        popup='%s\n%s' % (str(i.name), str(i.location).strip('()')),
+        popup='%s\n%.4f, %.4f\n%im'
+              % (str(i.name), i.location.latitude,
+                 i.location.longitude, i.location.elevation),
         icon=folium.Icon(color='pink', icon='mountain'),
     ).add_to(m)) for i in mountains_in_sight.values()]
     m.save(filename)
@@ -200,7 +196,7 @@ def plot_to_map(mountains_in_sight, coordinates, filename, locs=[]):
 
 def get_mountains_in_sight(locs, mountains):
     mountains_in_sight = dict()
-    radius = 500  # in meters
+    radius = 500
     p_i('Finding mountains in sight with a %i meter radius' % radius)
     l_ = len(locs)
     div = 1
