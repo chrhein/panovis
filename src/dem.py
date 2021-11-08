@@ -72,7 +72,6 @@ def render_dem(panorama_path, mode, mountains):
                 pf.write(pov)
             pf.close()
             execute_pov(params)
-            # custom_imshow(out_filename, 'Preview')
         elif mode == 3:
             pov_mode = 'texture'
             gpx_exists = os.path.isfile('%s' % gpx_file)
@@ -104,7 +103,7 @@ def render_dem(panorama_path, mode, mountains):
             locs = colors_to_coordinates(gradient_path, folder, dem_file)
             mountains_in_sight = get_mountains_in_sight(locs, mountains)
             plot_filename = '%s%s.html' % (folder, panorama_filename)
-            plot_to_map(mountains_in_sight, coordinates_l, plot_filename)
+            plot_to_map(mountains_in_sight, coordinates, plot_filename)
         else:
             return
     stats = [

@@ -5,14 +5,18 @@ from debug_tools import p_i, nothing
 from image_manipulations import resizer
 
 
-def edge_detection(image_path, algorithm, folder="", im_w=2400):
-    image = cv2.imread(image_path)
-    if algorithm == "Canny":
-        edge_detected_image = canny_edge_detection(image, False)
+def edge_detection(image_path, algorithm, im_w=2400):
+    panorama_filename = image_path.split('/')[-1].split('.')[0]
+    folder = 'exports/%s/' % panorama_filename
+    if algorithm == 'Canny':
+        im_path = '%srender-depth.png' % folder
+        image = cv2.imread(im_path)
+        edge_detected_image = canny_edge_detection(image, True)
         if folder:
             cv2.imwrite('%sedge-detected-canny.png' % folder,
                         edge_detected_image)
-    elif algorithm == "HED":
+    elif algorithm == 'HED':
+        image = cv2.imread(image_path)
         height, width, _ = image.shape
         max_length = max(height, width)
         if max_length > im_w:
@@ -21,7 +25,7 @@ def edge_detection(image_path, algorithm, folder="", im_w=2400):
         if folder:
             cv2.imwrite('%sedge-detected-hed.png' % folder,
                         edge_detected_image)
-    elif algorithm == "Horizon":
+    elif algorithm == 'Horizon':
         edge_detected_image = find_horizon_edge(image_path)
     else:
         return
@@ -44,7 +48,7 @@ def sift(image):
 
 
 def canny_edge_detection(image, interactive_window=True, blur_factor=5):
-    print("[INFO] Starting Canny Edge Detection...")
+    print('[INFO] Starting Canny Edge Detection...')
     # automatically set lb and ub values from the median color in the image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     v = np.median(gray)
@@ -54,7 +58,7 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
 
     blurred = cv2.medianBlur(gray, blur_factor)
     if not interactive_window:
-        print("[INFO] Canny Edge Detection complete!")
+        print('[INFO] Canny Edge Detection complete!')
         return cv2.Canny(blurred, lb, ub)
 
     p_i('Opening external window')
@@ -70,7 +74,7 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # use escape for exiting window
             cv2.destroyAllWindows()
-            p_i("Canny Edge Detection complete!")
+            p_i('Canny Edge Detection complete!')
             return edges
 
 

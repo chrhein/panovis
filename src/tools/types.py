@@ -1,3 +1,4 @@
+import operator
 from dataclasses import dataclass
 
 
@@ -12,6 +13,15 @@ class Location:
 class Mountain:
     name: str
     location: Location
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(str(self.name))
+
+    def __cmp__(self, other):
+        return operator.eq((str(self), str(other)))
 
 
 @dataclass

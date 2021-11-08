@@ -2,7 +2,7 @@ import json
 import gpxpy
 import gpxpy.gpx
 from location_handler import displace_camera
-from debug_tools import p_i
+from debug_tools import p_i, p_line
 from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain
 from operator import attrgetter
@@ -67,7 +67,7 @@ def read_mountain_gpx(gpx_path):
 
 def get_mountains(folder):
     files_in_folder = get_files(folder)
-    info_text = []
+    mountain_dataset = {}
     info_title = 'Select one of these files to continue:'
     input_text = 'Select file: '
     error_text = 'No valid file chosen.'
@@ -75,10 +75,40 @@ def get_mountains(folder):
         file = files_in_folder[i].split('/')[-1]
         number_of_mountains_in_set = int(file.split('--')[0])
         mountain_name = file.split('--')[1].split('.')[0]
-        info_text.append('%s, size: %i' %
-                         (mountain_name,
-                          number_of_mountains_in_set))
+        mountain_dataset[mountain_name] = {
+            'number_of_mountains': number_of_mountains_in_set,
+            'file_name': files_in_folder[i]
+        }
+    mountain_dataset = dict(sorted(mountain_dataset.items(),
+                            key=lambda item: item[1].get('number_of_mountains')))
+    info_text = ['%s, size: %i' % (i, j['number_of_mountains']) for (i, j) in mountain_dataset.items()]
     selected_file = tui_select(info_text, info_title, input_text, error_text)
-    dataset = files_in_folder[selected_file - 1]
+    dataset = tuple(mountain_dataset.items())[selected_file - 1][1]['file_name']
     p_i('%s was selected' % dataset.split('/')[-1])
-    return read_mountain_gpx(dataset)
+    ds = {
+        dataset: {
+            'mountains': read_mountain_gpx(dataset)
+        }
+    }
+    return ds
+
+
+def compare_two_mountain_lists():
+    folder = 'data/mountains/'
+    mtns_1 = get_mountains(folder)
+    mtns_2 = get_mountains(folder)
+    mn1 = list(mtns_1.values())[0]['mountains']
+    mn2 = list(mtns_2.values())[0]['mountains']
+    mtns_un_1 = sorted([i for i in mn1 if i not in mn2], key=lambda n: n.name)
+    mtns_un_2 = sorted([i for i in mn2 if i not in mn1], key=lambda n: n.name)
+
+    ds = {
+        list(mtns_1.keys())[0]: mtns_un_1,
+        list(mtns_2.keys())[0]: mtns_un_2
+    }
+
+    for key, val in ds.items():
+        print('\nMoutains unique to the following dataset:')
+        print('%s:' % key.split('/')[-1])
+        p_line(['%s' % i.name for i in val])
+        break

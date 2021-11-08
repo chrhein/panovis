@@ -1,11 +1,13 @@
 from feature_matching import feature_matching
 from edge_detection import edge_detection
 from dem import render_dem
-from data_getters.mountains import get_mountains
-from tools.file_handling import select_file, tui_select, file_chooser
+from data_getters.mountains import get_mountains, compare_two_mountain_lists
+from tools.file_handling import select_file, tui_select
 
 
 def main():
+    compare_two_mountain_lists()
+    exit()
     info_title = 'Select one of these modes to continue:'
     main_modes = [
         'DEM Rendering',
@@ -45,14 +47,21 @@ def main():
         input_text = 'Select algorithm: '
         error_text = 'No valid algorithm given.'
         kind = tui_select(mode_types, info_title, input_text, error_text)
-        image = file_chooser('Select an image to detect edges on')
-        if kind == 1:
-            edge_detection(image, 'Canny')
-        elif kind == 2:
-            edge_detection(image, 'HED')
-        elif kind == 3:
-            edge_detection(image, 'Horizon')
+        pano_folder = 'data/panoramas/'
+        panos = select_file(pano_folder)
+        for pano in panos:
+            if kind == 1:
+                edge_detection(pano, 'Canny')
+            elif kind == 2:
+                edge_detection(pano, 'HED')
+            elif kind == 3:
+                edge_detection(pano, 'Horizon')
     elif mode == 3:
-        image1 = file_chooser('Select render')
-        image2 = file_chooser('Select image')
-        feature_matching(image1, image2)
+        pano_folder = 'data/panoramas/'
+        exports_folder = 'exports/'
+        panos = select_file(pano_folder)
+        for pano in panos:
+            pano_filename = pano.split('/')[-1].split('.')[0]
+            im1 = '%s%s/edge-detected-canny.png' % (exports_folder, pano_filename)
+            im2 = '%s%s/edge-detected-hed.png' % (exports_folder, pano_filename)
+            feature_matching(im1, im2)
