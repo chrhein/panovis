@@ -9,8 +9,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     max_height = raster_data[1][3]
     height_field_scale_factor = pov_settings[1]
 
-    tilt = 10
-
     if mode == 'texture' or mode == 'route' or mode == 'gradient':
         texture_path = pov_settings[2]
         if mode == 'gradient':
@@ -50,7 +48,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     #declare PANOANGLE = %f;
     #declare SCALEFACTOR = %f;
     #declare SCALEMULTIPLIER = %f;
-    #declare TILTDEGREE = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
@@ -108,9 +105,9 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         angle PANOANGLE
     }
 
-    merge {
-        #if (MODE="texture" | MODE="height")
-        light_source { CAMERAPOS color White }
+    light_source { CAMERAPOS color White }
+
+    #if (MODE="texture" | MODE="height")
         sky_sphere {
             pigment {
                 gradient y
@@ -123,7 +120,8 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
                 translate -1
             }
         }
-        #end
+    #end
+    merge {
         object{
             height_field {
                 png FILENAME
@@ -195,7 +193,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     ''' % (location_x, location_height, location_y,
            view_x, view_height, view_y,
            dem_file, max_height, panoramic_angle,
-           height_field_scale_factor, scale_multiplier, tilt, texture_path,
+           height_field_scale_factor, scale_multiplier, texture_path,
            skew_x, skew_y, y_l, x_l, mode)
     return pov_text
 

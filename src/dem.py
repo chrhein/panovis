@@ -63,7 +63,6 @@ def render_dem(panorama_path, mode, mountains):
             pf.close()
             execute_pov(params)
         elif mode == 2:
-            raster_data = get_raster_data(dem_file, coordinates, pov_settings[1])
             pov_mode = 'height'
             pov = primary_pov(dem_file, raster_data, pov_settings, pov_mode)
             out_filename = '%srender-%s.png' % (folder, pov_mode)
