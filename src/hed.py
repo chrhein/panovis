@@ -1,5 +1,5 @@
 import cv2
-from debug_tools import p_i
+from tools.debug import p_i
 
 
 class CropLayer(object):

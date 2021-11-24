@@ -1,5 +1,5 @@
 import os
-from debug_tools import p_i, p_in, p_line, p_e
+from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
 import tkinter as tk
 

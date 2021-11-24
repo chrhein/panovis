@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from hed import holistically_nested
-from debug_tools import p_i, nothing
+from tools.debug import p_i, nothing
 from image_manipulations import resizer
 
 
@@ -27,6 +27,9 @@ def edge_detection(image_path, algorithm, im_w=2400):
                         edge_detected_image)
     elif algorithm == 'Horizon':
         edge_detected_image = find_horizon_edge(image_path)
+        if folder:
+            cv2.imwrite('%shighlighted_horizon.png' % folder,
+                        edge_detected_image)
     else:
         return
 
@@ -38,13 +41,6 @@ def harris_corner_detection(image):
     dst = cv2.dilate(dst, None)
     image[dst > 0.01 * dst.max()] = [0, 0, 255]
     return image
-
-
-def sift(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    s = cv2.SIFT_create()
-    key_points, descriptors = s.detectAndCompute(gray, None)
-    return [key_points, descriptors]
 
 
 def canny_edge_detection(image, interactive_window=True, blur_factor=5):

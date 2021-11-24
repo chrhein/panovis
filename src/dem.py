@@ -3,7 +3,7 @@ import os
 import time
 import subprocess
 from data_getters.mountains import get_mountain_data
-from debug_tools import p_e, p_i, p_line
+from tools.debug import p_e, p_i, p_line
 from location_handler import plot_to_map, get_mountains_in_sight, get_raster_data
 from povs import primary_pov, debug_pov
 from im import get_image_shape
@@ -23,7 +23,7 @@ def render_dem(panorama_path, mode, mountains):
         pass
 
     dem_file, coordinates, pov_settings = get_mountain_data('data/dem-data.json',
-                                                            panorama_filename)
+                                                            panorama_path)
     f = dem_file.lower()
     if not f.endswith('.png') and not f.endswith('.jpg'):
         p_e('please provide a .png file')
