@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from debug_tools import p_i, p_in
+from tools.debug import p_i, p_in
 from image_manipulations import resizer
 from tkinter.filedialog import askdirectory
 

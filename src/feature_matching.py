@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-from debug_tools import nothing, p_line
-from edge_detection import sift
+from tools.debug import nothing, p_line
 from im import custom_imshow
 
 
@@ -34,6 +33,13 @@ Photo + Render = Match
 '''
 
 
+def sift(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    s = cv2.SIFT_create()
+    key_points, descriptors = s.detectAndCompute(gray, None)
+    return [key_points, descriptors]
+
+
 def flip(image, direction=0):
     image = cv2.transpose(image)
     return cv2.flip(image, flipCode=direction)
@@ -41,7 +47,7 @@ def flip(image, direction=0):
 
 def thin(image, lb, ub):
     img1 = image.copy()
-    ret, img1 = cv2.threshold(image, lb, ub, 0)
+    _, img1 = cv2.threshold(image, lb, ub, 0)
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
     thin = np.zeros(image.shape, dtype='uint8')
     while (cv2.countNonZero(img1) != 0):

@@ -7,7 +7,7 @@ from location_handler import convert_single_coordinate_pair, crs_to_cor
 import pickle
 from image_manipulations import resizer
 from tools.types import TextureBounds
-from debug_tools import p_i
+from tools.debug import p_i
 
 
 # stolen from

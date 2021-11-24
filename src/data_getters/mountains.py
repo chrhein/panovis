@@ -5,19 +5,28 @@ import folium
 import gpxpy
 import gpxpy.gpx
 from location_handler import displace_camera
-from debug_tools import p_i, p_line
+from tools.exif import get_exif_data
+from tools.debug import p_i, p_line
 from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain
 from operator import attrgetter
 
 
-def get_mountain_data(json_path, filename):
+def get_mountain_data(json_path, panorama_path):
     with open(json_path) as json_file:
         data = json.load(json_file)
         dem_file = data['dem-path']
-        camera_mountain = data['panoramas']['%s_camera' % filename]
-        camera_lat, camera_lon = camera_mountain['latitude'], \
-            camera_mountain['longitude']
+        camera_mountain = data['panoramas']['%s_camera' %
+                                            panorama_path.split('/')[-1].split('.')[0]]
+        image_location = get_exif_data(panorama_path)
+        if image_location:
+            camera_lat, camera_lon = image_location.latitude, image_location.longitude
+        else:
+            try:
+                camera_lat, camera_lon = camera_mountain['latitude'], \
+                    camera_mountain['longitude']
+            except KeyError:
+                camera_lat, camera_lon = input_latlon()
         displacement_distance = 0.1  # in kms
         panoramic_angle = camera_mountain['panoramic_angle']
         height_field_scale_factor = camera_mountain['height_scale_factor']
@@ -155,3 +164,9 @@ def compare_mtns_on_map(all_mtns, mn1, mn2, filename):
             icon=folium.Icon(color=get_marker_color(i), icon='mountain'),
         ).add_to(m)) for i in all_mtns]
     m.save(filename)
+
+
+def input_latlon():
+    lat = float(input('Latitude: '))
+    lon = float(input('Longitude: '))
+    return lat, lon

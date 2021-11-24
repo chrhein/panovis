@@ -50,11 +50,14 @@ def main():
         panos = select_file(pano_folder)
         for pano in panos:
             if kind == 1:
-                edge_detection(pano, 'Canny')
+                algo = 'Canny'
             elif kind == 2:
-                edge_detection(pano, 'HED')
+                algo = 'HED'
             elif kind == 3:
-                edge_detection(pano, 'Horizon')
+                algo = 'Horizon'
+            else:
+                algo = ''
+            edge_detection(pano, algo)
     elif mode == 3:
         pano_folder = 'data/panoramas/'
         exports_folder = 'exports/'
