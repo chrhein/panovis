@@ -1,8 +1,10 @@
 import cv2
 import numpy as np
 from hed import holistically_nested
+from feature_matching import skeletonize
 from tools.debug import p_i, nothing
 from image_manipulations import resizer
+from datetime import datetime
 
 
 def edge_detection(image_path, algorithm, im_w=2400):
@@ -11,20 +13,32 @@ def edge_detection(image_path, algorithm, im_w=2400):
     if algorithm == 'Canny':
         im_path = '%srender-depth.png' % folder
         image = cv2.imread(im_path)
-        edge_detected_image = canny_edge_detection(image, True)
+        edge_detected_image = skeletonize(canny_edge_detection(image, True))
         if folder:
             cv2.imwrite('%sedge-detected-canny.png' % folder,
                         edge_detected_image)
     elif algorithm == 'HED':
         image = cv2.imread(image_path)
+        t = datetime.now().strftime('%H%M%S')
         height, width, _ = image.shape
         max_length = max(height, width)
         if max_length > im_w:
             image = resizer(image, im_width=im_w)
-        edge_detected_image = holistically_nested(image)
-        if folder:
-            cv2.imwrite('%sedge-detected-hed.png' % folder,
-                        edge_detected_image)
+
+        holistically_nested_image = holistically_nested(image)
+        kernel = np.ones((1, 4), np.uint8)
+        dilated_image = cv2.dilate(holistically_nested_image, kernel, iterations=3)
+        eroded_image = cv2.erode(dilated_image, kernel, iterations=6)
+
+        blurred_image = cv2.medianBlur(eroded_image, 5)
+        edges = cv2.Laplacian(blurred_image, cv2.CV_8U, ksize=5)
+        _, mask = cv2.threshold(edges, 200, 255, cv2.THRESH_BINARY_INV)
+        image2 = cv2.bitwise_and(eroded_image, eroded_image, mask=mask)
+        image2 = cv2.medianBlur(image2, 3)
+
+        edge_detected_image = image2
+        cv2.imwrite('%sedge-detected-hed-%s.png' % (folder, t), edge_detected_image)
+
     elif algorithm == 'Horizon':
         edge_detected_image = find_horizon_edge(image_path)
         if folder:

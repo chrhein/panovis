@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from tools.debug import nothing, p_line
 from im import custom_imshow
 
 
@@ -45,45 +44,20 @@ def flip(image, direction=0):
     return cv2.flip(image, flipCode=direction)
 
 
-def thin(image, lb, ub):
-    img1 = image.copy()
-    _, img1 = cv2.threshold(image, lb, ub, 0)
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    thin = np.zeros(image.shape, dtype='uint8')
-    while (cv2.countNonZero(img1) != 0):
-        eroded = cv2.erode(img1, kernel)
-        opening = cv2.morphologyEx(eroded, cv2.MORPH_OPEN, kernel)
-        closing = cv2.morphologyEx(eroded, cv2.MORPH_CLOSE, kernel)
-        subset = eroded - opening + closing
-        thin = cv2.bitwise_or(subset, thin)
-        img1 = eroded.copy()
-    return thin
-
-
 def skeletonize(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    lb = 0
-    ub = 255
-    n = 'Skeletonizing'
-    cv2.namedWindow(n)
-    switch = 'Skeletonize'
-    cv2.createTrackbar(switch, n, 1, 1, nothing)
-    cv2.createTrackbar('Lower Bound', n, 55, 255, nothing)
-    cv2.createTrackbar('Upper Bound', n, 255, 255, nothing)
+    img1 = image.copy()
+    _, img = cv2.threshold(img1, 50, 255, 0)
+    skel = np.zeros(img.shape, np.uint8)
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
     while True:
-        s = cv2.getTrackbarPos(switch, n)
-        lb = cv2.getTrackbarPos('Lower Bound', n)
-        ub = cv2.getTrackbarPos('Upper Bound', n)
-        if s == 0:
-            thinned = image
-        else:
-            thinned = thin(image, lb, ub)
-        cv2.imshow(n, thinned)
-        k = cv2.waitKey(1) & 0xFF
-        if k == 27:
-            cv2.destroyAllWindows()
-            p_line(["lb: %i" % lb, "ub: %i" % ub])
-            return thinned
+        opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+        temp = cv2.subtract(img, opening)
+        eroded = cv2.erode(img, kernel)
+        skel = cv2.bitwise_or(skel, temp)
+        img = eroded.copy()
+        if cv2.countNonZero(img) == 0:
+            break
+    return skel
 
 
 def feature_matching(image1, image2, folder="", im_orig="", im_rendr=""):
