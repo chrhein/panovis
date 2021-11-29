@@ -5,6 +5,7 @@ from feature_matching import skeletonize
 from tools.debug import p_i, nothing
 from image_manipulations import resizer
 from datetime import datetime
+from pickle import load, dump
 
 
 def edge_detection(image_path, algorithm, im_w=2400):
@@ -24,20 +25,43 @@ def edge_detection(image_path, algorithm, im_w=2400):
         max_length = max(height, width)
         if max_length > im_w:
             image = resizer(image, im_width=im_w)
+        try:
+            holistically_nested_image = load(open('%sedge-detected-hed.pkl' % folder, 'rb'))
+        except (OSError, IOError):
+            holistically_nested_image = holistically_nested(image)
+            dump(holistically_nested_image, open('%sedge-detected-hed.pkl' % folder, 'wb'))
 
-        holistically_nested_image = holistically_nested(image)
-        kernel = np.ones((1, 4), np.uint8)
-        dilated_image = cv2.dilate(holistically_nested_image, kernel, iterations=3)
-        eroded_image = cv2.erode(dilated_image, kernel, iterations=6)
+        kernel = np.ones((5, 15), np.uint8)
+        dilated_image = cv2.dilate(holistically_nested_image, kernel, iterations=1)
+        skeletonized_image = skeletonize(dilated_image)
 
-        blurred_image = cv2.medianBlur(eroded_image, 5)
-        edges = cv2.Laplacian(blurred_image, cv2.CV_8U, ksize=5)
-        _, mask = cv2.threshold(edges, 200, 255, cv2.THRESH_BINARY_INV)
-        image2 = cv2.bitwise_and(eroded_image, eroded_image, mask=mask)
-        image2 = cv2.medianBlur(image2, 3)
+        _, thresh_binary = cv2.threshold(skeletonized_image, 50, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE)
+        mask = np.zeros(holistically_nested_image.shape[:2], dtype=np.uint8)
+        [cv2.drawContours(mask, [cnt], 0, (255), -1) for cnt in contours if cv2.contourArea(cnt) > 100]
+        bitwise_and_image = cv2.bitwise_and(skeletonized_image, mask)
+        # eroded_image = cv2.erode(bitwise_and_image, kernel, iterations=1)
 
-        edge_detected_image = image2
-        cv2.imwrite('%sedge-detected-hed-%s.png' % (folder, t), edge_detected_image)
+        # eroded_image[eroded_image < 100] = 0
+
+        # gaussian_blurred = cv2.GaussianBlur(eroded_image, (35, 3), 0)
+        # median_blurred = cv2.medianBlur(gaussian_blurred, 3)
+
+        # eroded_image = cv2.erode(bitwise_and_image, kernel, iterations=1)
+        """
+        skeletonized_image = skeletonize(bitwise_and_image)
+
+        gaussian_blurred = cv2.GaussianBlur(skeletonized_image, (35, 7), 0)
+
+        gaussian_blurred[gaussian_blurred > 25] = 255
+
+        kernel = np.ones((7, 20), np.uint8)
+        dilated_image = cv2.dilate(gaussian_blurred, kernel, iterations=1)
+        eroded_image = cv2.erode(dilated_image, kernel, iterations=1)
+
+        skeletonized_image = skeletonize(eroded_image) """
+
+        cv2.imwrite('%sedge-detected-hed-%s.png' % (folder, t), bitwise_and_image)
 
     elif algorithm == 'Horizon':
         edge_detected_image = find_horizon_edge(image_path)

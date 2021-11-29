@@ -48,7 +48,7 @@ def skeletonize(image):
     img1 = image.copy()
     _, img = cv2.threshold(img1, 50, 255, 0)
     skel = np.zeros(img.shape, np.uint8)
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_DILATE, (5, 5))
     while True:
         opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
         temp = cv2.subtract(img, opening)
