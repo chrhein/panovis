@@ -41,8 +41,8 @@ def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
     if to_save:
         path = askdirectory(title="Select Folder")
         if path:
-            file_name = p_in("Filename: ")
-            cv2.imwrite("%s/%s.png" % (path, file_name), im2)
+            filename = p_in("Filename: ")
+            save_image(im2, filename, path)
             p_i("File was saved")
 
 
@@ -50,3 +50,19 @@ def get_image_shape(img, new_width=2800):
     im_height, im_width, _ = img.shape
     new_height = int(new_width * im_height / im_width)
     return new_width, new_height
+
+
+def save_image(image, filename, folder=None):
+    filename = filename.lower()
+    if folder:
+        cv2.imwrite(f"{folder}/{filename}.png", image)
+    else:
+        cv2.imwrite(f"{filename}.png", image)
+
+
+def open_image(path):
+    return cv2.imread(path)
+
+
+def f_print(image, n=3, m=2):
+    return np.repeat(image[..., np.newaxis], n, axis=m)

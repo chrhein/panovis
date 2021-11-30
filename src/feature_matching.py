@@ -1,10 +1,7 @@
 import cv2
 import numpy as np
 from im import custom_imshow
-
-
-def save_image(image, filename):
-    cv2.imwrite("./feature_matching/fm_%s.png" % filename, image)
+from image_manipulations import flip
 
 
 def open_image(filename):
@@ -37,27 +34,6 @@ def sift(image):
     s = cv2.SIFT_create()
     key_points, descriptors = s.detectAndCompute(gray, None)
     return [key_points, descriptors]
-
-
-def flip(image, direction=0):
-    image = cv2.transpose(image)
-    return cv2.flip(image, flipCode=direction)
-
-
-def skeletonize(image):
-    img1 = image.copy()
-    _, img = cv2.threshold(img1, 50, 255, 0)
-    skel = np.zeros(img.shape, np.uint8)
-    kernel = cv2.getStructuringElement(cv2.MORPH_DILATE, (5, 5))
-    while True:
-        opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
-        temp = cv2.subtract(img, opening)
-        eroded = cv2.erode(img, kernel)
-        skel = cv2.bitwise_or(skel, temp)
-        img = eroded.copy()
-        if cv2.countNonZero(img) == 0:
-            break
-    return skel
 
 
 def feature_matching(image1, image2, folder="", im_orig="", im_rendr=""):
