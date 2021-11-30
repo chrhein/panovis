@@ -39,11 +39,11 @@ def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
     stack = np.vstack((im1, divider, im2))
     to_save = custom_imshow(stack, title)
     if to_save:
-        path = askdirectory(title='Select Folder')
+        path = askdirectory(title="Select Folder")
         if path:
-            file_name = p_in('Filename: ')
-            cv2.imwrite('%s/%s.png' % (path, file_name), im2)
-            p_i('File was saved')
+            file_name = p_in("Filename: ")
+            cv2.imwrite("%s/%s.png" % (path, file_name), im2)
+            p_i("File was saved")
 
 
 def get_image_shape(img, new_width=2800):

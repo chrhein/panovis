@@ -23,17 +23,17 @@ def get_raster_data(dem_file, coordinates, height_field_scale_factor):
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
-    camera_lat_lon = convert_coordinates(ds_raster, crs,
-                                         coordinates[0], coordinates[1],
-                                         True, height_field_scale_factor)
+    camera_lat_lon = convert_coordinates(
+        ds_raster, crs, coordinates[0], coordinates[1], True, height_field_scale_factor
+    )
     if not camera_lat_lon:
-        p_e('Camera location is out of bounds')
+        p_e("Camera location is out of bounds")
         return
-    look_at_lat_lon = convert_coordinates(ds_raster, crs,
-                                          coordinates[2], coordinates[3],
-                                          False, height_field_scale_factor)
+    look_at_lat_lon = convert_coordinates(
+        ds_raster, crs, coordinates[2], coordinates[3], False, height_field_scale_factor
+    )
     if not look_at_lat_lon:
-        p_e('Viewpoint location is out of bounds')
+        p_e("Viewpoint location is out of bounds")
         return
     raster_left, raster_bottom, raster_right, raster_top = ds_raster.bounds
     # get total sample points across x and y axis
@@ -63,8 +63,9 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(raster, to_espg, lat, lon,
-                        is_camera, height_field_scale_factor):
+def convert_coordinates(
+    raster, to_espg, lat, lon, is_camera, height_field_scale_factor
+):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
@@ -85,15 +86,20 @@ def convert_coordinates(raster, to_espg, lat, lon,
     except IndexError:
         return
     height_min = h.min()
-    height_max = (max_x - min_x)
+    height_max = max_x - min_x
     height_scaled = (height - height_min) / (height_max - height_min)
     height_max_mountain = h.max()
-    height_max_mountain_scaled = (height - height_min) /\
-                                 (height_max_mountain - height_min)
+    height_max_mountain_scaled = (height - height_min) / (
+        height_max_mountain - height_min
+    )
     if is_camera:
         height_scaled = height_scaled * 1.57  # to place camera above horizon
-    return [lat_scaled, height_scaled * height_field_scale_factor,
-            lon_scaled, height_max_mountain_scaled * height_field_scale_factor]
+    return [
+        lat_scaled,
+        height_scaled * height_field_scale_factor,
+        lon_scaled,
+        height_max_mountain_scaled * height_field_scale_factor,
+    ]
 
 
 def cor_to_crs(to_espg, lat, lon):
@@ -132,72 +138,92 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     bearing = radians(true_course)
     d = dist_in_kms
     lat1, lon1 = radians(in_lat), radians(in_lon)
-    lat2 = asin(sin(lat1) * cos(d / EARTH_RADIUS)
-                + cos(lat1) * sin(d / EARTH_RADIUS) * cos(bearing))
-    lon2 = lon1 + atan2(sin(bearing) * sin(d / EARTH_RADIUS)
-                                     * cos(lat1), cos(d / EARTH_RADIUS)
-                        - sin(lat1) * sin(lat2))
+    lat2 = asin(
+        sin(lat1) * cos(d / EARTH_RADIUS)
+        + cos(lat1) * sin(d / EARTH_RADIUS) * cos(bearing)
+    )
+    lon2 = lon1 + atan2(
+        sin(bearing) * sin(d / EARTH_RADIUS) * cos(lat1),
+        cos(d / EARTH_RADIUS) - sin(lat1) * sin(lat2),
+    )
     lat2, lon2 = degrees(lat2), degrees(lon2)
     return lat2, lon2
 
 
 def to_latlon(x, y, ds_raster):
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
-    return (float(str(latitude).strip('[]')),
-            float(str(longitude).strip('[]')))
+    return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
 
 
 def coordinate_lookup(im1, im2, dem_file):
-    p_i('Searching for locations in image')
+    p_i("Searching for locations in image")
     ds = rasterio.open(dem_file)
     h1, w1, _ = im1.shape
     x_int_c = color_interpolator(255, 0, 255)
     y_int_c = color_interpolator(0, 255, 255)
-    locs = set(to_latlon(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
-               for i in range(0, h1, 10)
-               for j in range(0, w1, 10)
-               if im2[i, j][1] != 255)
-    p_i('Search complete.')
+    locs = set(
+        to_latlon(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
+        for i in range(0, h1, 10)
+        for j in range(0, w1, 10)
+        if im2[i, j][1] != 255
+    )
+    p_i("Search complete.")
     return locs
 
 
-def plot_to_map(mountains_in_sight, coordinates,
-                filename, locs=[], custom_color='darkblue'):
+def plot_to_map(
+    mountains_in_sight, coordinates, filename, locs=[], custom_color="darkblue"
+):
     c_lat, c_lon, _, _ = coordinates
     load_dotenv()
-    MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
-    MAPBOX_STYLE_URL = os.getenv('MAPBOX_STYLE_URL')
+    MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
+    MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
     m = folium.Map(
         location=[c_lat, c_lon],
         tiles=MAPBOX_STYLE_URL,
         API_key=MAPBOX_TOKEN,
         zoom_start=12,
-        attr='Christian Hein')
+        attr="Christian Hein",
+    )
     folium.Marker(
         location=[c_lat, c_lon],
-        popup='Camera Location',
-        icon=folium.Icon(color='green', icon='camera'),
+        popup="Camera Location",
+        icon=folium.Icon(color="green", icon="camera"),
     ).add_to(m)
     if locs:
-        [(folium.Marker(
-            location=(float(i.latitude), float(i.longitude)),
-            popup='%s' % str(i).strip('()'),
-            icon=folium.Icon(color=custom_color, icon='mountain'),
-        ).add_to(m)) for i in locs]
-    [(folium.Marker(
-        location=(float(i.location.latitude), float(i.location.longitude)),
-        popup='%s\n%.4f, %.4f\n%im'
-              % (str(i.name), i.location.latitude,
-                 i.location.longitude, i.location.elevation),
-        icon=folium.Icon(color='pink', icon='mountain'),
-    ).add_to(m)) for i in mountains_in_sight.values()]
+        [
+            (
+                folium.Marker(
+                    location=(float(i.latitude), float(i.longitude)),
+                    popup="%s" % str(i).strip("()"),
+                    icon=folium.Icon(color=custom_color, icon="mountain"),
+                ).add_to(m)
+            )
+            for i in locs
+        ]
+    [
+        (
+            folium.Marker(
+                location=(float(i.location.latitude), float(i.location.longitude)),
+                popup="%s\n%.4f, %.4f\n%im"
+                % (
+                    str(i.name),
+                    i.location.latitude,
+                    i.location.longitude,
+                    i.location.elevation,
+                ),
+                icon=folium.Icon(color="pink", icon="mountain"),
+            ).add_to(m)
+        )
+        for i in mountains_in_sight.values()
+    ]
     m.save(filename)
 
 
 def get_mountains_in_sight(locs, mountains):
     mountains_in_sight = dict()
     radius = 500
-    p_i('Finding mountains in sight with a %i meter radius' % radius)
+    p_i("Finding mountains in sight with a %i meter radius" % radius)
     l_ = len(locs)
     div = 1
     for i in range(0, l_, div):
@@ -206,8 +232,8 @@ def get_mountains_in_sight(locs, mountains):
         for mountain in mountains:
             m = mountain.location
             m_lat, m_lon = m.latitude, m.longitude
-            center_point = [{'lat': m_lat, 'lng': m_lon}]
-            test_point = [{'lat': lat, 'lng': lon}]
+            center_point = [{"lat": m_lat, "lng": m_lon}]
+            test_point = [{"lat": lat, "lng": lon}]
             center_point = tuple(center_point[0].values())
             test_point = tuple(test_point[0].values())
             dis = distance.distance(center_point, test_point).m
@@ -229,9 +255,12 @@ def displace_camera(camera_lat, camera_lon, degrees, distance):
     camera_lat = to_radians(camera_lat)
     camera_lon = to_radians(camera_lon)
 
-    displaced_lat = asin(sin(camera_lat) * cos(delta) +
-                         cos(camera_lat) * sin(delta) * cos(degrees))
-    displaced_lon = camera_lon + atan2(sin(degrees) * sin(delta) * cos(camera_lat),
-                                       cos(delta) - sin(camera_lat) * sin(displaced_lat))
+    displaced_lat = asin(
+        sin(camera_lat) * cos(delta) + cos(camera_lat) * sin(delta) * cos(degrees)
+    )
+    displaced_lon = camera_lon + atan2(
+        sin(degrees) * sin(delta) * cos(camera_lat),
+        cos(delta) - sin(camera_lat) * sin(displaced_lat),
+    )
     displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
     return to_degrees(displaced_lat), to_degrees(displaced_lon)

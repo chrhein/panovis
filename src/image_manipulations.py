@@ -16,17 +16,18 @@ def change_brightness(img, value=30):
 
 
 def image_contouring(original_image, edge_detected_image):
-    contours, hierarchy = cv2.findContours(edge_detected_image.copy(),
-                                           cv2.RETR_TREE,
-                                           cv2.CHAIN_APPROX_SIMPLE)
-    contoured_image = cv2.drawContours(original_image.copy(), contours,
-                                       -1, (0, 0, 255), thickness=3)
+    contours, hierarchy = cv2.findContours(
+        edge_detected_image.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )
+    contoured_image = cv2.drawContours(
+        original_image.copy(), contours, -1, (0, 0, 255), thickness=3
+    )
     return [original_image, f_print(edge_detected_image), contoured_image]
     pass
 
 
 def dilate_and_erode(image):
-    kernel = np.ones((3, 3), 'uint8')
+    kernel = np.ones((3, 3), "uint8")
     dilated = cv2.dilate(image.copy(), kernel, iterations=1)
     eroded = cv2.erode(dilated, kernel)
     return eroded
@@ -36,8 +37,7 @@ def structured_forest(image):
     p_i("Starting Structured Forest Edge Detection...")
     sf = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     sf = sf.astype(np.float32) / 512.0
-    edge_detector = \
-        cv2.ximgproc.createStructuredEdgeDetection('assets/model.yml')
+    edge_detector = cv2.ximgproc.createStructuredEdgeDetection("assets/model.yml")
     edges = edge_detector.detectEdges(sf) * 512.0
     p_i("Structured Forest Edge Detection complete!")
     return edges

@@ -9,36 +9,46 @@ from pickle import load, dump
 
 
 def edge_detection(image_path, algorithm, im_w=2400):
-    panorama_filename = image_path.split('/')[-1].split('.')[0]
-    folder = 'exports/%s/' % panorama_filename
-    if algorithm == 'Canny':
-        im_path = '%srender-depth.png' % folder
+    panorama_filename = image_path.split("/")[-1].split(".")[0]
+    folder = "exports/%s/" % panorama_filename
+    if algorithm == "Canny":
+        im_path = "%srender-depth.png" % folder
         image = cv2.imread(im_path)
         edge_detected_image = skeletonize(canny_edge_detection(image, True))
         if folder:
-            cv2.imwrite('%sedge-detected-canny.png' % folder,
-                        edge_detected_image)
-    elif algorithm == 'HED':
+            cv2.imwrite("%sedge-detected-canny.png" % folder, edge_detected_image)
+    elif algorithm == "HED":
         image = cv2.imread(image_path)
-        t = datetime.now().strftime('%H%M%S')
+        t = datetime.now().strftime("%H%M%S")
         height, width, _ = image.shape
         max_length = max(height, width)
         if max_length > im_w:
             image = resizer(image, im_width=im_w)
         try:
-            holistically_nested_image = load(open('%sedge-detected-hed.pkl' % folder, 'rb'))
+            holistically_nested_image = load(
+                open("%sedge-detected-hed.pkl" % folder, "rb")
+            )
         except (OSError, IOError):
             holistically_nested_image = holistically_nested(image)
-            dump(holistically_nested_image, open('%sedge-detected-hed.pkl' % folder, 'wb'))
+            dump(
+                holistically_nested_image,
+                open("%sedge-detected-hed.pkl" % folder, "wb"),
+            )
 
         kernel = np.ones((5, 15), np.uint8)
         dilated_image = cv2.dilate(holistically_nested_image, kernel, iterations=1)
         skeletonized_image = skeletonize(dilated_image)
 
         _, thresh_binary = cv2.threshold(skeletonized_image, 50, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE
+        )
         mask = np.zeros(holistically_nested_image.shape[:2], dtype=np.uint8)
-        [cv2.drawContours(mask, [cnt], 0, (255), -1) for cnt in contours if cv2.contourArea(cnt) > 100]
+        [
+            cv2.drawContours(mask, [cnt], 0, (255), -1)
+            for cnt in contours
+            if cv2.contourArea(cnt) > 100
+        ]
         bitwise_and_image = cv2.bitwise_and(skeletonized_image, mask)
         # eroded_image = cv2.erode(bitwise_and_image, kernel, iterations=1)
 
@@ -61,13 +71,12 @@ def edge_detection(image_path, algorithm, im_w=2400):
 
         skeletonized_image = skeletonize(eroded_image) """
 
-        cv2.imwrite('%sedge-detected-hed-%s.png' % (folder, t), bitwise_and_image)
+        cv2.imwrite("%sedge-detected-hed-%s.png" % (folder, t), bitwise_and_image)
 
-    elif algorithm == 'Horizon':
+    elif algorithm == "Horizon":
         edge_detected_image = find_horizon_edge(image_path)
         if folder:
-            cv2.imwrite('%shighlighted_horizon.png' % folder,
-                        edge_detected_image)
+            cv2.imwrite("%shighlighted_horizon.png" % folder, edge_detected_image)
     else:
         return
 
@@ -82,7 +91,7 @@ def harris_corner_detection(image):
 
 
 def canny_edge_detection(image, interactive_window=True, blur_factor=5):
-    print('[INFO] Starting Canny Edge Detection...')
+    print("[INFO] Starting Canny Edge Detection...")
     # automatically set lb and ub values from the median color in the image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     v = np.median(gray)
@@ -92,23 +101,23 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
 
     blurred = cv2.medianBlur(gray, blur_factor)
     if not interactive_window:
-        print('[INFO] Canny Edge Detection complete!')
+        print("[INFO] Canny Edge Detection complete!")
         return cv2.Canny(blurred, lb, ub)
 
-    p_i('Opening external window')
-    n = 'Canny Edge Detection'
+    p_i("Opening external window")
+    n = "Canny Edge Detection"
     cv2.namedWindow(n)
-    cv2.createTrackbar('Lower Bound', n, lb, 100, nothing)
-    cv2.createTrackbar('Upper Bound', n, ub, 100, nothing)
+    cv2.createTrackbar("Lower Bound", n, lb, 100, nothing)
+    cv2.createTrackbar("Upper Bound", n, ub, 100, nothing)
     while True:
-        lb = cv2.getTrackbarPos('Lower Bound', n)
-        ub = cv2.getTrackbarPos('Upper Bound', n)
+        lb = cv2.getTrackbarPos("Lower Bound", n)
+        ub = cv2.getTrackbarPos("Upper Bound", n)
         edges = cv2.Canny(blurred, lb, ub)
         cv2.imshow(n, edges)
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # use escape for exiting window
             cv2.destroyAllWindows()
-            p_i('Canny Edge Detection complete!')
+            p_i("Canny Edge Detection complete!")
             return edges
 
 
@@ -137,7 +146,7 @@ def find_horizon_edge(image):
     for col in range(search_area, cols - search_area):
         edge_center = gray[search_area, col]
         backtrack = False
-        for row in range(search_area, int(rows*0.75)):
+        for row in range(search_area, int(rows * 0.75)):
             k = gray[row, col]
             if k > edge_center and not backtrack:
                 edge_center = k
@@ -154,7 +163,7 @@ def color_specific_pixel(image, pixel_x, pixel_y, color, size):
     for y in range(-size, size):
         for x in range(-size, size):
             try:
-                image[pixel_x+x, pixel_y+y] = color
+                image[pixel_x + x, pixel_y + y] = color
             except IndexError:
                 continue
 
@@ -165,8 +174,8 @@ def pixel_eigenvalue(image, pixel_x, pixel_y, size):
     for y in range(-size, size):
         for x in range(-size, size):
             try:
-                sum += image[pixel_x+x, pixel_y+y]
+                sum += image[pixel_x + x, pixel_y + y]
                 index += 1
             except IndexError:
                 continue
-    return (sum/index)
+    return sum / index
