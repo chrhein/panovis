@@ -27,12 +27,12 @@ def annotate_image(image, text):
     return out_im
 
 
-def skeletonize(image, lb_threshold=50):
-    _, img = cv2.threshold(image, lb_threshold, 255, 0)
+def skeletonize(image):
+    image[image != 0] = 255
+    _, img = cv2.threshold(image, 1, 255, 0)
     skeleton_image = np.zeros(img.shape, np.uint8)
-    vertical_effect = 3
-    horizontal_effect = 3
-    kernel = np.ones((vertical_effect, horizontal_effect), np.uint8)
+    # kernel = np.ones((3, 3), np.uint8)
+    kernel = cv2.getStructuringElement(cv2.MORPH_DILATE, (3, 3))
     while True:
         opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
         temp = cv2.subtract(img, opening)
@@ -40,6 +40,7 @@ def skeletonize(image, lb_threshold=50):
         skeleton_image = cv2.bitwise_or(skeleton_image, temp)
         if cv2.countNonZero(img) == 0:
             break
+    # dilated_image = cv2.dilate(skeleton_image, np.ones((1, 2), np.uint8), iterations=1)
     return skeleton_image
 
 
@@ -49,57 +50,26 @@ def flip(image, direction=0):
 
 
 def trim_edges(image):
-    vertical_effect = 2
-    horizontal_effect = 6
-    kernel = np.ones((vertical_effect, horizontal_effect), np.uint8)
-    dilated_image = cv2.dilate(image, kernel, iterations=5)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=6)
+    vertical_effect = 1
+    horizontal_effect = 4
 
-    _, thresh_binary = cv2.threshold(eroded_image, 1, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(
-        image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_NONE
-    )
+    kernel = np.ones((vertical_effect, horizontal_effect), np.uint8)
+    dilated_image = cv2.dilate(image, kernel, iterations=6)
+    eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
+
+    _, thresh_binary = cv2.threshold(eroded_image, 40, 255, cv2.THRESH_BINARY)
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
+    contours, _ = cv2.findContours(
+        image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE
+    )
 
     if len(contours) != 0:
-        cv2.drawContours(mask, contours, -1, 255, 5)
+        [
+            cv2.drawContours(mask, [cnt], 0, (255), -1)
+            for cnt in contours
+            if cv2.contourArea(cnt) > 10000
+        ]
 
     masked_image = cv2.bitwise_and(eroded_image, mask)
 
-    median_blur = cv2.medianBlur(masked_image, 3)
-
-    _, thresh_binary = cv2.threshold(median_blur, 25, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(
-        image=thresh_binary, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE
-    )
-    mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    [
-        cv2.drawContours(mask, [cnt], 0, (255), -1)
-        for cnt in contours
-        if cv2.contourArea(cnt) > 100
-    ]
-
-    masked_image = cv2.bitwise_and(median_blur, mask)
-    skeletonized_image = skeletonize(masked_image, 10)
-
-    vertical_effect = 2
-    horizontal_effect = 3
-    kernel = np.ones((vertical_effect, horizontal_effect), np.uint8)
-    dilated_image = cv2.dilate(skeletonized_image, kernel, iterations=2)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=1)
-
-    _, thresh_binary = cv2.threshold(eroded_image, 1, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(
-        image=thresh_binary, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE
-    )
-    mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    [
-        cv2.drawContours(mask, [cnt], 0, (255), -1)
-        for cnt in contours
-        if cv2.contourArea(cnt) > 100
-    ]
-
-    masked_image = cv2.bitwise_and(eroded_image, mask)
-    # eroded_image = cv2.erode(masked_image, kernel, iterations=1)
-
-    return masked_image
+    return skeletonize(masked_image)
