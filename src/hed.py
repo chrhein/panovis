@@ -29,21 +29,20 @@ class CropLayer(object):
 
     def forward(self, inputs):
         # use the derived (x, y)-coordinates to perform the crop
-        return [inputs[0][:, :, self.startY:self.endY,
-                self.startX:self.endX]]
+        return [inputs[0][:, :, self.startY : self.endY, self.startX : self.endX]]
 
 
 def holistically_nested(image):
     p_i("Starting Holistically-Nested Edge Detection...")
-    net = cv2.dnn.readNetFromCaffe("data/hed_model/deploy.prototxt",
-                                   "data/hed_model/"
-                                   + "hed_pretrained_bsds.caffemodel")
+    net = cv2.dnn.readNetFromCaffe(
+        "data/hed_model/deploy.prototxt",
+        "data/hed_model/" + "hed_pretrained_bsds.caffemodel",
+    )
     height, width = image.shape[:2]
     cv2.dnn_registerLayer("Crop", CropLayer)
     blob = cv2.dnn.blobFromImage(image, size=(width, height))
     net.setInput(blob)
-    hed = (255 * cv2.resize(net.forward()[0, 0], (width, height)))\
-        .astype("uint8")
+    hed = (255 * cv2.resize(net.forward()[0, 0], (width, height))).astype("uint8")
     p_i("Holistically-Nested Edge Detection complete!")
     cv2.dnn_unregisterLayer("Crop")
     return hed

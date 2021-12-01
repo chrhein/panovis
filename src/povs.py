@@ -1,17 +1,16 @@
 import rasterio
 
 
-def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
+def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     coordinates = raster_data[0]
-    location_x, location_height, location_y, \
-        view_x, view_height, view_y = coordinates
+    location_x, location_height, location_y, view_x, view_height, view_y = coordinates
     panoramic_angle = pov_settings[0]
     max_height = raster_data[1][3]
     height_field_scale_factor = pov_settings[1]
 
-    if mode == 'texture' or mode == 'route' or mode == 'gradient':
+    if mode == "texture" or mode == "route" or mode == "gradient":
         texture_path = pov_settings[2]
-        if mode == 'gradient':
+        if mode == "gradient":
             skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
         else:
             tex_bounds = pov_settings[3]
@@ -20,7 +19,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
             x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
             y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
     else:
-        texture_path = ''
+        texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
 
     ds_raster = rasterio.open(dem_file)
@@ -29,7 +28,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
     print(ds_raster.shape)
     scale_multiplier = 10400 / max(ds_raster.shape)
 
-    pov_text = '''
+    pov_text = """
     #version 3.8;
     #include "colors.inc"
     #include "math.inc"
@@ -190,22 +189,35 @@ def primary_pov(dem_file, raster_data, pov_settings, mode='height'):
         scale <1, SCALEFACTOR * SCALEMULTIPLIER, 1>
     }
 
-    ''' % (location_x, location_height, location_y,
-           view_x, view_height, view_y,
-           dem_file, max_height, panoramic_angle,
-           height_field_scale_factor, scale_multiplier, texture_path,
-           skew_x, skew_y, y_l, x_l, mode)
+    """ % (
+        location_x,
+        location_height,
+        location_y,
+        view_x,
+        view_height,
+        view_y,
+        dem_file,
+        max_height,
+        panoramic_angle,
+        height_field_scale_factor,
+        scale_multiplier,
+        texture_path,
+        skew_x,
+        skew_y,
+        y_l,
+        x_l,
+        mode,
+    )
     return pov_text
 
 
 def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
     coordinates = raster_data[0]
-    location_x, location_height, location_y, \
-        view_x, view_height, view_y = coordinates
+    location_x, location_height, location_y, view_x, view_height, view_y = coordinates
     max_height = raster_data[1][3]
     panoramic_angle = pov_settings[0]
     height_field_scale_factor = pov_settings[1]
-    pov_text = '''
+    pov_text = """
     #version 3.8;
     #include "colors.inc"
     #include "math.inc"
@@ -250,10 +262,19 @@ def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
         finish {ambient 1 diffuse 0 specular 0}
     }
 
-    ''' % (location_x, location_height, location_y,
-           view_x, view_height, view_y,
-           dem_file, max_height, panoramic_angle, height_field_scale_factor,
-           axis)
+    """ % (
+        location_x,
+        location_height,
+        location_y,
+        view_x,
+        view_height,
+        view_y,
+        dem_file,
+        max_height,
+        panoramic_angle,
+        height_field_scale_factor,
+        axis,
+    )
     return pov_text
 
 
@@ -263,7 +284,7 @@ def debug_pov(dem_file, texture_path, tex_bounds, mh):
     x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
     y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
 
-    pov_text = '''
+    pov_text = """
     #version 3.8;
     #include "colors.inc"
     #include "math.inc"
@@ -336,6 +357,13 @@ def debug_pov(dem_file, texture_path, tex_bounds, mh):
     }
 
 
-    ''' % (dem_file, texture_path, scale_x,
-           scale_y, y_l, x_l, mh)
+    """ % (
+        dem_file,
+        texture_path,
+        scale_x,
+        scale_y,
+        y_l,
+        x_l,
+        mh,
+    )
     return pov_text
