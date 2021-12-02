@@ -1,69 +1,50 @@
 import cv2
 import numpy as np
 from im import custom_imshow
-from image_manipulations import flip
+from image_manipulations import flip, trim_edges
 
 
 def open_image(filename):
     return cv2.imread("./feature_matching/fm_%s.png" % filename)
 
 
-"""
-
-PIPELINE:
-
-Photo:
-- HED + skeletonizing + trimming
-- Photo Edges
-- SIFT
-- Photo Edges - pt! ??
-
-Render:
-- Canny Edge Detection
-- Render Edges
-- SIFT
-- Render Edges - p ??
-
-Photo + Render = Match
-
-"""
-
-
 def sift(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
     s = cv2.SIFT_create()
     key_points, descriptors = s.detectAndCompute(gray, None)
     return [key_points, descriptors]
 
 
-def feature_matching(image1, image2, folder="", im_orig="", im_rendr=""):
-    im1 = flip(cv2.imread(image1))
-    im2 = flip(cv2.imread(image2))
+def feature_matching(pano, render):
+    def get_key_points(image):
+        trimmed = trim_edges(flip(cv2.imread(image)))
+        key_points, descriptors = sift(trimmed)
+        return [trimmed, key_points, descriptors]
 
-    key_points_1, descriptors_1 = sift(im1)
-    key_points_2, descriptors_2 = sift(im2)
+    pano, kp_pano, d_pano = get_key_points(pano)
+    render, kp_render, d_render = get_key_points(render)
 
-    bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
-    matches = bf.match(descriptors_1, descriptors_2)
-    matches = sorted(matches, key=lambda x: x.distance)
-    image3 = flip(
-        cv2.drawMatches(
-            im1, key_points_1, im2, key_points_2, matches[:50], im2, flags=2
-        ),
-        1,
+    FLANN_INDEX_KDTREE = 1
+    flann_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=7)
+    matcher = cv2.FlannBasedMatcher(flann_params, {})
+    matches = matcher.knnMatch(d_pano, d_render, 2)
+    mask = [[0, 0] for _ in range(len(matches))]
+
+    for i, (m1, m2) in enumerate(matches):
+        if m1.distance < 0.5 * m2.distance:
+            mask[i] = [1, 0]
+            pt1 = kp_pano[m1.queryIdx].pt
+            pt2 = kp_render[m1.trainIdx].pt
+            if i % 5 == 0:
+                cv2.circle(pano, (int(pt1[0]), int(pt1[1])), 7, (255, 0, 255), -1)
+                cv2.circle(render, (int(pt2[0]), int(pt2[1])), 7, (255, 0, 255), -1)
+    draw_params = dict(
+        matchColor=(0, 255, 0),
+        singlePointColor=(0, 0, 255),
+        matchesMask=mask,
+        flags=0,
     )
-    if im_orig and im_rendr:
-        im1 = flip(cv2.imread(im_rendr))
-        im2 = flip(cv2.imread(im_orig))
-        image4 = flip(
-            cv2.drawMatches(
-                im1, key_points_1, im2, key_points_2, matches[:50], im2, flags=2
-            ),
-            1,
-        )
-    if folder:
-        cv2.imwrite("%sfeature_matched.png" % folder, image3)
-        if im_orig and im_rendr:
-            cv2.imwrite("%sfeature_matched_color.png" % folder, image4)
-    else:
-        custom_imshow(image3, "FM"), cv2.waitKey(0)
+    res = cv2.drawMatchesKnn(
+        pano, kp_pano, render, kp_render, matches, None, **draw_params
+    )
+    custom_imshow(flip(res, 1), "Results from Feature Matching")

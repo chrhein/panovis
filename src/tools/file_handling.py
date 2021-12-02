@@ -22,6 +22,7 @@ def select_file(folder):
     for i in range(len(files_in_folder)):
         file = files_in_folder[i].split("/")[-1]
         info_text.append("%i: %s" % (i + 1, file))
+    info_text.append("0: exit program")
     p_i("Select one of these files to continue:")
     p_line(info_text)
     files_chosen = []
@@ -29,6 +30,7 @@ def select_file(folder):
         try:
             selected_file = p_in("Select file: ")
             selected_file = int(selected_file)
+            exit() if selected_file == 0 else None
         except ValueError:
             try:
                 x, y = selected_file.split("-")

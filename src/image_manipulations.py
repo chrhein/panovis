@@ -84,6 +84,7 @@ def remove_smaller_contours(image, min_area=100, lb=40, ub=255):
 
 
 def trim_edges(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     trimmed = cv2.dilate(image, kernel, iterations=3)
     for i in [35, 70]:

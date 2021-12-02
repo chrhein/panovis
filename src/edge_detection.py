@@ -3,12 +3,12 @@ import numpy as np
 from hed import holistically_nested
 from im import save_image
 from tools.debug import p_i, nothing
-from image_manipulations import resizer, trim_edges, skeletonize
+from image_manipulations import resizer, skeletonize
 from datetime import datetime
 from pickle import load, dump
 
 
-def edge_detection(image_path, algorithm, im_w=2400):
+def edge_detection(image_path, algorithm, im_w=2800):
     panorama_filename = image_path.split("/")[-1].split(".")[0]
     folder = f"exports/{panorama_filename}/"
     t = datetime.now().strftime("%H%M%S")
@@ -34,14 +34,14 @@ def edge_detection(image_path, algorithm, im_w=2400):
                 open("%sedge-detected-hed.pkl" % folder, "wb"),
             )
 
-        edge_detected_image = trim_edges(holistically_nested_image)
+        edge_detected_image = holistically_nested_image
     elif algorithm == "Horizon":
         edge_detected_image = find_horizon_edge(image_path)
     else:
         return
     save_image(
         edge_detected_image,
-        "edge-detected-%s-%s" % (algorithm, t),
+        f"edge-detected-{algorithm}",
         folder,
     )
 
