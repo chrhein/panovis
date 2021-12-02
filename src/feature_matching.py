@@ -1,11 +1,5 @@
 import cv2
-import numpy as np
-from im import custom_imshow
 from image_manipulations import flip, trim_edges
-
-
-def open_image(filename):
-    return cv2.imread("./feature_matching/fm_%s.png" % filename)
 
 
 def sift(image):
@@ -31,11 +25,11 @@ def feature_matching(pano, render):
     mask = [[0, 0] for _ in range(len(matches))]
 
     for i, (m1, m2) in enumerate(matches):
-        if m1.distance < 0.5 * m2.distance:
+        if m1.distance < 0.7 * m2.distance:
             mask[i] = [1, 0]
             pt1 = kp_pano[m1.queryIdx].pt
             pt2 = kp_render[m1.trainIdx].pt
-            if i % 5 == 0:
+            if i % 2 == 0:
                 cv2.circle(pano, (int(pt1[0]), int(pt1[1])), 7, (255, 0, 255), -1)
                 cv2.circle(render, (int(pt2[0]), int(pt2[1])), 7, (255, 0, 255), -1)
     draw_params = dict(
@@ -47,4 +41,4 @@ def feature_matching(pano, render):
     res = cv2.drawMatchesKnn(
         pano, kp_pano, render, kp_render, matches, None, **draw_params
     )
-    custom_imshow(flip(res, 1), "Results from Feature Matching")
+    return flip(res, 1)

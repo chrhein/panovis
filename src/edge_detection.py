@@ -4,14 +4,12 @@ from hed import holistically_nested
 from im import save_image
 from tools.debug import p_i, nothing
 from image_manipulations import resizer, skeletonize
-from datetime import datetime
 from pickle import load, dump
 
 
 def edge_detection(image_path, algorithm, im_w=2800):
     panorama_filename = image_path.split("/")[-1].split(".")[0]
     folder = f"exports/{panorama_filename}/"
-    t = datetime.now().strftime("%H%M%S")
     if algorithm == "Canny":
         im_path = "%srender-depth.png" % folder
         image = cv2.imread(im_path)

@@ -3,6 +3,7 @@ from feature_matching import feature_matching
 from edge_detection import edge_detection
 from dem import render_dem
 from data_getters.mountains import get_mountains, compare_two_mountain_lists
+from im import save_image
 from tools.file_handling import select_file, tui_select
 
 
@@ -72,7 +73,7 @@ def main():
         im_path = f"{exports_folder}{pano_filename}"
         im1 = select_file(im_path)[0]
         im2 = select_file(im_path)[0]
-        feature_matching(im1, im2)
+        save_image(feature_matching(im1, im2), "fm", im_path)
         os.makedirs("dev/", exist_ok=True)
         f = open("dev/mode.txt", "w+")
         f.write(f"{mode}::{im_path}::{im1}::{im2}")
@@ -102,4 +103,4 @@ def main():
             im_path = prev[1]
             im1 = prev[2]
             im2 = prev[3]
-            feature_matching(im1, im2)
+            save_image(feature_matching(im1, im2), "fm", im_path, True)
