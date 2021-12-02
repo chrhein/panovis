@@ -1,22 +1,8 @@
 import cv2
 import numpy as np
-from tools.debug import p_i, p_in
+from tools.debug import custom_imshow, p_i, p_in
 from image_manipulations import resizer
 from tkinter.filedialog import askdirectory
-
-
-def custom_imshow(image, title, from_left=100, from_top=400):
-    if type(image) == str:
-        image = cv2.imread(image)
-    cv2.namedWindow(title)
-    cv2.moveWindow(title, from_left, from_top)
-    cv2.imshow(title, image)
-    cv2.setWindowProperty(title, cv2.WND_PROP_TOPMOST, 1)
-    key_pressed = cv2.waitKey()
-    cv2.destroyAllWindows()
-    if key_pressed == 115:
-        return True
-    return False
 
 
 def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):

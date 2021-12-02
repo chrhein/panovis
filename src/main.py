@@ -62,8 +62,9 @@ def main():
         panos = select_file(pano_folder)
         for pano in panos:
             pano_filename = pano.split("/")[-1].split(".")[0]
-            im1 = "%s%s/edge-detected-canny.png" % (exports_folder, pano_filename)
-            im2 = "%s%s/edge-detected-hed.png" % (exports_folder, pano_filename)
+            im_path = f"{exports_folder}{pano_filename}"
+            im1 = select_file(im_path)[0]
+            im2 = select_file(im_path)[0]
             feature_matching(im1, im2)
     elif mode == 4:
         compare_two_mountain_lists()
