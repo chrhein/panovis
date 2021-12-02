@@ -3,6 +3,27 @@ import numpy as np
 from tools.debug import p_i
 
 
+def change_brightness(img, value=30):
+    channels = img.ndim
+    if channels == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    else:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(img)
+    v = cv2.add(v, value)
+    v[v > 255] = 255
+    if channels == 2:
+        v[v <= value] = 0
+    else:
+        v[v < 0] = 0
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    if channels == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return img
+
+
 def structured_forest(image):
     p_i("Starting Structured Forest Edge Detection...")
     sf = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -51,7 +72,7 @@ def remove_smaller_contours(image, min_area=100, lb=40, ub=255):
     _, thresh_binary = cv2.threshold(image, lb, ub, cv2.THRESH_BINARY)
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
     contours, _ = cv2.findContours(
-        image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_SIMPLE
+        image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_NONE
     )
     [
         cv2.drawContours(mask, [cnt], 0, (255), -1)
@@ -63,14 +84,13 @@ def remove_smaller_contours(image, min_area=100, lb=40, ub=255):
 
 
 def trim_edges(image):
-    kernel = np.ones((1, 4), np.uint8)
-    dilated_image = cv2.dilate(image, kernel, iterations=6)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
-    masked_image = remove_smaller_contours(eroded_image, 10000)
-    median = cv2.medianBlur(masked_image, 3)
-    skeletonized = skeletonize(median)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    dilated = cv2.dilate(skeletonized, kernel, iterations=1)
-    masked_image = remove_smaller_contours(dilated, 100)
-    median = cv2.medianBlur(masked_image, 3)
-    return skeletonize(median)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+    trimmed = cv2.dilate(image, kernel, iterations=3)
+    for i in [35, 70]:
+        trimmed = change_brightness(trimmed, 25)
+        trimmed = remove_smaller_contours(trimmed, 25000, i, 255)
+        trimmed = cv2.dilate(trimmed, kernel, iterations=1)
+    trimmed = skeletonize(trimmed)
+    trimmed = cv2.GaussianBlur(trimmed, (3, 3), 0)
+    trimmed = remove_smaller_contours(trimmed, 100, 1, 255)
+    return trimmed
