@@ -71,6 +71,9 @@ def convert_coordinates(
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
+
+    print(polar_lat, polar_lon)
+
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
 
@@ -92,8 +95,9 @@ def convert_coordinates(
     height_max_mountain_scaled = (height - height_min) / (
         height_max_mountain - height_min
     )
+    print(lat_scaled, lon_scaled)
     if is_camera:
-        height_scaled = height_scaled * 1.57  # to place camera above horizon
+        height_scaled = height_scaled * 1.445  # to place camera above horizon
     return [
         lat_scaled,
         height_scaled * height_field_scale_factor,
@@ -102,6 +106,7 @@ def convert_coordinates(
     ]
 
 
+# lat/lon to coordinate reference system coordinates
 def cor_to_crs(to_espg, lat, lon):
     in_sr = osr.SpatialReference()
     in_sr.ImportFromEPSG(4326)

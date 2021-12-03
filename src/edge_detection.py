@@ -65,23 +65,29 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
     blurred = cv2.medianBlur(gray, blur_factor)
     if not interactive_window:
         print("[INFO] Canny Edge Detection complete!")
-        return cv2.Canny(blurred, lb, ub)
+        return cv2.Canny(blurred, lb, ub, apertureSize=5)
 
     p_i("Opening external window")
     n = "Canny Edge Detection"
     cv2.namedWindow(n)
     cv2.createTrackbar("Lower Bound", n, lb, 100, nothing)
     cv2.createTrackbar("Upper Bound", n, ub, 100, nothing)
+    cv2.createTrackbar("Dilate Horizontal", n, 1, 20, nothing)
+    cv2.createTrackbar("Dilate Vertical", n, 1, 20, nothing)
     while True:
         lb = cv2.getTrackbarPos("Lower Bound", n)
         ub = cv2.getTrackbarPos("Upper Bound", n)
+        d_h = cv2.getTrackbarPos("Dilate Horizontal", n)
+        d_v = cv2.getTrackbarPos("Dilate Vertical", n)
         edges = cv2.Canny(blurred, lb, ub)
-        cv2.imshow(n, edges)
+        kernel = np.ones((d_v, d_h), np.uint8)
+        dilated = cv2.dilate(edges, kernel, iterations=1)
+        cv2.imshow(n, dilated)
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # use escape for exiting window
             cv2.destroyAllWindows()
             p_i("Canny Edge Detection complete!")
-            return edges
+            return dilated
 
 
 def remove_pixels(image, thresh=100):

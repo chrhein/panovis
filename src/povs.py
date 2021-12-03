@@ -124,6 +124,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
         object{
             height_field {
                 png FILENAME
+                smooth
                 #if (MODE="texture" | MODE="height")
                 pigment {
                     gradient y

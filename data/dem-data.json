@@ -2,12 +2,12 @@
     "dem-path": "data/bergen.png",
     "panoramas": {
         "panorama1_camera": {
-            "latitude": 60.41454411362287,
-            "longitude": 5.3896563433223585,
+            "latitude": 60.41350462457307,
+            "longitude": 5.385201666077322,
             "mountain_name": "Vidden",
-            "panoramic_angle": 205,
-            "height_scale_factor": 0.5,
-            "view_direction": 190
+            "panoramic_angle": 195,
+            "height_scale_factor": 0.58,
+            "view_direction": 188
         },
         "panorama2_camera": {
             "latitude": 60.39672484004798,

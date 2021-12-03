@@ -34,7 +34,9 @@ def render_dem(panorama_path, mode, mountains):
         return
 
     panorama = cv2.imread(panorama_path)
-    image_width, image_height = get_image_shape(panorama)
+    image_width, image_height = (
+        get_image_shape(panorama, 6000) if mode == 1 else get_image_shape(panorama)
+    )
     pov_filename = "/tmp/pov_file.pov"
     render_shape = [image_width, image_height]
 

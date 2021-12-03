@@ -68,11 +68,11 @@ def flip(image, direction=0):
     return cv2.flip(image, flipCode=direction)
 
 
-def remove_smaller_contours(image, min_area=100, lb=40, ub=255):
+def remove_contours(image, min_area=100, lb=40, ub=255):
     _, thresh_binary = cv2.threshold(image, lb, ub, cv2.THRESH_BINARY)
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
     contours, _ = cv2.findContours(
-        image=thresh_binary, mode=cv2.RETR_CCOMP, method=cv2.CHAIN_APPROX_NONE
+        image=thresh_binary, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE
     )
     [
         cv2.drawContours(mask, [cnt], 0, (255), -1)
@@ -85,13 +85,14 @@ def remove_smaller_contours(image, min_area=100, lb=40, ub=255):
 
 def trim_edges(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 2))
     trimmed = cv2.dilate(image, kernel, iterations=3)
     for i in [35, 70]:
         trimmed = change_brightness(trimmed, 25)
-        trimmed = remove_smaller_contours(trimmed, 25000, i, 255)
+        trimmed = remove_contours(trimmed, 50000, i, 255)
         trimmed = cv2.dilate(trimmed, kernel, iterations=1)
     trimmed = skeletonize(trimmed)
     trimmed = cv2.GaussianBlur(trimmed, (3, 3), 0)
-    trimmed = remove_smaller_contours(trimmed, 100, 1, 255)
+    trimmed = remove_contours(trimmed, min_area=500, lb=1)
+
     return trimmed
