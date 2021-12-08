@@ -1,5 +1,5 @@
 {
-    "dem-path": "data/hordaland.png",
+    "dem-path": "data/bergen10.png",
     "panoramas": {
         "panorama1_camera": {
             "latlon": [60.41350462457307, 5.385201666077322],
@@ -14,7 +14,7 @@
             "mountain_name": "Livarden"
         },
         "panorama4_camera": {
-            "latlon": [60.36423590473352, 5.382310057603189],
+            "latlon": [60.36488377336238, 5.383658873015997],
             "mountain_name": "Ormhaugen"
         },
         "panorama5_camera": {
@@ -22,7 +22,7 @@
             "mountain_name": "Helldalssåta"
         },
         "panorama6_camera": {
-            "latlon": [60.237529814138995, 5.346079797576634],
+            "latlon": [60.238020195792735, 5.3461253986000195],
             "mountain_name": "Tverrfjellet"
         },
         "panorama7_camera": {

@@ -107,7 +107,7 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     if debugging:
         rs = 20
 
-    multiplier = 250
+    multiplier = 100
 
     h = h * multiplier
     w = w * multiplier

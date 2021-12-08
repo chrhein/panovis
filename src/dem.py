@@ -1,4 +1,3 @@
-import cv2
 import os
 import time
 import subprocess
@@ -6,7 +5,6 @@ from data_getters.mountains import get_mountain_data
 from tools.debug import p_e, p_i, p_line
 from location_handler import plot_to_map, get_mountains_in_sight, get_raster_data
 from povs import primary_pov, debug_pov
-from im import get_image_shape
 from tools.color_map import (
     create_route_texture,
     create_color_gradient_image,
@@ -32,7 +30,7 @@ def render_dem(panorama_path, mode, mountains):
         return
 
     pov_filename = "/tmp/pov_file.pov"
-    scale = 0.2
+    scale = 1.25
     render_shape = [4800 * scale, 900 * scale]
 
     raster_data = get_raster_data(dem_file, coordinates)

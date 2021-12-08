@@ -1,21 +1,20 @@
-from tools.types import TextureBounds
-
-
 def primary_pov(
     dem_file,
     raster_data,
     texture_path="",
-    tex_bounds=TextureBounds(0, 0, 0, 0, 0, 0, 1, 1),
+    tex_bounds=None,
     mode="height",
 ):
     coordinates = raster_data[0]
-    location_x, location_height, location_y, view_x, view_height, view_y = coordinates
+    location_x, location_height, location_y, view_x, _, view_y = coordinates
     max_height = raster_data[1][3]
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
             skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
         else:
+            if not tex_bounds:
+                raise Exception("No texture bounds given")
             skew_y = tex_bounds.min_x[1]
             skew_x = tex_bounds.min_y[0]
             x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
@@ -33,7 +32,6 @@ def primary_pov(
     #declare CAMERAHEIGHT = %f;
     #declare CAMERAY = %f;
     #declare VIEWX = %f;
-    #declare VIEWHEIGHT = %f;
     #declare VIEWY = %f;
 
     #declare FILENAME = "%s";
@@ -182,7 +180,7 @@ def primary_pov(
             }
         }
         #end
-        scale <1, MAXMOUNTAIN * 25, 1>
+        scale <1, 1, 1>
     }
 
     """ % (
@@ -190,7 +188,6 @@ def primary_pov(
         location_height,
         location_y,
         view_x,
-        view_height,
         view_y,
         dem_file,
         max_height,

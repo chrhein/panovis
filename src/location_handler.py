@@ -68,6 +68,7 @@ def convert_coordinates(raster, to_espg, lat, lon):
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
 
+    ds_height = max((max_x - min_x), (max_y - min_y))
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
 
@@ -78,17 +79,13 @@ def convert_coordinates(raster, to_espg, lat, lon):
     new_y = new_y[0]
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
+
     try:
         height = h[row][col]
     except IndexError:
         return
-    height_min = min(min_x, min_y)
-    height_max = max((max_x - min_x), (max_y - min_y))
-    print(height_min, height_max)
-    height_scaled = height / height_max
-    print(height_scaled)
-    height_max_mountain_scaled = h.max() / height_max
-    print(height_max_mountain_scaled)
+    height_scaled = (height + 1.8) / ds_height
+    height_max_mountain_scaled = h.max() / ds_height
 
     return [
         lat_scaled,
