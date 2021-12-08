@@ -1,19 +1,21 @@
-import rasterio
+from tools.types import TextureBounds
 
 
-def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
+def primary_pov(
+    dem_file,
+    raster_data,
+    texture_path="",
+    tex_bounds=TextureBounds(0, 0, 0, 0, 0, 0, 1, 1),
+    mode="height",
+):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, view_height, view_y = coordinates
-    panoramic_angle = pov_settings[0]
     max_height = raster_data[1][3]
-    height_field_scale_factor = pov_settings[1]
 
     if mode == "texture" or mode == "route" or mode == "gradient":
-        texture_path = pov_settings[2]
         if mode == "gradient":
             skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
         else:
-            tex_bounds = pov_settings[3]
             skew_y = tex_bounds.min_x[1]
             skew_x = tex_bounds.min_y[0]
             x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
@@ -21,12 +23,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     else:
         texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
-
-    ds_raster = rasterio.open(dem_file)
-    resolution = ds_raster.transform[0]
-    print(resolution)
-    print(ds_raster.shape)
-    scale_multiplier = 10400 / max(ds_raster.shape)
 
     pov_text = """
     #version 3.8;
@@ -40,17 +36,17 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     #declare VIEWHEIGHT = %f;
     #declare VIEWY = %f;
 
-    #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
     #declare FILENAME = "%s";
     #declare MAXMOUNTAIN = %f;
-    #declare PANOANGLE = %f;
-    #declare SCALEFACTOR = %f;
-    #declare SCALEMULTIPLIER = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
+
+    #declare HEIGHT = CAMERAHEIGHT;
+
+    #declare CAMERAPOS = <CAMERAX, HEIGHT, CAMERAY>;
+    #declare CAMERALOOKAT = <VIEWX, HEIGHT, VIEWY>;
 
     #if (MODE="depth")
     #declare CAMERAFRONT  = vnormalize(CAMERAPOS - CAMERALOOKAT);
@@ -98,10 +94,10 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     #end
 
     camera {
-        ultra_wide_angle
+        cylinder 1
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle PANOANGLE
+        angle 360
     }
 
     light_source { CAMERAPOS color White }
@@ -124,7 +120,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
         object{
             height_field {
                 png FILENAME
-                smooth
                 #if (MODE="texture" | MODE="height")
                 pigment {
                     gradient y
@@ -187,7 +182,7 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
             }
         }
         #end
-        scale <1, SCALEFACTOR * SCALEMULTIPLIER, 1>
+        scale <1, MAXMOUNTAIN * 25, 1>
     }
 
     """ % (
@@ -199,9 +194,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
         view_y,
         dem_file,
         max_height,
-        panoramic_angle,
-        height_field_scale_factor,
-        scale_multiplier,
         texture_path,
         skew_x,
         skew_y,

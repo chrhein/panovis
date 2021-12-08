@@ -93,6 +93,6 @@ def trim_edges(image):
         trimmed = cv2.dilate(trimmed, kernel, iterations=1)
     trimmed = skeletonize(trimmed)
     trimmed = cv2.GaussianBlur(trimmed, (3, 3), 0)
-    trimmed = remove_contours(trimmed, min_area=500, lb=1)
+    trimmed = remove_contours(trimmed, min_area=1250, lb=1)
 
     return trimmed

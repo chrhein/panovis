@@ -1,10 +1,11 @@
 import os
 import cv2
 import numpy as np
-import rasterio
-from data_getters.mountains import read_hike_gpx
-from location_handler import convert_single_coordinate_pair, crs_to_cor
 import pickle
+import rasterio
+from osgeo import gdal
+from data_getters.mountains import read_hike_gpx
+from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
 from image_manipulations import resizer
 from tools.types import TextureBounds
 from tools.debug import p_i
@@ -80,17 +81,36 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         with open(texture_bounds_path, "rb") as f:
             tex_bounds = pickle.load(f)
         return [im_path, tex_bounds]
-    im = cv2.imread(dem_file)
+
+    mns, minimums, maximums = read_hike_gpx(gpx_path)
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
+    lower_left = cor_to_crs(crs, minimums[0].latitude, minimums[1].longitude)
+    upper_right = cor_to_crs(crs, maximums[0].latitude, maximums[1].longitude)
+
+    bbox = (
+        lower_left.GetX(),
+        upper_right.GetY(),
+        upper_right.GetX(),
+        lower_left.GetY(),
+    )
+
+    print(bbox)
+
+    gdal.Translate(
+        f"{folder}/{filename}-output_crop_raster.tif", dem_file, projWin=bbox
+    )
+
+    im = cv2.imread(f"{folder}/{filename}-output_crop_raster.tif")
     h, w, _ = im.shape
-    rs = 3
+    rs = 1
     if debugging:
         rs = 20
 
-    multiplier = 10
+    multiplier = 250
 
     h = h * multiplier
     w = w * multiplier
-    mns, minimums, maximums = read_hike_gpx(gpx_path)
     if not mns:
         return ["", ""]
     img = np.ones([h, w, 4], dtype=np.uint8)
@@ -144,6 +164,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         max_x=max_x,
         max_y=max_y,
     )
+
+    print("ferdig med tekstur")
 
     with open(texture_bounds_path, "wb") as f:
         pickle.dump(tex_bounds, f)

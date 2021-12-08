@@ -24,20 +24,16 @@ def get_mountain_data(json_path, panorama_path):
             camera_lat, camera_lon = image_location.latitude, image_location.longitude
         else:
             try:
-                camera_lat, camera_lon = (
-                    camera_mountain["latitude"],
-                    camera_mountain["longitude"],
-                )
+                camera_lat, camera_lon = camera_mountain["latlon"]
             except KeyError:
                 camera_lat, camera_lon = input_latlon()
         displacement_distance = 0.1  # in kms
-        panoramic_angle = camera_mountain["panoramic_angle"]
-        height_field_scale_factor = camera_mountain["height_scale_factor"]
-        v_dir = camera_mountain["view_direction"]
+        panoramic_angle = 360
+        height_field_scale_factor = 1
+        v_dir = 0
         look_ats = displace_camera(camera_lat, camera_lon, v_dir, displacement_distance)
         coordinates = [camera_lat, camera_lon, *look_ats]
-        pov_settings = [panoramic_angle, height_field_scale_factor]
-        return [dem_file, coordinates, pov_settings]
+        return [dem_file, coordinates]
 
 
 def find_minimums(locations):

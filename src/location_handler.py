@@ -16,21 +16,19 @@ from geopy import distance
 EARTH_RADIUS = 6378.1
 
 
-def get_raster_data(dem_file, coordinates, height_field_scale_factor):
+def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
     # get resolution (points per square meter)
     resolution = ds_raster.transform[0]
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
-    camera_lat_lon = convert_coordinates(
-        ds_raster, crs, coordinates[0], coordinates[1], True, height_field_scale_factor
-    )
+    camera_lat_lon = convert_coordinates(ds_raster, crs, coordinates[0], coordinates[1])
     if not camera_lat_lon:
         p_e("Camera location is out of bounds")
         return
     look_at_lat_lon = convert_coordinates(
-        ds_raster, crs, coordinates[2], coordinates[3], False, height_field_scale_factor
+        ds_raster, crs, coordinates[2], coordinates[3]
     )
     if not look_at_lat_lon:
         p_e("Viewpoint location is out of bounds")
@@ -63,16 +61,12 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(
-    raster, to_espg, lat, lon, is_camera, height_field_scale_factor
-):
+def convert_coordinates(raster, to_espg, lat, lon):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
-
-    print(polar_lat, polar_lon)
 
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
@@ -88,21 +82,19 @@ def convert_coordinates(
         height = h[row][col]
     except IndexError:
         return
-    height_min = h.min()
-    height_max = max_x - min_x
-    height_scaled = (height - height_min) / (height_max - height_min)
-    height_max_mountain = h.max()
-    height_max_mountain_scaled = (height - height_min) / (
-        height_max_mountain - height_min
-    )
-    print(lat_scaled, lon_scaled)
-    if is_camera:
-        height_scaled = height_scaled * 1.445  # to place camera above horizon
+    height_min = min(min_x, min_y)
+    height_max = max((max_x - min_x), (max_y - min_y))
+    print(height_min, height_max)
+    height_scaled = height / height_max
+    print(height_scaled)
+    height_max_mountain_scaled = h.max() / height_max
+    print(height_max_mountain_scaled)
+
     return [
         lat_scaled,
-        height_scaled * height_field_scale_factor,
+        height_scaled,
         lon_scaled,
-        height_max_mountain_scaled * height_field_scale_factor,
+        height_max_mountain_scaled,
     ]
 
 

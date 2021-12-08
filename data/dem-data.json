@@ -1,69 +1,37 @@
 {
-    "dem-path": "data/bergen.png",
+    "dem-path": "data/hordaland.png",
     "panoramas": {
         "panorama1_camera": {
-            "latitude": 60.41350462457307,
-            "longitude": 5.385201666077322,
-            "mountain_name": "Vidden",
-            "panoramic_angle": 195,
-            "height_scale_factor": 0.58,
-            "view_direction": 188
+            "latlon": [60.41350462457307, 5.385201666077322],
+            "mountain_name": "Vidden"
         },
         "panorama2_camera": {
-            "latitude": 60.39672484004798,
-            "longitude": 5.529010653474241,
-            "mountain_name": "Herlandsfjellet",
-            "panoramic_angle": 330,
-            "height_scale_factor": 0.4,
-            "view_direction": 270
+            "latlon": [60.39672484004798, 5.529010653474241],
+            "mountain_name": "Herlandsfjellet"
         },
         "panorama3_camera": {
-            "latitude": 60.34088071420514,
-            "longitude": 5.48556797698576,
-            "mountain_name": "Livarden",
-            "panoramic_angle": 160,
-            "height_scale_factor": 0.6,
-            "view_direction": 50
+            "latlon": [60.34088071420514, 5.48556797698576],
+            "mountain_name": "Livarden"
         },
         "panorama4_camera": {
-            "latitude": 60.36423590473352,
-            "longitude": 5.382310057603189,
-            "mountain_name": "Ormhaugen",
-            "panoramic_angle": 210,
-            "height_scale_factor": 0.75,
-            "view_direction": 280
+            "latlon": [60.36423590473352, 5.382310057603189],
+            "mountain_name": "Ormhaugen"
         },
         "panorama5_camera": {
-            "latitude": 60.33953799964349,
-            "longitude": 5.386844476693633,
-            "mountain_name": "Helldalssåta",
-            "panoramic_angle": 300,
-            "height_scale_factor": 1,
-            "view_direction": 30
+            "latlon": [60.33953799964349, 5.386844476693633],
+            "mountain_name": "Helldalssåta"
         },
         "panorama6_camera": {
-            "latitude": 60.237529814138995,
-            "longitude": 5.346079797576634,
-            "mountain_name": "Tverrfjellet",
-            "panoramic_angle": 180,
-            "height_scale_factor": 1,
-            "view_direction": 185
+            "latlon": [60.237529814138995, 5.346079797576634],
+            "mountain_name": "Tverrfjellet"
         },
         "panorama7_camera": {
-            "latitude": 60.318317932273,
-            "longitude": 5.5446410107586415,
-            "mountain_name": "Søtefjellet",
-            "panoramic_angle": 300,
-            "height_scale_factor": 0.5,
-            "view_direction": 15
+            "latlon": [60.318317932273, 5.5446410107586415],
+            "mountain_name": "Søtefjellet"
         },
         "panorama8_camera": {
-            "latitude": 60.35672391569111,
-            "longitude": 5.536936566715599,
-            "mountain_name": "Austefjellet",
-            "panoramic_angle": 280,
-            "height_scale_factor": 0.5,
-            "view_direction": 245
+            "latlon": [60.35672391569111, 5.536936566715599],
+            "mountain_name": "Austefjellet"
         }
     }
 }

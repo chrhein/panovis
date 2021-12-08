@@ -14,8 +14,9 @@ def feature_matching(pano, render):
 
     def get_key_points(image):
         im = cv2.imread(image)
-        resized = resizer(im, im_width=2800) if max(im.shape[:2]) > 2800 else im
-        flipped = flip(resized)
+        # resized = resizer(im, im_width=2800) if max(im.shape[:2]) > 2800 else im
+        flipped = flip(im)
+        flipped = cv2.GaussianBlur(flipped, (3, 5), 0)
         trimmed = trim_edges(flipped)
         trimmed = trimmed if cv2.countNonZero(trimmed) != 0 else flipped
         key_points, descriptors = sift(trimmed, detector)
@@ -25,7 +26,7 @@ def feature_matching(pano, render):
     render, kp_render, d_render = get_key_points(render)
 
     FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=2)
     search_params = dict(checks=100)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -35,14 +36,14 @@ def feature_matching(pano, render):
 
     # ratio test as per Lowe's paper
     for i, (m, n) in enumerate(matches):
-        if m.distance < 0.75 * n.distance:
+        if m.distance < 1 * n.distance:
             matchesMask[i] = [1, 0]
 
     draw_params = dict(
         matchColor=(0, 255, 0),
         singlePointColor=(255, 0, 0),
         matchesMask=matchesMask,
-        flags=2,
+        flags=0,
     )
 
     result = cv2.drawMatchesKnn(
