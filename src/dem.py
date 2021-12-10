@@ -2,7 +2,7 @@ import os
 import time
 import subprocess
 from data_getters.mountains import get_mountain_data
-from tools.debug import p_e, p_i, p_line
+from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import plot_to_map, get_mountains_in_sight, get_raster_data
 from povs import primary_pov, debug_pov
 from tools.color_map import (
@@ -23,10 +23,15 @@ def render_dem(panorama_path, mode, mountains):
     except FileExistsError:
         pass
 
-    dem_file, coordinates = get_mountain_data("data/dem-data.json", panorama_path)
-    f = dem_file.lower()
-    if not f.endswith(".png") and not f.endswith(".jpg"):
-        p_e("please provide a .png file")
+    dem_file, original_dem, coordinates = get_mountain_data(
+        "data/dem-data.json", panorama_path
+    )
+
+    if mode == "debug":
+        dem_file = original_dem
+
+    if not check_file_type(dem_file):
+        p_e("DEM file is not a valid GeoTIFF")
         return
 
     pov_filename = "/tmp/pov_file.pov"
@@ -36,6 +41,8 @@ def render_dem(panorama_path, mode, mountains):
     raster_data = get_raster_data(dem_file, coordinates)
     if not raster_data:
         return
+
+    ds_name = original_dem.split("/")[-1].split(".")[0]
 
     pov = [
         pov_filename,
@@ -50,7 +57,7 @@ def render_dem(panorama_path, mode, mountains):
             pov = debug_pov(dem_file, route_texture, texture_bounds, raster_data[1][3])
             pf.write(pov)
             pf.close()
-        out_filename = "%srender-debug.png" % folder
+        out_filename = f"{folder}{ds_name}-render-debug.png"
         params = [pov_filename, out_filename, [2400, 2400], "color"]
         execute_pov(params)
     else:
@@ -58,7 +65,7 @@ def render_dem(panorama_path, mode, mountains):
         if mode == 1:
             pov_mode = "depth"
             pov = primary_pov(dem_file, raster_data, mode=pov_mode)
-            out_filename = "%srender-%s.png" % (folder, pov_mode)
+            out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             params = [pov_filename, out_filename, im_dimensions, pov_mode]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
@@ -67,7 +74,7 @@ def render_dem(panorama_path, mode, mountains):
         elif mode == 2:
             pov_mode = "height"
             pov = primary_pov(dem_file, raster_data, mode=pov_mode)
-            out_filename = "%srender-%s.png" % (folder, pov_mode)
+            out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             params = [pov_filename, out_filename, im_dimensions, "color"]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
@@ -85,7 +92,7 @@ def render_dem(panorama_path, mode, mountains):
                     tex_bounds=texture_bounds,
                     mode=pov_mode,
                 )
-                out_filename = "%srender-%s.png" % (folder, pov_mode)
+                out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
                 params = [pov_filename, out_filename, im_dimensions, "color"]
                 with open(pov_filename, "w") as pf:
                     pf.write(pov)
@@ -95,7 +102,7 @@ def render_dem(panorama_path, mode, mountains):
                 return
         elif mode == 4:
             pov_mode = "gradient"
-            out_filename = "%srender-%s.png" % (folder, pov_mode)
+            out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             gradient_render = os.path.isfile("%s" % out_filename)
             gradient_path, _ = create_color_gradient_image()
             if not gradient_render:
@@ -118,6 +125,7 @@ def render_dem(panorama_path, mode, mountains):
         "Mode:      %s" % mode,
         "Duration:  %i seconds" % (time.time() - start_time),
     ]
+    subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
     p_line(stats)
 
 

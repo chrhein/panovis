@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import pickle
 import rasterio
+import subprocess
 from osgeo import gdal
 from data_getters.mountains import read_hike_gpx
 from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
@@ -95,8 +96,6 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         lower_left.GetY(),
     )
 
-    print(bbox)
-
     gdal.Translate(
         f"{folder}/{filename}-output_crop_raster.tif", dem_file, projWin=bbox
     )
@@ -169,6 +168,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
 
     with open(texture_bounds_path, "wb") as f:
         pickle.dump(tex_bounds, f)
+
+    subprocess.call(["rm", "-r", f"{folder}/{filename}-output_crop_raster.tif"])
 
     return [im_path, tex_bounds]
 

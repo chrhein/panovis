@@ -7,7 +7,8 @@ def primary_pov(
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
-    max_height = raster_data[1][3]
+    ds_raster, _, max_height = raster_data[1]
+    y_axis_scaling = ds_raster.width / ds_raster.height
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -35,6 +36,7 @@ def primary_pov(
     #declare VIEWY = %f;
 
     #declare FILENAME = "%s";
+    #declare YSCALE = %f;
     #declare MAXMOUNTAIN = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
@@ -180,9 +182,8 @@ def primary_pov(
             }
         }
         #end
-        scale <1, 1, 1>
+        scale <1, YSCALE + 0.075, 1>
     }
-
     """ % (
         location_x,
         location_height,
@@ -190,6 +191,7 @@ def primary_pov(
         view_x,
         view_y,
         dem_file,
+        y_axis_scaling,
         max_height,
         texture_path,
         skew_x,

@@ -10,6 +10,8 @@ import folium
 import os
 from tools.types import Location
 from geopy import distance
+from functools import reduce
+import operator
 
 
 # constants
@@ -43,7 +45,7 @@ def get_raster_data(dem_file, coordinates):
     except TypeError:
         pass
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
-    raster_metadata = [ds_raster, distances, resolution, max_height]
+    raster_metadata = [ds_raster, distances, max_height]
     return [normalized_coordinates, raster_metadata]
 
 
@@ -68,15 +70,13 @@ def convert_coordinates(raster, to_espg, lat, lon):
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
 
-    ds_height = max((max_x - min_x), (max_y - min_y))
+    resolution = raster.transform[0]
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
 
     to_crs = raster.crs
     from_crs = rasterio.crs.CRS.from_epsg(4326)
-    new_x, new_y = transform(from_crs, to_crs, [lon], [lat])
-    new_x = new_x[0]
-    new_y = new_y[0]
+    new_x, new_y = reduce(operator.add, transform(from_crs, to_crs, [lon], [lat]))
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
 
@@ -84,8 +84,12 @@ def convert_coordinates(raster, to_espg, lat, lon):
         height = h[row][col]
     except IndexError:
         return
-    height_scaled = (height + 1.8) / ds_height
-    height_max_mountain_scaled = h.max() / ds_height
+
+    def scale_height(height):
+        return ((height) - h.min()) / (raster.width - h.min()) / resolution
+
+    height_scaled = scale_height(height)
+    height_max_mountain_scaled = scale_height(h.max())
 
     return [
         lat_scaled,
