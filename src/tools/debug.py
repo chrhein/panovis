@@ -3,8 +3,11 @@ import numpy as np
 from osgeo import gdal
 
 
-def p_i(text):
-    print("[INFO]  %s" % text)
+def p_i(text, same_line=False):
+    if same_line:
+        print(f"\r[INFO] {text}", end="", flush=True)
+    else:
+        print(f"[INFO] {text}")
 
 
 def p_e(text):

@@ -54,7 +54,7 @@ def harris_corner_detection(image):
 
 
 def canny_edge_detection(image, interactive_window=True, blur_factor=5):
-    print("[INFO] Starting Canny Edge Detection...")
+    p_i("Starting Canny Edge Detection...")
     # automatically set lb and ub values from the median color in the image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     v = np.median(gray)
@@ -64,7 +64,7 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
 
     blurred = cv2.medianBlur(gray, blur_factor)
     if not interactive_window:
-        print("[INFO] Canny Edge Detection complete!")
+        p_i("Canny Edge Detection complete!")
         return cv2.Canny(blurred, lb, ub, apertureSize=5)
 
     p_i("Opening external window")

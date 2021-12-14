@@ -1,4 +1,5 @@
 from math import radians, asin, cos, sin, atan2, degrees, pi
+import cv2
 import numpy as np
 import rasterio
 from osgeo import ogr, osr
@@ -7,11 +8,13 @@ from tools.debug import p_i, p_e
 from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
+from folium import raster_layers
 import os
 from tools.types import Location
 from geopy import distance
 from functools import reduce
 import operator
+from alive_progress import alive_bar
 
 
 # constants
@@ -170,9 +173,15 @@ def coordinate_lookup(im1, im2, dem_file):
 
 
 def plot_to_map(
-    mountains_in_sight, coordinates, filename, locs=[], custom_color="darkblue"
+    mountains_in_sight,
+    coordinates,
+    filename,
+    dem_file,
+    locs=[],
+    custom_color="darkblue",
 ):
     c_lat, c_lon, _, _ = coordinates
+    minmax = get_min_max_coordinates(dem_file)
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
@@ -183,6 +192,13 @@ def plot_to_map(
         zoom_start=12,
         attr="Christian Hein",
     )
+    folium.Rectangle(
+        bounds=[(minmax[0], minmax[1]), (minmax[2], minmax[3])],
+        color="#ff7800",
+        fill=True,
+        fill_color="#ffffff",
+        fill_opacity=0.2,
+    ).add_to(m)
     folium.Marker(
         location=[c_lat, c_lon],
         popup="Camera Location",
@@ -221,22 +237,27 @@ def plot_to_map(
 def get_mountains_in_sight(locs, mountains):
     mountains_in_sight = dict()
     radius = 500
-    p_i("Finding mountains in sight with a %i meter radius" % radius)
+    p_i("Looking for mountains in sight:")
+
     l_ = len(locs)
     div = 1
-    for i in range(0, l_, div):
-        pos = locs[i]
-        lat, lon = pos.latitude, pos.longitude
-        for mountain in mountains:
-            m = mountain.location
-            m_lat, m_lon = m.latitude, m.longitude
-            center_point = [{"lat": m_lat, "lng": m_lon}]
-            test_point = [{"lat": lat, "lng": lon}]
-            center_point = tuple(center_point[0].values())
-            test_point = tuple(test_point[0].values())
-            dis = distance.distance(center_point, test_point).m
-            if dis <= radius:
-                mountains_in_sight[mountain.name] = mountain
+
+    with alive_bar(int(l_ / div) * len(mountains)) as bar:
+        for i in range(0, l_, div):
+            pos = locs[i]
+            lat, lon = pos.latitude, pos.longitude
+            for mountain in mountains:
+                m = mountain.location
+                m_lat, m_lon = m.latitude, m.longitude
+                center_point = [{"lat": m_lat, "lng": m_lon}]
+                test_point = [{"lat": lat, "lng": lon}]
+                center_point = tuple(center_point[0].values())
+                test_point = tuple(test_point[0].values())
+                dis = distance.distance(center_point, test_point).m
+                if dis <= radius:
+                    mountains_in_sight[mountain.name] = mountain
+                bar()
+
     return mountains_in_sight
 
 
@@ -262,3 +283,14 @@ def displace_camera(camera_lat, camera_lon, degrees, distance):
     )
     displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
     return to_degrees(displaced_lat), to_degrees(displaced_lon)
+
+
+def get_min_max_coordinates(dem_file):
+    ds_raster = rasterio.open(dem_file)
+    bounds = ds_raster.bounds
+
+    lower_left = crs_to_wgs84(ds_raster, bounds.left, bounds.bottom)
+    upper_right = crs_to_wgs84(ds_raster, bounds.right, bounds.top)
+    minmax = [c[0] for c in lower_left + upper_right]
+
+    return minmax

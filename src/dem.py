@@ -3,7 +3,12 @@ import time
 import subprocess
 from data_getters.mountains import get_mountain_data
 from tools.debug import check_file_type, p_e, p_i, p_line
-from location_handler import plot_to_map, get_mountains_in_sight, get_raster_data
+from location_handler import (
+    get_min_max_coordinates,
+    plot_to_map,
+    get_mountains_in_sight,
+    get_raster_data,
+)
 from povs import primary_pov, debug_pov
 from tools.color_map import (
     create_route_texture,
@@ -104,7 +109,7 @@ def render_dem(panorama_path, mode, mountains):
             pov_mode = "gradient"
             out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             gradient_render = os.path.isfile("%s" % out_filename)
-            gradient_path, _ = create_color_gradient_image()
+            gradient_path = create_color_gradient_image(dem_file)
             if not gradient_render:
                 pov = primary_pov(
                     dem_file, raster_data, texture_path=gradient_path, mode=pov_mode
@@ -113,10 +118,10 @@ def render_dem(panorama_path, mode, mountains):
                 with open(pov_filename, "w") as pf:
                     pf.write(pov)
                 execute_pov(params)
-            locs = colors_to_coordinates(gradient_path, folder, dem_file)
+            locs = colors_to_coordinates(ds_name, gradient_path, folder, dem_file)
             mountains_in_sight = get_mountains_in_sight(locs, mountains)
             plot_filename = "%s%s.html" % (folder, panorama_filename)
-            plot_to_map(mountains_in_sight, coordinates, plot_filename)
+            plot_to_map(mountains_in_sight, coordinates, plot_filename, dem_file)
         else:
             return
     stats = [

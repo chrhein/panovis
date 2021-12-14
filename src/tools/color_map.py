@@ -1,4 +1,5 @@
 import os
+from alive_progress.core.progress import alive_bar
 import cv2
 import numpy as np
 import pickle
@@ -35,28 +36,21 @@ def get_gradient_3d(
     return result
 
 
-def create_color_gradient_image():
-    gradient_path = "data/color_gradient.png"
-    pickle_path = "data/color_gradient.pkl"
-    gradient_exist = os.path.isfile("%s" % gradient_path)
-    pickle_exist = os.path.isfile("%s" % pickle_path)
-    if not (gradient_exist and pickle_exist):
-        dem = "./data/bergen.png"
-        im = cv2.imread(dem)
-        h, w, _ = im.shape
-        upper_left_color = (0, 0, 192)
-        lower_right_color = (255, 255, 64)
-        gradient = np.true_divide(
-            get_gradient_3d(
-                w, h, upper_left_color, lower_right_color, (True, False, False)
-            ),
-            255,
-        )
-        img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
-        with open(pickle_path, "wb") as f:
-            pickle.dump(gradient, f)
-        cv2.imwrite(gradient_path, img)
-    return [gradient_path, pickle_path]
+def create_color_gradient_image(dem_file):
+    gradient_path = f"data/color_gradient.png"
+    im = cv2.imread(dem_file)
+    h, w, _ = im.shape
+    upper_left_color = (0, 0, 192)
+    lower_right_color = (255, 255, 64)
+    gradient = np.true_divide(
+        get_gradient_3d(
+            w, h, upper_left_color, lower_right_color, (True, False, False)
+        ),
+        255,
+    )
+    img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
+    cv2.imwrite(gradient_path, img)
+    return gradient_path
 
 
 def load_pickle(path):
@@ -82,6 +76,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         with open(texture_bounds_path, "rb") as f:
             tex_bounds = pickle.load(f)
         return [im_path, tex_bounds]
+
+    p_i(f"Creating route texture for {filename}")
 
     mns, minimums, maximums = read_hike_gpx(gpx_path)
     ds_raster = rasterio.open(dem_file)
@@ -164,7 +160,7 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         max_y=max_y,
     )
 
-    print("ferdig med tekstur")
+    p_i(f"Route texture complete")
 
     with open(texture_bounds_path, "wb") as f:
         pickle.dump(tex_bounds, f)
@@ -174,27 +170,30 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(gradient_path, folder, dem_file, min_ele=50, max_ele=10000):
-    render_path = "%srender-gradient.png" % folder
+def colors_to_coordinates(
+    ds_name, gradient_path, folder, dem_file, min_ele=50, max_ele=10000
+):
+    render_path = f"{folder}{ds_name}-render-gradient.png"
     coordinates_seen_in_render_path = "%s/coordinates/coordinates.pkl" % folder
     pickle_exists = os.path.isfile("%s" % coordinates_seen_in_render_path)
     gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
     if not pickle_exists:
         image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
-        image = resizer(image, im_width=200)
+        image = resizer(image, im_width=250)
         unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
         l_ = len(unique_colors)
 
         color_coordinates = dict()
         div = 1
-        for i in range(0, l_, div):
-            color = unique_colors[i]
-            p_i("%i/%i" % (int((i + 1) / div), int(l_ / div)))
-            indices = np.where(np.all(gradient == color, axis=2))
-            if len(indices[0]) > 0:
-                coordinates = zip(indices[0], indices[1])
-                unique_coordinates = list(set(list(coordinates)))
-                color_coordinates[rgb_to_hex(color)] = unique_coordinates
+        with alive_bar(int(l_ / div)) as bar:
+            for i in range(0, l_, div):
+                color = unique_colors[i]
+                indices = np.where(np.all(gradient == color, axis=2))
+                if len(indices[0]) > 0:
+                    coordinates = zip(indices[0], indices[1])
+                    unique_coordinates = list(set(list(coordinates)))
+                    color_coordinates[rgb_to_hex(color)] = unique_coordinates
+                bar()
         try:
             os.mkdir("%s/coordinates" % folder)
         except FileExistsError:
