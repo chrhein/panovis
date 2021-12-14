@@ -1,19 +1,21 @@
-import rasterio
-
-
-def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
+def primary_pov(
+    dem_file,
+    raster_data,
+    texture_path="",
+    tex_bounds=None,
+    mode="height",
+):
     coordinates = raster_data[0]
-    location_x, location_height, location_y, view_x, view_height, view_y = coordinates
-    panoramic_angle = pov_settings[0]
-    max_height = raster_data[1][3]
-    height_field_scale_factor = pov_settings[1]
+    location_x, location_height, location_y, view_x, _, view_y = coordinates
+    ds_raster, _, max_height = raster_data[1]
+    y_axis_scaling = ds_raster.width / ds_raster.height
 
     if mode == "texture" or mode == "route" or mode == "gradient":
-        texture_path = pov_settings[2]
         if mode == "gradient":
             skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
         else:
-            tex_bounds = pov_settings[3]
+            if not tex_bounds:
+                raise Exception("No texture bounds given")
             skew_y = tex_bounds.min_x[1]
             skew_x = tex_bounds.min_y[0]
             x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
@@ -21,12 +23,6 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     else:
         texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
-
-    ds_raster = rasterio.open(dem_file)
-    resolution = ds_raster.transform[0]
-    print(resolution)
-    print(ds_raster.shape)
-    scale_multiplier = 10400 / max(ds_raster.shape)
 
     pov_text = """
     #version 3.8;
@@ -37,20 +33,20 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     #declare CAMERAHEIGHT = %f;
     #declare CAMERAY = %f;
     #declare VIEWX = %f;
-    #declare VIEWHEIGHT = %f;
     #declare VIEWY = %f;
 
-    #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
     #declare FILENAME = "%s";
+    #declare YSCALE = %f;
     #declare MAXMOUNTAIN = %f;
-    #declare PANOANGLE = %f;
-    #declare SCALEFACTOR = %f;
-    #declare SCALEMULTIPLIER = %f;
     #declare TEXTURE = "%s";
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
+
+    #declare HEIGHT = CAMERAHEIGHT;
+
+    #declare CAMERAPOS = <CAMERAX, HEIGHT, CAMERAY>;
+    #declare CAMERALOOKAT = <VIEWX, HEIGHT, VIEWY>;
 
     #if (MODE="depth")
     #declare CAMERAFRONT  = vnormalize(CAMERAPOS - CAMERALOOKAT);
@@ -98,10 +94,10 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
     #end
 
     camera {
-        ultra_wide_angle
+        cylinder 1
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle PANOANGLE
+        angle 360
     }
 
     light_source { CAMERAPOS color White }
@@ -186,94 +182,23 @@ def primary_pov(dem_file, raster_data, pov_settings, mode="height"):
             }
         }
         #end
-        scale <1, SCALEFACTOR * SCALEMULTIPLIER, 1>
+        scale <1, YSCALE + 0.075, 1>
     }
-
     """ % (
         location_x,
         location_height,
         location_y,
         view_x,
-        view_height,
         view_y,
         dem_file,
+        y_axis_scaling,
         max_height,
-        panoramic_angle,
-        height_field_scale_factor,
-        scale_multiplier,
         texture_path,
         skew_x,
         skew_y,
         y_l,
         x_l,
         mode,
-    )
-    return pov_text
-
-
-def color_gradient_pov(dem_file, raster_data, pov_settings, axis):
-    coordinates = raster_data[0]
-    location_x, location_height, location_y, view_x, view_height, view_y = coordinates
-    max_height = raster_data[1][3]
-    panoramic_angle = pov_settings[0]
-    height_field_scale_factor = pov_settings[1]
-    pov_text = """
-    #version 3.8;
-    #include "colors.inc"
-    #include "math.inc"
-
-    global_settings {
-        assumed_gamma 1
-    }
-
-    #declare CAMERAX = %f;
-    #declare CAMERAHEIGHT = %f;
-    #declare CAMERAY = %f;
-    #declare VIEWX = %f;
-    #declare VIEWHEIGHT = %f;
-    #declare VIEWY = %f;
-
-    #declare CAMERAPOS = <CAMERAX, CAMERAHEIGHT, CAMERAY>;
-    #declare CAMERALOOKAT = <VIEWX, CAMERAHEIGHT, VIEWY>;
-    #declare FILENAME = "%s";
-    #declare MAXMOUNTAIN = %f;
-    #declare PANOANGLE = %f;
-    #declare SCALEFACTOR = %f;
-
-    camera {
-        cylinder 1
-        location CAMERAPOS
-        look_at  CAMERALOOKAT
-        angle PANOANGLE
-    }
-
-    background { color rgb <1, 1, 1> }
-    height_field {
-        png FILENAME
-        pigment {
-            gradient %s
-            color_map {
-                blend_mode 0
-                [0 color rgb <0,0,0>] // west if x, south if z
-                [1 color rgb <1,0,0>] // east if x, north if z
-            }
-        }
-        scale <1,SCALEFACTOR,1>
-        finish {ambient 1 diffuse 0 specular 0}
-    }
-
-    """ % (
-        location_x,
-        location_height,
-        location_y,
-        view_x,
-        view_height,
-        view_y,
-        dem_file,
-        max_height,
-        panoramic_angle,
-        height_field_scale_factor,
-        axis,
     )
     return pov_text
 

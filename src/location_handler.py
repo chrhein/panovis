@@ -10,27 +10,28 @@ import folium
 import os
 from tools.types import Location
 from geopy import distance
-
+from functools import reduce
+import operator
+from alive_progress import alive_bar
+from pygeodesy.sphericalNvector import LatLon
 
 # constants
 EARTH_RADIUS = 6378.1
 
 
-def get_raster_data(dem_file, coordinates, height_field_scale_factor):
+def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
     # get resolution (points per square meter)
     resolution = ds_raster.transform[0]
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
-    camera_lat_lon = convert_coordinates(
-        ds_raster, crs, coordinates[0], coordinates[1], True, height_field_scale_factor
-    )
+    camera_lat_lon = convert_coordinates(ds_raster, crs, coordinates[0], coordinates[1])
     if not camera_lat_lon:
         p_e("Camera location is out of bounds")
         return
     look_at_lat_lon = convert_coordinates(
-        ds_raster, crs, coordinates[2], coordinates[3], False, height_field_scale_factor
+        ds_raster, crs, coordinates[2], coordinates[3]
     )
     if not look_at_lat_lon:
         p_e("Viewpoint location is out of bounds")
@@ -45,7 +46,7 @@ def get_raster_data(dem_file, coordinates, height_field_scale_factor):
     except TypeError:
         pass
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
-    raster_metadata = [ds_raster, distances, resolution, max_height]
+    raster_metadata = [ds_raster, distances, max_height]
     return [normalized_coordinates, raster_metadata]
 
 
@@ -63,45 +64,43 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(
-    raster, to_espg, lat, lon, is_camera, height_field_scale_factor
-):
+def convert_coordinates(raster, to_espg, lat, lon):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
+
+    resolution = raster.transform[0]
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
 
     to_crs = raster.crs
     from_crs = rasterio.crs.CRS.from_epsg(4326)
-    new_x, new_y = transform(from_crs, to_crs, [lon], [lat])
-    new_x = new_x[0]
-    new_y = new_y[0]
+    new_x, new_y = reduce(operator.add, transform(from_crs, to_crs, [lon], [lat]))
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
+
     try:
         height = h[row][col]
     except IndexError:
         return
-    height_min = h.min()
-    height_max = max_x - min_x
-    height_scaled = (height - height_min) / (height_max - height_min)
-    height_max_mountain = h.max()
-    height_max_mountain_scaled = (height - height_min) / (
-        height_max_mountain - height_min
-    )
-    if is_camera:
-        height_scaled = height_scaled * 1.57  # to place camera above horizon
+
+    def scale_height(height):
+        return ((height) - h.min()) / (raster.width - h.min()) / resolution
+
+    height_scaled = scale_height(height)
+    height_max_mountain_scaled = scale_height(h.max())
+
     return [
         lat_scaled,
-        height_scaled * height_field_scale_factor,
+        height_scaled,
         lon_scaled,
-        height_max_mountain_scaled * height_field_scale_factor,
+        height_max_mountain_scaled,
     ]
 
 
+# lat/lon to coordinate reference system coordinates
 def cor_to_crs(to_espg, lat, lon):
     in_sr = osr.SpatialReference()
     in_sr.ImportFromEPSG(4326)
@@ -172,9 +171,15 @@ def coordinate_lookup(im1, im2, dem_file):
 
 
 def plot_to_map(
-    mountains_in_sight, coordinates, filename, locs=[], custom_color="darkblue"
+    mountains_in_sight,
+    coordinates,
+    filename,
+    dem_file,
+    locs=[],
+    custom_color="darkblue",
 ):
     c_lat, c_lon, _, _ = coordinates
+    minmax = get_min_max_coordinates(dem_file)
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
@@ -185,6 +190,13 @@ def plot_to_map(
         zoom_start=12,
         attr="Christian Hein",
     )
+    folium.Rectangle(
+        bounds=[(minmax[0], minmax[1]), (minmax[2], minmax[3])],
+        color="#ed6952",
+        fill=True,
+        fill_color="#f4f4f4",
+        fill_opacity=0.2,
+    ).add_to(m)
     folium.Marker(
         location=[c_lat, c_lon],
         popup="Camera Location",
@@ -220,25 +232,43 @@ def plot_to_map(
     m.save(filename)
 
 
-def get_mountains_in_sight(locs, mountains):
+def get_mountains_in_sight(dem_file, locs, mountains):
     mountains_in_sight = dict()
     radius = 500
-    p_i("Finding mountains in sight with a %i meter radius" % radius)
+    p_i("Looking for mountains in sight:")
+    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    b = (
+        LatLon(*lower_left),
+        LatLon(*upper_left),
+        LatLon(*upper_right),
+        LatLon(*lower_right),
+    )
+    filtered_mountains = []
+    for m in mountains:
+        loc = m.location
+        p = LatLon(loc.latitude, loc.longitude)
+        if p.isEnclosedBy(b):
+            filtered_mountains.append(m)
+
     l_ = len(locs)
     div = 1
-    for i in range(0, l_, div):
-        pos = locs[i]
-        lat, lon = pos.latitude, pos.longitude
-        for mountain in mountains:
-            m = mountain.location
-            m_lat, m_lon = m.latitude, m.longitude
-            center_point = [{"lat": m_lat, "lng": m_lon}]
-            test_point = [{"lat": lat, "lng": lon}]
-            center_point = tuple(center_point[0].values())
-            test_point = tuple(test_point[0].values())
-            dis = distance.distance(center_point, test_point).m
-            if dis <= radius:
-                mountains_in_sight[mountain.name] = mountain
+
+    with alive_bar(int(l_ / div) * len(filtered_mountains)) as bar:
+        for i in range(0, l_, div):
+            pos = locs[i]
+            lat, lon = pos.latitude, pos.longitude
+            for mountain in filtered_mountains:
+                m = mountain.location
+                m_lat, m_lon = m.latitude, m.longitude
+                center_point = [{"lat": m_lat, "lng": m_lon}]
+                test_point = [{"lat": lat, "lng": lon}]
+                center_point = tuple(center_point[0].values())
+                test_point = tuple(test_point[0].values())
+                dis = distance.distance(center_point, test_point).m
+                if dis <= radius:
+                    mountains_in_sight[mountain.name] = mountain
+                bar()
+
     return mountains_in_sight
 
 
@@ -264,3 +294,23 @@ def displace_camera(camera_lat, camera_lon, degrees, distance):
     )
     displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
     return to_degrees(displaced_lat), to_degrees(displaced_lon)
+
+
+def get_min_max_coordinates(dem_file):
+    lower_left, _, upper_right, _ = get_raster_bounds(dem_file)
+    return lower_left + upper_right
+
+
+def get_raster_bounds(dem_file):
+    ds_raster = rasterio.open(dem_file)
+    bounds = ds_raster.bounds
+
+    def format_coords(coords):
+        return [c[0] for c in coords]
+
+    lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
+    upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
+    upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
+    lower_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.bottom))
+
+    return lower_left, upper_left, upper_right, lower_right

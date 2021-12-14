@@ -1,10 +1,13 @@
 import os
+from alive_progress.core.progress import alive_bar
 import cv2
 import numpy as np
-import rasterio
-from data_getters.mountains import read_hike_gpx
-from location_handler import convert_single_coordinate_pair, crs_to_cor
 import pickle
+import rasterio
+import subprocess
+from osgeo import gdal
+from data_getters.mountains import read_hike_gpx
+from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
 from image_manipulations import resizer
 from tools.types import TextureBounds
 from tools.debug import p_i
@@ -33,28 +36,21 @@ def get_gradient_3d(
     return result
 
 
-def create_color_gradient_image():
-    gradient_path = "data/color_gradient.png"
-    pickle_path = "data/color_gradient.pkl"
-    gradient_exist = os.path.isfile("%s" % gradient_path)
-    pickle_exist = os.path.isfile("%s" % pickle_path)
-    if not (gradient_exist and pickle_exist):
-        dem = "./data/bergen.png"
-        im = cv2.imread(dem)
-        h, w, _ = im.shape
-        upper_left_color = (0, 0, 192)
-        lower_right_color = (255, 255, 64)
-        gradient = np.true_divide(
-            get_gradient_3d(
-                w, h, upper_left_color, lower_right_color, (True, False, False)
-            ),
-            255,
-        )
-        img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
-        with open(pickle_path, "wb") as f:
-            pickle.dump(gradient, f)
-        cv2.imwrite(gradient_path, img)
-    return [gradient_path, pickle_path]
+def create_color_gradient_image(dem_file):
+    gradient_path = f"data/color_gradient.png"
+    im = cv2.imread(dem_file)
+    h, w, _ = im.shape
+    upper_left_color = (0, 0, 192)
+    lower_right_color = (255, 255, 64)
+    gradient = np.true_divide(
+        get_gradient_3d(
+            w, h, upper_left_color, lower_right_color, (True, False, False)
+        ),
+        255,
+    )
+    img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
+    cv2.imwrite(gradient_path, img)
+    return gradient_path
 
 
 def load_pickle(path):
@@ -80,17 +76,36 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         with open(texture_bounds_path, "rb") as f:
             tex_bounds = pickle.load(f)
         return [im_path, tex_bounds]
-    im = cv2.imread(dem_file)
+
+    p_i(f"Creating route texture for {filename}")
+
+    mns, minimums, maximums = read_hike_gpx(gpx_path)
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
+    lower_left = cor_to_crs(crs, minimums[0].latitude, minimums[1].longitude)
+    upper_right = cor_to_crs(crs, maximums[0].latitude, maximums[1].longitude)
+
+    bbox = (
+        lower_left.GetX(),
+        upper_right.GetY(),
+        upper_right.GetX(),
+        lower_left.GetY(),
+    )
+
+    gdal.Translate(
+        f"{folder}/{filename}-output_crop_raster.tif", dem_file, projWin=bbox
+    )
+
+    im = cv2.imread(f"{folder}/{filename}-output_crop_raster.tif")
     h, w, _ = im.shape
-    rs = 3
+    rs = 1
     if debugging:
         rs = 20
 
-    multiplier = 10
+    multiplier = 100
 
     h = h * multiplier
     w = w * multiplier
-    mns, minimums, maximums = read_hike_gpx(gpx_path)
     if not mns:
         return ["", ""]
     img = np.ones([h, w, 4], dtype=np.uint8)
@@ -145,14 +160,21 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         max_y=max_y,
     )
 
+    p_i(f"Route texture complete")
+
     with open(texture_bounds_path, "wb") as f:
         pickle.dump(tex_bounds, f)
+
+    subprocess.call(["rm", "-r", f"{folder}/{filename}-output_crop_raster.tif"])
 
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(gradient_path, folder, dem_file, min_ele=50, max_ele=10000):
-    render_path = "%srender-gradient.png" % folder
+def colors_to_coordinates(
+    ds_name, gradient_path, folder, dem_file, min_ele=50, max_ele=10000
+):
+    p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
+    render_path = f"{folder}{ds_name}-render-gradient.png"
     coordinates_seen_in_render_path = "%s/coordinates/coordinates.pkl" % folder
     pickle_exists = os.path.isfile("%s" % coordinates_seen_in_render_path)
     gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
@@ -161,17 +183,18 @@ def colors_to_coordinates(gradient_path, folder, dem_file, min_ele=50, max_ele=1
         image = resizer(image, im_width=200)
         unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
         l_ = len(unique_colors)
-
         color_coordinates = dict()
-        div = 1
-        for i in range(0, l_, div):
-            color = unique_colors[i]
-            p_i("%i/%i" % (int((i + 1) / div), int(l_ / div)))
-            indices = np.where(np.all(gradient == color, axis=2))
-            if len(indices[0]) > 0:
-                coordinates = zip(indices[0], indices[1])
-                unique_coordinates = list(set(list(coordinates)))
-                color_coordinates[rgb_to_hex(color)] = unique_coordinates
+        div = 2
+        with alive_bar(int(l_ / div)) as bar:
+            # TODO: Make this more efficient
+            for i in range(0, l_, div):
+                color = unique_colors[i]
+                indices = np.where(np.all(gradient == color, axis=2))
+                if len(indices[0]) > 0:
+                    coordinates = zip(indices[0], indices[1])
+                    unique_coordinates = list(set(list(coordinates)))
+                    color_coordinates[rgb_to_hex(color)] = unique_coordinates
+                bar()
         try:
             os.mkdir("%s/coordinates" % folder)
         except FileExistsError:
@@ -203,7 +226,6 @@ def colors_to_coordinates(gradient_path, folder, dem_file, min_ele=50, max_ele=1
             latlon_color_coordinates.append(
                 latlon
             ) if height >= min_ele and height <= max_ele else None
-
     return latlon_color_coordinates
 
 

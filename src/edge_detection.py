@@ -3,15 +3,13 @@ import numpy as np
 from hed import holistically_nested
 from im import save_image
 from tools.debug import p_i, nothing
-from image_manipulations import resizer, trim_edges, skeletonize
-from datetime import datetime
+from image_manipulations import resizer, skeletonize
 from pickle import load, dump
 
 
-def edge_detection(image_path, algorithm, im_w=2400):
+def edge_detection(image_path, algorithm, im_w=2800):
     panorama_filename = image_path.split("/")[-1].split(".")[0]
     folder = f"exports/{panorama_filename}/"
-    t = datetime.now().strftime("%H%M%S")
     if algorithm == "Canny":
         im_path = "%srender-depth.png" % folder
         image = cv2.imread(im_path)
@@ -34,14 +32,14 @@ def edge_detection(image_path, algorithm, im_w=2400):
                 open("%sedge-detected-hed.pkl" % folder, "wb"),
             )
 
-        edge_detected_image = trim_edges(holistically_nested_image)
+        edge_detected_image = holistically_nested_image
     elif algorithm == "Horizon":
         edge_detected_image = find_horizon_edge(image_path)
     else:
         return
     save_image(
         edge_detected_image,
-        "edge-detected-%s-%s" % (algorithm, t),
+        f"edge-detected-{algorithm}",
         folder,
     )
 
@@ -56,7 +54,7 @@ def harris_corner_detection(image):
 
 
 def canny_edge_detection(image, interactive_window=True, blur_factor=5):
-    print("[INFO] Starting Canny Edge Detection...")
+    p_i("Starting Canny Edge Detection...")
     # automatically set lb and ub values from the median color in the image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     v = np.median(gray)
@@ -66,24 +64,30 @@ def canny_edge_detection(image, interactive_window=True, blur_factor=5):
 
     blurred = cv2.medianBlur(gray, blur_factor)
     if not interactive_window:
-        print("[INFO] Canny Edge Detection complete!")
-        return cv2.Canny(blurred, lb, ub)
+        p_i("Canny Edge Detection complete!")
+        return cv2.Canny(blurred, lb, ub, apertureSize=5)
 
     p_i("Opening external window")
     n = "Canny Edge Detection"
     cv2.namedWindow(n)
     cv2.createTrackbar("Lower Bound", n, lb, 100, nothing)
     cv2.createTrackbar("Upper Bound", n, ub, 100, nothing)
+    cv2.createTrackbar("Dilate Horizontal", n, 1, 20, nothing)
+    cv2.createTrackbar("Dilate Vertical", n, 1, 20, nothing)
     while True:
         lb = cv2.getTrackbarPos("Lower Bound", n)
         ub = cv2.getTrackbarPos("Upper Bound", n)
+        d_h = cv2.getTrackbarPos("Dilate Horizontal", n)
+        d_v = cv2.getTrackbarPos("Dilate Vertical", n)
         edges = cv2.Canny(blurred, lb, ub)
-        cv2.imshow(n, edges)
+        kernel = np.ones((d_v, d_h), np.uint8)
+        dilated = cv2.dilate(edges, kernel, iterations=1)
+        cv2.imshow(n, dilated)
         k = cv2.waitKey(1) & 0xFF
         if k == 27:  # use escape for exiting window
             cv2.destroyAllWindows()
             p_i("Canny Edge Detection complete!")
-            return edges
+            return dilated
 
 
 def remove_pixels(image, thresh=100):

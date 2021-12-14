@@ -1,3 +1,4 @@
+from datetime import datetime
 import cv2
 import numpy as np
 from tools.debug import custom_imshow, p_i, p_in
@@ -38,12 +39,13 @@ def get_image_shape(img, new_width=2800):
     return new_width, new_height
 
 
-def save_image(image, filename, folder=None):
+def save_image(image, filename, folder=None, unique=False):
     filename = filename.lower()
+    un = f"-{datetime.now().strftime('%Y%m%d%H%M%S')}" if unique else ""
     if folder:
-        cv2.imwrite(f"{folder}/{filename}.png", image)
+        cv2.imwrite(f"{folder}/{filename}{un}.png", image)
     else:
-        cv2.imwrite(f"{filename}.png", image)
+        cv2.imwrite(f"{filename}{un}.png", image)
 
 
 def open_image(path):

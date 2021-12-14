@@ -3,8 +3,11 @@ import numpy as np
 from osgeo import gdal
 
 
-def p_i(text):
-    print("[INFO]  %s" % text)
+def p_i(text, same_line=False):
+    if same_line:
+        print(f"\r[INFO] {text}", end="", flush=True)
+    else:
+        print(f"[INFO] {text}")
 
 
 def p_e(text):
@@ -62,3 +65,13 @@ def custom_imshow(image, title, from_left=100, from_top=400):
     if key_pressed == 115:
         return True
     return False
+
+
+def check_file_type(in_file):
+    f = in_file.lower()
+    allowed_file_types = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]
+    file_type = f[f.rfind(".") :]
+    if file_type in allowed_file_types:
+        return True
+    else:
+        return False

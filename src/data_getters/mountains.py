@@ -4,12 +4,14 @@ from dotenv.main import load_dotenv
 import folium
 import gpxpy
 import gpxpy.gpx
-from location_handler import displace_camera
+import rasterio
+from location_handler import cor_to_crs, displace_camera
 from tools.exif import get_exif_data
 from tools.debug import p_i, p_line
 from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain
 from operator import attrgetter
+from osgeo import gdal
 
 
 def get_mountain_data(json_path, panorama_path):
@@ -24,20 +26,36 @@ def get_mountain_data(json_path, panorama_path):
             camera_lat, camera_lon = image_location.latitude, image_location.longitude
         else:
             try:
-                camera_lat, camera_lon = (
-                    camera_mountain["latitude"],
-                    camera_mountain["longitude"],
-                )
+                camera_lat, camera_lon = camera_mountain["latlon"]
             except KeyError:
                 camera_lat, camera_lon = input_latlon()
-        displacement_distance = 0.1  # in kms
-        panoramic_angle = camera_mountain["panoramic_angle"]
-        height_field_scale_factor = camera_mountain["height_scale_factor"]
-        v_dir = camera_mountain["view_direction"]
-        look_ats = displace_camera(camera_lat, camera_lon, v_dir, displacement_distance)
+        look_ats = displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1)
         coordinates = [camera_lat, camera_lon, *look_ats]
-        pov_settings = [panoramic_angle, height_field_scale_factor]
-        return [dem_file, coordinates, pov_settings]
+        displaced_coordinates = [
+            displace_camera(camera_lat, camera_lon, degrees=i, distance=20.0)
+            for i in range(0, 360, 90)
+        ]
+
+        upper_right = (displaced_coordinates[0][0], displaced_coordinates[1][1])
+        lower_left = (displaced_coordinates[2][0], displaced_coordinates[3][1])
+
+        ds_raster = rasterio.open(dem_file)
+        crs = int(ds_raster.crs.to_authority()[1])
+
+        lower_left = cor_to_crs(crs, *lower_left)
+        upper_right = cor_to_crs(crs, *upper_right)
+
+        bbox = (
+            lower_left.GetX(),
+            upper_right.GetY(),
+            upper_right.GetX(),
+            lower_left.GetY(),
+        )
+
+        cropped_dem = "dev/cropped.png"
+        gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+
+        return [cropped_dem, dem_file, coordinates]
 
 
 def find_minimums(locations):
