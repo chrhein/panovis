@@ -173,19 +173,20 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
 def colors_to_coordinates(
     ds_name, gradient_path, folder, dem_file, min_ele=50, max_ele=10000
 ):
+    p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
     render_path = f"{folder}{ds_name}-render-gradient.png"
     coordinates_seen_in_render_path = "%s/coordinates/coordinates.pkl" % folder
     pickle_exists = os.path.isfile("%s" % coordinates_seen_in_render_path)
     gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
     if not pickle_exists:
         image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
-        image = resizer(image, im_width=250)
+        image = resizer(image, im_width=200)
         unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
         l_ = len(unique_colors)
-
         color_coordinates = dict()
-        div = 1
+        div = 2
         with alive_bar(int(l_ / div)) as bar:
+            # TODO: Make this more efficient
             for i in range(0, l_, div):
                 color = unique_colors[i]
                 indices = np.where(np.all(gradient == color, axis=2))
@@ -225,7 +226,6 @@ def colors_to_coordinates(
             latlon_color_coordinates.append(
                 latlon
             ) if height >= min_ele and height <= max_ele else None
-
     return latlon_color_coordinates
 
 

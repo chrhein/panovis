@@ -119,7 +119,7 @@ def render_dem(panorama_path, mode, mountains):
                     pf.write(pov)
                 execute_pov(params)
             locs = colors_to_coordinates(ds_name, gradient_path, folder, dem_file)
-            mountains_in_sight = get_mountains_in_sight(locs, mountains)
+            mountains_in_sight = get_mountains_in_sight(dem_file, locs, mountains)
             plot_filename = "%s%s.html" % (folder, panorama_filename)
             plot_to_map(mountains_in_sight, coordinates, plot_filename, dem_file)
         else:

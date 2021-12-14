@@ -1,5 +1,4 @@
 from math import radians, asin, cos, sin, atan2, degrees, pi
-import cv2
 import numpy as np
 import rasterio
 from osgeo import ogr, osr
@@ -8,14 +7,13 @@ from tools.debug import p_i, p_e
 from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
-from folium import raster_layers
 import os
 from tools.types import Location
 from geopy import distance
 from functools import reduce
 import operator
 from alive_progress import alive_bar
-
+from pygeodesy.sphericalNvector import LatLon
 
 # constants
 EARTH_RADIUS = 6378.1
@@ -194,9 +192,9 @@ def plot_to_map(
     )
     folium.Rectangle(
         bounds=[(minmax[0], minmax[1]), (minmax[2], minmax[3])],
-        color="#ff7800",
+        color="#ed6952",
         fill=True,
-        fill_color="#ffffff",
+        fill_color="#f4f4f4",
         fill_opacity=0.2,
     ).add_to(m)
     folium.Marker(
@@ -234,19 +232,32 @@ def plot_to_map(
     m.save(filename)
 
 
-def get_mountains_in_sight(locs, mountains):
+def get_mountains_in_sight(dem_file, locs, mountains):
     mountains_in_sight = dict()
     radius = 500
     p_i("Looking for mountains in sight:")
+    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    b = (
+        LatLon(*lower_left),
+        LatLon(*upper_left),
+        LatLon(*upper_right),
+        LatLon(*lower_right),
+    )
+    filtered_mountains = []
+    for m in mountains:
+        loc = m.location
+        p = LatLon(loc.latitude, loc.longitude)
+        if p.isEnclosedBy(b):
+            filtered_mountains.append(m)
 
     l_ = len(locs)
     div = 1
 
-    with alive_bar(int(l_ / div) * len(mountains)) as bar:
+    with alive_bar(int(l_ / div) * len(filtered_mountains)) as bar:
         for i in range(0, l_, div):
             pos = locs[i]
             lat, lon = pos.latitude, pos.longitude
-            for mountain in mountains:
+            for mountain in filtered_mountains:
                 m = mountain.location
                 m_lat, m_lon = m.latitude, m.longitude
                 center_point = [{"lat": m_lat, "lng": m_lon}]
@@ -286,11 +297,20 @@ def displace_camera(camera_lat, camera_lon, degrees, distance):
 
 
 def get_min_max_coordinates(dem_file):
+    lower_left, _, upper_right, _ = get_raster_bounds(dem_file)
+    return lower_left + upper_right
+
+
+def get_raster_bounds(dem_file):
     ds_raster = rasterio.open(dem_file)
     bounds = ds_raster.bounds
 
-    lower_left = crs_to_wgs84(ds_raster, bounds.left, bounds.bottom)
-    upper_right = crs_to_wgs84(ds_raster, bounds.right, bounds.top)
-    minmax = [c[0] for c in lower_left + upper_right]
+    def format_coords(coords):
+        return [c[0] for c in coords]
 
-    return minmax
+    lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
+    upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
+    upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
+    lower_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.bottom))
+
+    return lower_left, upper_left, upper_right, lower_right
