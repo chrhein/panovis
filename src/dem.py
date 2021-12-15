@@ -109,7 +109,7 @@ def render_dem(panorama_path, mode, mountains):
             pov_mode = "gradient"
             out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             gradient_render = os.path.isfile("%s" % out_filename)
-            gradient_path = create_color_gradient_image(dem_file)
+            gradient_path, gradient = create_color_gradient_image(dem_file)
             if not gradient_render:
                 pov = primary_pov(
                     dem_file, raster_data, texture_path=gradient_path, mode=pov_mode

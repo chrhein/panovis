@@ -21,8 +21,6 @@ EARTH_RADIUS = 6378.1
 
 def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
-    # get resolution (points per square meter)
-    resolution = ds_raster.transform[0]
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
