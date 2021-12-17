@@ -174,7 +174,8 @@ def plot_to_map(
     filename,
     dem_file,
     locs=[],
-    custom_color="darkblue",
+    mountains=[],
+    mountain_radius=150,
 ):
     c_lat, c_lon, _, _ = coordinates
     minmax = get_min_max_coordinates(dem_file)
@@ -203,18 +204,36 @@ def plot_to_map(
     if locs:
         [
             (
-                folium.Marker(
-                    location=(float(i.latitude), float(i.longitude)),
-                    popup="%s" % str(i).strip("()"),
-                    icon=folium.Icon(color=custom_color, icon="mountain"),
+                folium.Circle(
+                    location=(i.latitude, i.longitude),
+                    color="#0a6496",
+                    fill=True,
+                    fill_color="#0a6496",
+                    fill_opacity=1,
+                    radius=15,
                 ).add_to(m)
             )
             for i in locs
         ]
+    if mountains:
+        [
+            (
+                folium.Circle(
+                    location=(i.location.latitude, i.location.longitude),
+                    color="#ed6952",
+                    fill=True,
+                    fill_color="#ed6952",
+                    fill_opacity=0.2,
+                    radius=mountain_radius,
+                    popup=f"{i.name}, {int(i.location.elevation)} m",
+                ).add_to(m)
+            )
+            for i in mountains
+        ]
     [
         (
             folium.Marker(
-                location=(float(i.location.latitude), float(i.location.longitude)),
+                location=(i.location.latitude, i.location.longitude),
                 popup="%s\n%.4f, %.4f\n%im"
                 % (
                     str(i.name),
@@ -230,9 +249,7 @@ def plot_to_map(
     m.save(filename)
 
 
-def get_mountains_in_sight(dem_file, locs, mountains):
-    mountains_in_sight = dict()
-    radius = 500
+def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     p_i("Looking for mountains in sight:")
     lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
     b = (
@@ -245,29 +262,28 @@ def get_mountains_in_sight(dem_file, locs, mountains):
     for m in mountains:
         loc = m.location
         p = LatLon(loc.latitude, loc.longitude)
-        if p.isEnclosedBy(b):
+        if p.isenclosedBy(b):
             filtered_mountains.append(m)
 
-    l_ = len(locs)
-    div = 1
-
-    with alive_bar(int(l_ / div) * len(filtered_mountains)) as bar:
-        for i in range(0, l_, div):
-            pos = locs[i]
-            lat, lon = pos.latitude, pos.longitude
-            for mountain in filtered_mountains:
-                m = mountain.location
-                m_lat, m_lon = m.latitude, m.longitude
-                center_point = [{"lat": m_lat, "lng": m_lon}]
-                test_point = [{"lat": lat, "lng": lon}]
-                center_point = tuple(center_point[0].values())
-                test_point = tuple(test_point[0].values())
-                dis = distance.distance(center_point, test_point).m
-                if dis <= radius:
+    mountains_in_sight = {}
+    copied_locs = locs.copy()
+    with alive_bar(len(filtered_mountains)) as bar:
+        for mountain in filtered_mountains:
+            for loc in copied_locs:
+                lat, lon = loc.latitude, loc.longitude
+                if loc_close_to_mountain(lat, lon, mountain.location, radius):
                     mountains_in_sight[mountain.name] = mountain
-                bar()
-
+                    copied_locs.remove(loc)
+                    break
+            bar()
     return mountains_in_sight
+
+
+def loc_close_to_mountain(lat, lon, m, r):
+    radius = r
+    mountain_pos = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
+    test_loc = tuple([{"lat": lat, "lng": lon}][0].values())
+    return distance.distance(mountain_pos, test_loc).m <= radius
 
 
 def displace_camera(camera_lat, camera_lon, degrees, distance):

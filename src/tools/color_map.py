@@ -176,12 +176,13 @@ def colors_to_coordinates(
     image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
     unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
     unique_colors = [rgb_to_hex(i) for i in unique_colors]
-    color_coordinates = dict()
     g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
 
     h, w, _ = g.shape
     p_i("Computing pixel/coordinate pairs for gradient image")
-    img_dict = {rgb_to_hex(g[i, j]): (i, j) for i in range(h) for j in range(w)}
+    img_dict = {
+        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 3) for j in range(0, w, 3)
+    }
 
     p_i("Getting pixel coordinates for colors in render")
     color_coordinates = {i: img_dict[i] for i in unique_colors if i in img_dict}

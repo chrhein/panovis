@@ -9,7 +9,7 @@ from location_handler import cor_to_crs, displace_camera
 from tools.exif import get_exif_data
 from tools.debug import p_i, p_line
 from tools.file_handling import get_files, tui_select
-from tools.types import Location, Mountain
+from tools.types import Location, Mountain, MountainBounds
 from operator import attrgetter
 from osgeo import gdal
 
@@ -92,7 +92,11 @@ def read_mountain_gpx(gpx_path):
         return []
     gpx = gpxpy.parse(gpx_file)
     mountains = [
-        Mountain(i.name, Location(i.latitude, i.longitude, i.elevation))
+        Mountain(
+            i.name,
+            Location(i.latitude, i.longitude, i.elevation),
+            MountainBounds(i.latitude, i.longitude),
+        )
         for i in gpx.waypoints
     ]
     return mountains
