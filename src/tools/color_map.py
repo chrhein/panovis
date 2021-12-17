@@ -1,5 +1,4 @@
 import os
-from alive_progress.core.progress import alive_bar
 import cv2
 import numpy as np
 import pickle
@@ -8,20 +7,12 @@ import subprocess
 from osgeo import gdal
 from data_getters.mountains import read_hike_gpx
 from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
-from image_manipulations import resizer
 from tools.types import TextureBounds
 from tools.debug import p_i
 
 
 # stolen from
 # https://www.cocyer.com/python-pillow-generate-gradient-image-with-numpy/
-
-
-def get_gradient_2d(start, stop, width, height, is_horizontal):
-    if is_horizontal:
-        return np.tile(np.linspace(start, stop, width), (height, 1))
-    else:
-        return np.tile(np.linspace(start, stop, height), (width, 1)).T
 
 
 def get_gradient_3d(
@@ -32,7 +23,11 @@ def get_gradient_3d(
     for i, (start, stop, is_horizontal) in enumerate(
         zip(upper_left_color, lower_right_color, is_horizontal_list)
     ):
-        result[:, :, i] = get_gradient_2d(start, stop, width, height, is_horizontal)
+        result[:, :, i] = (
+            np.tile(np.linspace(start, stop, width), (height, 1))
+            if is_horizontal
+            else np.tile(np.linspace(start, stop, height), (width, 1)).T
+        )
     return result
 
 
@@ -50,7 +45,7 @@ def create_color_gradient_image(dem_file):
     )
     img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
     cv2.imwrite(gradient_path, img)
-    return gradient_path
+    return gradient_path, gradient
 
 
 def load_pickle(path):
@@ -175,57 +170,31 @@ def colors_to_coordinates(
 ):
     p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
     render_path = f"{folder}{ds_name}-render-gradient.png"
-    coordinates_seen_in_render_path = "%s/coordinates/coordinates.pkl" % folder
-    pickle_exists = os.path.isfile("%s" % coordinates_seen_in_render_path)
-    gradient = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-    if not pickle_exists:
-        image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
-        image = resizer(image, im_width=200)
-        unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
-        l_ = len(unique_colors)
-        color_coordinates = dict()
-        div = 2
-        with alive_bar(int(l_ / div)) as bar:
-            # TODO: Make this more efficient
-            for i in range(0, l_, div):
-                color = unique_colors[i]
-                indices = np.where(np.all(gradient == color, axis=2))
-                if len(indices[0]) > 0:
-                    coordinates = zip(indices[0], indices[1])
-                    unique_coordinates = list(set(list(coordinates)))
-                    color_coordinates[rgb_to_hex(color)] = unique_coordinates
-                bar()
-        try:
-            os.mkdir("%s/coordinates" % folder)
-        except FileExistsError:
-            pass
-        with open(coordinates_seen_in_render_path, "wb") as f:
-            pickle.dump(color_coordinates, f)
-    else:
-        color_coordinates = load_pickle(coordinates_seen_in_render_path)
+    image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
+    unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
+    unique_colors = [rgb_to_hex(i) for i in unique_colors]
+    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
+
+    h, w, _ = g.shape
+    p_i("Computing pixel/coordinate pairs for gradient image")
+    img_dict = {
+        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 3) for j in range(0, w, 3)
+    }
+
+    p_i("Getting pixel coordinates for colors in render")
+    color_coordinates = {i: img_dict[i] for i in unique_colors if i in img_dict}
+
     latlon_color_coordinates = []
     ds_raster = rasterio.open(dem_file)
     h = ds_raster.read(1)
     crs = int(ds_raster.crs.to_authority()[1])
-    use_all_coordinates = False
-    for coordinates in color_coordinates.values():
-        if use_all_coordinates:
-            for coordinate in coordinates:
-                x, y = coordinate
-                px, py = ds_raster.xy(x, y)
-                height = h[x][y]
-                latlon = crs_to_cor(crs, px, py, height)
-                latlon_color_coordinates.append(
-                    latlon
-                ) if height >= min_ele and height <= max_ele else None
-        else:
-            x, y = coordinates[len(coordinates) // 2]
-            px, py = ds_raster.xy(x, y)
-            height = h[x][y]
-            latlon = crs_to_cor(crs, px, py, height)
-            latlon_color_coordinates.append(
-                latlon
-            ) if height >= min_ele and height <= max_ele else None
+
+    for x, y in color_coordinates.values():
+        px, py = ds_raster.xy(x, y)
+        height = h[x][y]
+        latlon_color_coordinates.append(
+            crs_to_cor(crs, px, py, height)
+        ) if height >= min_ele and height <= max_ele else None
     return latlon_color_coordinates
 
 
