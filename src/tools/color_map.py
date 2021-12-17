@@ -1,5 +1,4 @@
 import os
-from alive_progress.core.progress import alive_bar
 import cv2
 import numpy as np
 import pickle
@@ -8,10 +7,8 @@ import subprocess
 from osgeo import gdal
 from data_getters.mountains import read_hike_gpx
 from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
-from image_manipulations import resizer
 from tools.types import TextureBounds
 from tools.debug import p_i
-from collections import defaultdict
 
 
 # stolen from
