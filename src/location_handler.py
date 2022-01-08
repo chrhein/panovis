@@ -84,7 +84,7 @@ def convert_coordinates(raster, to_espg, lat, lon):
         return
 
     def scale_height(height):
-        return ((height) - h.min()) / (raster.width - h.min()) / resolution
+        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2.1
 
     height_scaled = scale_height(height)
     height_max_mountain_scaled = scale_height(h.max())

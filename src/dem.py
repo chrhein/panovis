@@ -53,16 +53,23 @@ def render_dem(panorama_path, mode, mountains):
         folder,
         render_shape,
     ]
+    # mode = "debug"
 
     if mode == "debug":
-        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file, True)
+        debug_mode = 2  # 1 for hike route texture
+        if debug_mode == 1:
+            route_texture, texture_bounds = create_route_texture(
+                dem_file, gpx_file, True
+            )
+        else:
+            route_texture, texture_bounds = "", None
         pov_filename, folder, _ = pov
         with open(pov_filename, "w") as pf:
-            pov = debug_pov(dem_file, route_texture, texture_bounds, raster_data[1][3])
+            pov = debug_pov(dem_file, route_texture, texture_bounds, raster_data[1][2])
             pf.write(pov)
             pf.close()
         out_filename = f"{folder}{ds_name}-render-debug.png"
-        params = [pov_filename, out_filename, [2400, 2400], "color"]
+        params = [pov_filename, out_filename, [500, 500], "color"]
         execute_pov(params)
     else:
         pov_filename, folder, im_dimensions = pov

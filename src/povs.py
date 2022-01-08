@@ -7,8 +7,8 @@ def primary_pov(
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
-    ds_raster, _, max_height = raster_data[1]
-    y_axis_scaling = ds_raster.width / ds_raster.height
+    _, _, max_height = raster_data[1]
+    y_axis_scaling = 1.25
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -182,7 +182,7 @@ def primary_pov(
             }
         }
         #end
-        scale <1, YSCALE + 0.075, 1>
+        scale <1, 1, 1>
     }
     """ % (
         location_x,
@@ -204,10 +204,17 @@ def primary_pov(
 
 
 def debug_pov(dem_file, texture_path, tex_bounds, mh):
-    scale_y = tex_bounds.min_x[1]
-    scale_x = tex_bounds.min_y[0]
-    x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
-    y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
+    with_route_texture = bool(texture_path and tex_bounds)
+    if with_route_texture:
+        scale_y = tex_bounds.min_x[1]
+        scale_x = tex_bounds.min_y[0]
+        x_l = tex_bounds.max_x[1] - tex_bounds.min_x[1]
+        y_l = tex_bounds.max_y[0] - tex_bounds.min_y[0]
+    else:
+        scale_y = 0
+        scale_x = 0
+        x_l = 0
+        y_l = 0
 
     pov_text = """
     #version 3.8;
@@ -257,18 +264,20 @@ def debug_pov(dem_file, texture_path, tex_bounds, mh):
             }
             finish { reflection 0 ambient 0.35 diffuse 0.5 specular 0.25 }
         }
-        texture{
-            pigment {
-                image_map {
-                    png TEXTURE
-                    once
+        #if (TEXTURE!="")
+            texture{
+                pigment {
+                    image_map {
+                        png TEXTURE
+                        once
+                    }
+                    scale SCALE
+                    translate SKEW
                 }
-                scale SCALE
-                translate SKEW
+                rotate <90, 0, 0>
+                finish { ambient 0.75 diffuse 0.1 specular 0.1 }
             }
-            rotate <90, 0, 0>
-            finish { ambient 0.75 diffuse 0.1 specular 0.1 }
-        }
+        #end
     }
 
     plane {
