@@ -178,7 +178,7 @@ def colors_to_coordinates(
     h, w, _ = g.shape
     p_i("Computing pixel/coordinate pairs for gradient image")
     img_dict = {
-        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 3) for j in range(0, w, 3)
+        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 1) for j in range(0, w, 1)
     }
 
     p_i("Getting pixel coordinates for colors in render")

@@ -40,7 +40,7 @@ def render_dem(panorama_path, mode, mountains):
 
     pov_filename = "/tmp/pov_file.pov"
     scale = 1.25
-    render_shape = [4800 * scale, 900 * scale]
+    render_shape = [4800 * scale, 800 * scale]
 
     raster_data = get_raster_data(dem_file, coordinates)
     if not raster_data:

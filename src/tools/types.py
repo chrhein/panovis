@@ -11,6 +11,9 @@ class Location:
     longitude: float
     elevation: float = 0.0
 
+    def loc(self):
+        return (self.latitude, self.longitude)
+
 
 # Might delete this later, wasn't use for it
 @dataclass

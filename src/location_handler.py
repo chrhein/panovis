@@ -4,7 +4,6 @@ import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
 from tools.debug import p_i, p_e
-from colors import color_interpolator
 from dotenv import load_dotenv
 import folium
 import os
@@ -128,7 +127,7 @@ def crs_to_cor(to_espg, lat, lon, ele):
 def crs_to_wgs84(dataset, x, y):
     crs = rasterio.crs.CRS.from_epsg(4326)
     lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
-    return lat, lon
+    return (lat, lon)
 
 
 def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
@@ -152,22 +151,6 @@ def to_latlon(x, y, ds_raster):
     return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
 
 
-def coordinate_lookup(im1, im2, dem_file):
-    p_i("Searching for locations in image")
-    ds = rasterio.open(dem_file)
-    h1, w1, _ = im1.shape
-    x_int_c = color_interpolator(255, 0, 255)
-    y_int_c = color_interpolator(0, 255, 255)
-    locs = set(
-        to_latlon(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
-        for i in range(0, h1, 10)
-        for j in range(0, w1, 10)
-        if im2[i, j][1] != 255
-    )
-    p_i("Search complete.")
-    return locs
-
-
 def plot_to_map(
     mountains_in_sight,
     coordinates,
@@ -178,7 +161,7 @@ def plot_to_map(
     mountain_radius=150,
 ):
     c_lat, c_lon, _, _ = coordinates
-    minmax = get_min_max_coordinates(dem_file)
+    ll, ul, ur, lr = get_raster_bounds(dem_file)
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
@@ -189,8 +172,8 @@ def plot_to_map(
         zoom_start=12,
         attr="Christian Hein",
     )
-    folium.Rectangle(
-        bounds=[(minmax[0], minmax[1]), (minmax[2], minmax[3])],
+    folium.PolyLine(
+        locations=[ll, ul, ur, lr, ll],
         color="#ed6952",
         fill=True,
         fill_color="#f4f4f4",
@@ -286,7 +269,7 @@ def loc_close_to_mountain(lat, lon, m, r):
     return distance.distance(mountain_pos, test_loc).m <= radius
 
 
-def displace_camera(camera_lat, camera_lon, degrees, distance):
+def displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1):
     delta = distance / EARTH_RADIUS
 
     def to_radians(theta):
