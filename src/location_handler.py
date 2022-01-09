@@ -3,7 +3,7 @@ import numpy as np
 import rasterio
 from osgeo import ogr, osr, gdal
 from rasterio.warp import transform
-from tools.debug import p_i, p_e
+from tools.debug import p_i, p_e, p_s
 from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
@@ -204,7 +204,7 @@ def plot_to_map(
     ).add_to(color_gradient)
 
     if locs:
-        locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
+        locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=False)
         m.add_child(locs_fg)
         [
             (
@@ -220,7 +220,7 @@ def plot_to_map(
             for i in locs
         ]
     if mountains:
-        mountains_fg = folium.FeatureGroup(name="All Mountains", show=True)
+        mountains_fg = folium.FeatureGroup(name="All Mountains", show=False)
         m.add_child(mountains_fg)
         [
             (
@@ -278,7 +278,13 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
             filtered_mountains.append(m)
 
     mountains_in_sight = {}
-    copied_locs = locs.copy()
+    min_mountain_height = min([i.location.elevation for i in filtered_mountains])
+    max_mountain_height = max([i.location.elevation for i in filtered_mountains])
+    copied_locs = [
+        i
+        for i in locs
+        if i.elevation >= min_mountain_height and i.elevation <= max_mountain_height
+    ]
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
             for loc in copied_locs:
@@ -288,6 +294,10 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
                     copied_locs.remove(loc)
                     break
             bar()
+    if len(mountains_in_sight) == 0:
+        p_e("No mountains in sight")
+    else:
+        p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
     return mountains_in_sight
 
 
