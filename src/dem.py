@@ -53,7 +53,6 @@ def render_dem(panorama_path, mode, mountains):
         folder,
         render_shape,
     ]
-    # mode = "debug"
 
     if mode == "debug":
         debug_mode = 2  # 1 for hike route texture

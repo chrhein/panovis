@@ -1,9 +1,9 @@
 from math import radians, asin, cos, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
-from osgeo import ogr, osr, gdal
+from osgeo import ogr, osr
 from rasterio.warp import transform
-from tools.debug import p_i, p_e, p_s
+from tools.debug import p_i, p_e, p_line, p_s
 from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
@@ -177,46 +177,6 @@ def plot_to_map(
         name="Map",
     ).add_to(m)
 
-    raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
-    m.add_child(raster_bounds)
-    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#ed6952").add_to(
-        raster_bounds
-    )
-
-    folium.Marker(
-        location=[c_lat, c_lon],
-        popup="Camera Location",
-        icon=folium.Icon(color="green", icon="camera"),
-    ).add_to(m)
-
-    color_gradient = folium.FeatureGroup(
-        name="Color Gradient (Not Working)", show=False
-    )
-    m.add_child(color_gradient)
-    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGB)
-    folium.raster_layers.ImageOverlay(
-        image=im,
-        bounds=[ll, ur],
-        mercator_project=True,
-        origin="upper",
-    ).add_to(color_gradient)
-
-    if locs:
-        locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=False)
-        m.add_child(locs_fg)
-        [
-            (
-                folium.Circle(
-                    location=(i.latitude, i.longitude),
-                    color="#0a6496",
-                    fill=True,
-                    fill_color="#0a6496",
-                    fill_opacity=1,
-                    radius=15,
-                ).add_to(locs_fg)
-            )
-            for i in locs
-        ]
     if mountains:
         mountains_fg = folium.FeatureGroup(name="All Mountains", show=False)
         m.add_child(mountains_fg)
@@ -255,6 +215,48 @@ def plot_to_map(
             )
             for i in mountains_in_sight.values()
         ]
+
+    folium.Marker(
+        location=[c_lat, c_lon],
+        popup="Camera Location",
+        icon=folium.Icon(color="green", icon="camera"),
+    ).add_to(m)
+
+    if locs:
+        locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
+        m.add_child(locs_fg)
+        [
+            (
+                folium.Circle(
+                    location=(i.latitude, i.longitude),
+                    color="#0a6496",
+                    fill=True,
+                    fill_color="#0a6496",
+                    fill_opacity=1,
+                    radius=15,
+                ).add_to(locs_fg)
+            )
+            for i in locs
+        ]
+
+    raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
+    m.add_child(raster_bounds)
+    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#ed6952").add_to(
+        raster_bounds
+    )
+
+    color_gradient = folium.FeatureGroup(
+        name="Color Gradient (Not Working)", show=False
+    )
+    m.add_child(color_gradient)
+    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGB)
+    folium.raster_layers.ImageOverlay(
+        image=im,
+        bounds=[ll, ur],
+        mercator_project=True,
+        origin="upper",
+    ).add_to(color_gradient)
+
     folium.LayerControl().add_to(m)
     m.save(filename)
 
@@ -284,6 +286,14 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
         for i in locs
         if i.elevation >= min_mountain_height and i.elevation <= max_mountain_height
     ]
+    p_line(
+        [
+            f"Total number of locations:     {len(locs)}",
+            f"Total number of mountains:     {len(mountains)}",
+            f"Number of locations in search: {len(copied_locs)}",
+            f"Number of mountains in search: {len(filtered_mountains)}",
+        ]
+    )
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
             for loc in copied_locs:
