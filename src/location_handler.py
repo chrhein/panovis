@@ -21,8 +21,7 @@ EARTH_RADIUS = 6378.1
 
 def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
-    plot_to_map(None, coordinates, "dev/test_map.html", dem_file)
-    exit()
+    # plot_to_map(None, coordinates, "dev/test_map.html", dem_file)
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
@@ -163,6 +162,7 @@ def plot_to_map(
     mountains=[],
     mountain_radius=150,
 ):
+    p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
     ll, ul, ur, lr = get_raster_bounds(dem_file)
     load_dotenv()
@@ -204,6 +204,8 @@ def plot_to_map(
     ).add_to(color_gradient)
 
     if locs:
+        locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
+        m.add_child(locs_fg)
         [
             (
                 folium.Circle(
@@ -213,11 +215,13 @@ def plot_to_map(
                     fill_color="#0a6496",
                     fill_opacity=1,
                     radius=15,
-                ).add_to(m)
+                ).add_to(locs_fg)
             )
             for i in locs
         ]
     if mountains:
+        mountains_fg = folium.FeatureGroup(name="All Mountains", show=True)
+        m.add_child(mountains_fg)
         [
             (
                 folium.Circle(
@@ -228,11 +232,15 @@ def plot_to_map(
                     fill_opacity=0.2,
                     radius=mountain_radius,
                     popup=f"{i.name}, {int(i.location.elevation)} m",
-                ).add_to(m)
+                ).add_to(mountains_fg)
             )
             for i in mountains
         ]
     if mountains_in_sight:
+        mountains_in_sight_fg = folium.FeatureGroup(
+            name="Mountains In-Sight", show=True
+        )
+        m.add_child(mountains_in_sight_fg)
         [
             (
                 folium.Marker(
@@ -245,7 +253,7 @@ def plot_to_map(
                         i.location.elevation,
                     ),
                     icon=folium.Icon(color="pink", icon="mountain"),
-                ).add_to(m)
+                ).add_to(mountains_in_sight_fg)
             )
             for i in mountains_in_sight.values()
         ]

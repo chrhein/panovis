@@ -165,7 +165,7 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(ds_name, gradient_path, folder, dem_file, min_ele=25):
+def colors_to_coordinates(ds_name, gradient_path, folder, dem_file):
     p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
     render_path = f"{folder}{ds_name}-render-gradient.png"
     image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
@@ -176,7 +176,7 @@ def colors_to_coordinates(ds_name, gradient_path, folder, dem_file, min_ele=25):
     h, w, _ = g.shape
     p_i("Computing pixel/coordinate pairs for gradient image")
     img_dict = {
-        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 1) for j in range(0, w, 1)
+        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 12) for j in range(0, w, 12)
     }
 
     p_i("Getting pixel coordinates for colors in render")
@@ -190,9 +190,7 @@ def colors_to_coordinates(ds_name, gradient_path, folder, dem_file, min_ele=25):
     for x, y in color_coordinates.values():
         px, py = ds_raster.xy(x, y)
         height = h[x][y]
-        latlon_color_coordinates.append(
-            crs_to_cor(crs, px, py, height)
-        ) if height >= min_ele else None
+        latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
     return latlon_color_coordinates
 
 
