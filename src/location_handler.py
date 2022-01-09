@@ -179,13 +179,9 @@ def plot_to_map(
 
     raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
     m.add_child(raster_bounds)
-    folium.PolyLine(
-        locations=[ll, ul, ur, lr, ll],
-        color="#ed6952",
-        fill=True,
-        fill_color="#f4f4f4",
-        fill_opacity=0.2,
-    ).add_to(raster_bounds)
+    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#ed6952").add_to(
+        raster_bounds
+    )
 
     folium.Marker(
         location=[c_lat, c_lon],
@@ -193,7 +189,9 @@ def plot_to_map(
         icon=folium.Icon(color="green", icon="camera"),
     ).add_to(m)
 
-    color_gradient = folium.FeatureGroup(name="Color Gradient", show=False)
+    color_gradient = folium.FeatureGroup(
+        name="Color Gradient (Not Working)", show=False
+    )
     m.add_child(color_gradient)
     im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGB)
     folium.raster_layers.ImageOverlay(
@@ -280,6 +278,7 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     mountains_in_sight = {}
     min_mountain_height = min([i.location.elevation for i in filtered_mountains])
     max_mountain_height = max([i.location.elevation for i in filtered_mountains])
+
     copied_locs = [
         i
         for i in locs
@@ -288,12 +287,12 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
             for loc in copied_locs:
-                lat, lon = loc.latitude, loc.longitude
-                if loc_close_to_mountain(lat, lon, mountain.location, radius):
+                if loc_close_to_mountain(loc, mountain.location, radius):
                     mountains_in_sight[mountain.name] = mountain
                     copied_locs.remove(loc)
                     break
             bar()
+
     if len(mountains_in_sight) == 0:
         p_e("No mountains in sight")
     else:
@@ -301,10 +300,9 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     return mountains_in_sight
 
 
-def loc_close_to_mountain(lat, lon, m, r):
-    radius = r
+def loc_close_to_mountain(loc, m, radius):
     mountain_pos = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
-    test_loc = tuple([{"lat": lat, "lng": lon}][0].values())
+    test_loc = tuple([{"lat": loc.latitude, "lng": loc.longitude}][0].values())
     return distance.distance(mountain_pos, test_loc).m <= radius
 
 
