@@ -177,9 +177,13 @@ def colors_to_coordinates(ds_name, gradient_path, folder, dem_file):
     ds_raster = rasterio.open(dem_file)
     ds_raster_height_band = ds_raster.read(1)
     crs = int(ds_raster.crs.to_authority()[1])
+    dims = ds_raster_height_band.shape
+
+    x_ = dims[0] / (2 ** 8)
+    y_ = dims[1] / (2 ** 8)
 
     for x, y in color_coordinates:
-        s_x, s_y = round(x * (3000 / 256)), round(y * (3000 / 256))
+        s_x, s_y = round(x * x_), round(y * y_)
         px, py = ds_raster.xy(s_x, s_y)
         height = ds_raster_height_band[s_x, s_y]
         latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
