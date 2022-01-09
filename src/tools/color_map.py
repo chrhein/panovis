@@ -165,9 +165,7 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(
-    ds_name, gradient_path, folder, dem_file, min_ele=50, max_ele=10000
-):
+def colors_to_coordinates(ds_name, gradient_path, folder, dem_file, min_ele=25):
     p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
     render_path = f"{folder}{ds_name}-render-gradient.png"
     image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
@@ -194,7 +192,7 @@ def colors_to_coordinates(
         height = h[x][y]
         latlon_color_coordinates.append(
             crs_to_cor(crs, px, py, height)
-        ) if height >= min_ele and height <= max_ele else None
+        ) if height >= min_ele else None
     return latlon_color_coordinates
 
 

@@ -1,11 +1,11 @@
 from math import radians, asin, cos, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
-from osgeo import ogr, osr
+from osgeo import ogr, osr, gdal
 from rasterio.warp import transform
 from tools.debug import p_i, p_e
 from dotenv import load_dotenv
-import folium
+import folium, folium.raster_layers
 import os
 from tools.types import Location
 from geopy import distance
@@ -13,6 +13,7 @@ from functools import reduce
 import operator
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
+import cv2
 
 # constants
 EARTH_RADIUS = 6378.1
@@ -20,6 +21,8 @@ EARTH_RADIUS = 6378.1
 
 def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
+    plot_to_map(None, coordinates, "dev/test_map.html", dem_file)
+    exit()
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
@@ -165,25 +168,41 @@ def plot_to_map(
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
-    m = folium.Map(
+    m = folium.Map([c_lat, c_lon], tiles=None, zoom_start=12)
+    folium.TileLayer(
         location=[c_lat, c_lon],
         tiles=MAPBOX_STYLE_URL,
         API_key=MAPBOX_TOKEN,
-        zoom_start=12,
         attr="Christian Hein",
-    )
+        name="Map",
+    ).add_to(m)
+
+    raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
+    m.add_child(raster_bounds)
     folium.PolyLine(
         locations=[ll, ul, ur, lr, ll],
         color="#ed6952",
         fill=True,
         fill_color="#f4f4f4",
         fill_opacity=0.2,
-    ).add_to(m)
+    ).add_to(raster_bounds)
+
     folium.Marker(
         location=[c_lat, c_lon],
         popup="Camera Location",
         icon=folium.Icon(color="green", icon="camera"),
     ).add_to(m)
+
+    color_gradient = folium.FeatureGroup(name="Color Gradient", show=False)
+    m.add_child(color_gradient)
+    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGB)
+    folium.raster_layers.ImageOverlay(
+        image=im,
+        bounds=[ll, ur],
+        mercator_project=True,
+        origin="upper",
+    ).add_to(color_gradient)
+
     if locs:
         [
             (
@@ -213,22 +232,24 @@ def plot_to_map(
             )
             for i in mountains
         ]
-    [
-        (
-            folium.Marker(
-                location=(i.location.latitude, i.location.longitude),
-                popup="%s\n%.4f, %.4f\n%im"
-                % (
-                    str(i.name),
-                    i.location.latitude,
-                    i.location.longitude,
-                    i.location.elevation,
-                ),
-                icon=folium.Icon(color="pink", icon="mountain"),
-            ).add_to(m)
-        )
-        for i in mountains_in_sight.values()
-    ]
+    if mountains_in_sight:
+        [
+            (
+                folium.Marker(
+                    location=(i.location.latitude, i.location.longitude),
+                    popup="%s\n%.4f, %.4f\n%im"
+                    % (
+                        str(i.name),
+                        i.location.latitude,
+                        i.location.longitude,
+                        i.location.elevation,
+                    ),
+                    icon=folium.Icon(color="pink", icon="mountain"),
+                ).add_to(m)
+            )
+            for i in mountains_in_sight.values()
+        ]
+    folium.LayerControl().add_to(m)
     m.save(filename)
 
 
