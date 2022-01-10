@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from location_handler import get_bearing
 from tools.debug import p_i
 
 
@@ -22,6 +23,38 @@ def change_brightness(img, value=30):
     if channels == 2:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return img
+
+
+def rotate_image_on_map(image, coor1, coor2):
+    angle = get_bearing(*coor1, *coor2)
+
+    height, width, _ = image.shape
+    image_center = (width / 2, height / 2)
+
+    rotation_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+
+    abs_cos = abs(rotation_mat[0, 0])
+    abs_sin = abs(rotation_mat[0, 1])
+
+    bound_w = int(height * abs_sin + width * abs_cos)
+    bound_h = int(height * abs_cos + width * abs_sin)
+
+    rotation_mat[0, 2] += bound_w / 2 - image_center[0]
+    rotation_mat[1, 2] += bound_h / 2 - image_center[1]
+
+    rotated_mat = cv2.warpAffine(
+        image,
+        rotation_mat,
+        (bound_w, bound_h),
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255, 0),
+    )
+
+    whites = np.all(rotated_mat == 255, axis=-1)
+    alpha = np.uint8(np.logical_not(whites)) * 255
+    bgra = np.dstack((rotated_mat, alpha))
+    im = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGBA)
+    return im
 
 
 def structured_forest(image):

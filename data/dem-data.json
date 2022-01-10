@@ -1,5 +1,5 @@
 {
-    "dem-path": "data/rasters/hordaland10.png",
+    "dem-path": "data/rasters/bergen10.png",
     "panoramas": {
         "panorama1_camera": {
             "latlon": [60.41350462457307, 5.385201666077322],

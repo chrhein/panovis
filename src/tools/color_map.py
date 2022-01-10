@@ -15,9 +15,8 @@ from tools.debug import p_i
 # https://www.cocyer.com/python-pillow-generate-gradient-image-with-numpy/
 
 
-def get_gradient_3d(
-    width, height, upper_left_color, lower_right_color, is_horizontal_list
-):
+def get_gradient_3d(upper_left_color, lower_right_color, is_horizontal_list):
+    height, width = 2 ** 8, 2 ** 8  # number of colors
     result = np.zeros((height, width, len(upper_left_color)), dtype=np.float)
 
     for i, (start, stop, is_horizontal) in enumerate(
@@ -31,16 +30,12 @@ def get_gradient_3d(
     return result
 
 
-def create_color_gradient_image(dem_file):
+def create_color_gradient_image():
     gradient_path = f"data/color_gradient.png"
-    im = cv2.imread(dem_file)
-    h, w, _ = im.shape
     upper_left_color = (0, 0, 192)
     lower_right_color = (255, 255, 64)
     gradient = np.true_divide(
-        get_gradient_3d(
-            w, h, upper_left_color, lower_right_color, (True, False, False)
-        ),
+        get_gradient_3d(upper_left_color, lower_right_color, (True, False, False)),
         255,
     )
     img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
@@ -165,36 +160,33 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     return [im_path, tex_bounds]
 
 
-def colors_to_coordinates(
-    ds_name, gradient_path, folder, dem_file, min_ele=50, max_ele=10000
-):
-    p_i(f"Finding all visible coordinates in {ds_name}-render-gradient.png")
-    render_path = f"{folder}{ds_name}-render-gradient.png"
+def colors_to_coordinates(ds_name, gradient_path, folder, dem_file):
+    render_with_gradient = f"{ds_name}-render-gradient.png"
+    p_i(f"Finding all visible coordinates in {render_with_gradient}")
+    render_path = f"{folder}{render_with_gradient}"
     image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
+    p_i("Computing list of unique colors")
     unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
-    unique_colors = [rgb_to_hex(i) for i in unique_colors]
-    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-
-    h, w, _ = g.shape
-    p_i("Computing pixel/coordinate pairs for gradient image")
-    img_dict = {
-        rgb_to_hex(g[i, j]): (i, j) for i in range(0, h, 3) for j in range(0, w, 3)
-    }
 
     p_i("Getting pixel coordinates for colors in render")
-    color_coordinates = {i: img_dict[i] for i in unique_colors if i in img_dict}
+    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
+    color_coordinates = [np.where(np.all(g == i, axis=-1)) for i in unique_colors]
+    color_coordinates = [(i[0][0], i[1][0]) for i in color_coordinates if len(i[0]) > 0]
 
     latlon_color_coordinates = []
     ds_raster = rasterio.open(dem_file)
-    h = ds_raster.read(1)
+    ds_raster_height_band = ds_raster.read(1)
     crs = int(ds_raster.crs.to_authority()[1])
+    dims = ds_raster_height_band.shape
 
-    for x, y in color_coordinates.values():
-        px, py = ds_raster.xy(x, y)
-        height = h[x][y]
-        latlon_color_coordinates.append(
-            crs_to_cor(crs, px, py, height)
-        ) if height >= min_ele and height <= max_ele else None
+    x_ = dims[0] / (2 ** 8)
+    y_ = dims[1] / (2 ** 8)
+
+    for x, y in color_coordinates:
+        s_x, s_y = round(x * x_), round(y * y_)
+        px, py = ds_raster.xy(s_x, s_y)
+        height = ds_raster_height_band[s_x, s_y]
+        latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
     return latlon_color_coordinates
 
 

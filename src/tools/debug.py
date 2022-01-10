@@ -14,6 +14,10 @@ def p_e(text):
     print("[ERROR] %s" % text)
 
 
+def p_s(text):
+    print("[SUCCESS] %s" % text)
+
+
 def p_a(text):
     print("[ALERT] %s" % text)
 

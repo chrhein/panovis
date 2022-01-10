@@ -3,17 +3,14 @@ import numpy as np
 import rasterio
 from osgeo import ogr, osr
 from rasterio.warp import transform
-from tools.debug import p_i, p_e
-from colors import color_interpolator
-from dotenv import load_dotenv
-import folium
-import os
+from tools.debug import p_i, p_e, p_line, p_s
 from tools.types import Location
 from geopy import distance
 from functools import reduce
 import operator
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
+from numpy import arctan2, sin, cos, degrees
 
 # constants
 EARTH_RADIUS = 6378.1
@@ -85,7 +82,7 @@ def convert_coordinates(raster, to_espg, lat, lon):
         return
 
     def scale_height(height):
-        return ((height) - h.min()) / (raster.width - h.min()) / resolution
+        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2.1
 
     height_scaled = scale_height(height)
     height_max_mountain_scaled = scale_height(h.max())
@@ -128,7 +125,7 @@ def crs_to_cor(to_espg, lat, lon, ele):
 def crs_to_wgs84(dataset, x, y):
     crs = rasterio.crs.CRS.from_epsg(4326)
     lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
-    return lat, lon
+    return (lat, lon)
 
 
 def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
@@ -147,106 +144,17 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     return lat2, lon2
 
 
+def get_bearing(lat1, lon1, lat2, lon2):
+    dL = lon2 - lon1
+    X = cos(lat2) * sin(dL)
+    Y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dL)
+    bearing = arctan2(X, Y)
+    return degrees(bearing)
+
+
 def to_latlon(x, y, ds_raster):
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
     return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
-
-
-def coordinate_lookup(im1, im2, dem_file):
-    p_i("Searching for locations in image")
-    ds = rasterio.open(dem_file)
-    h1, w1, _ = im1.shape
-    x_int_c = color_interpolator(255, 0, 255)
-    y_int_c = color_interpolator(0, 255, 255)
-    locs = set(
-        to_latlon(im2[i, j], im1[i, j], x_int_c, y_int_c, ds)
-        for i in range(0, h1, 10)
-        for j in range(0, w1, 10)
-        if im2[i, j][1] != 255
-    )
-    p_i("Search complete.")
-    return locs
-
-
-def plot_to_map(
-    mountains_in_sight,
-    coordinates,
-    filename,
-    dem_file,
-    locs=[],
-    mountains=[],
-    mountain_radius=150,
-):
-    c_lat, c_lon, _, _ = coordinates
-    minmax = get_min_max_coordinates(dem_file)
-    load_dotenv()
-    MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
-    MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
-    m = folium.Map(
-        location=[c_lat, c_lon],
-        tiles=MAPBOX_STYLE_URL,
-        API_key=MAPBOX_TOKEN,
-        zoom_start=12,
-        attr="Christian Hein",
-    )
-    folium.Rectangle(
-        bounds=[(minmax[0], minmax[1]), (minmax[2], minmax[3])],
-        color="#ed6952",
-        fill=True,
-        fill_color="#f4f4f4",
-        fill_opacity=0.2,
-    ).add_to(m)
-    folium.Marker(
-        location=[c_lat, c_lon],
-        popup="Camera Location",
-        icon=folium.Icon(color="green", icon="camera"),
-    ).add_to(m)
-    if locs:
-        [
-            (
-                folium.Circle(
-                    location=(i.latitude, i.longitude),
-                    color="#0a6496",
-                    fill=True,
-                    fill_color="#0a6496",
-                    fill_opacity=1,
-                    radius=15,
-                ).add_to(m)
-            )
-            for i in locs
-        ]
-    if mountains:
-        [
-            (
-                folium.Circle(
-                    location=(i.location.latitude, i.location.longitude),
-                    color="#ed6952",
-                    fill=True,
-                    fill_color="#ed6952",
-                    fill_opacity=0.2,
-                    radius=mountain_radius,
-                    popup=f"{i.name}, {int(i.location.elevation)} m",
-                ).add_to(m)
-            )
-            for i in mountains
-        ]
-    [
-        (
-            folium.Marker(
-                location=(i.location.latitude, i.location.longitude),
-                popup="%s\n%.4f, %.4f\n%im"
-                % (
-                    str(i.name),
-                    i.location.latitude,
-                    i.location.longitude,
-                    i.location.elevation,
-                ),
-                icon=folium.Icon(color="pink", icon="mountain"),
-            ).add_to(m)
-        )
-        for i in mountains_in_sight.values()
-    ]
-    m.save(filename)
 
 
 def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
@@ -266,27 +174,45 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
             filtered_mountains.append(m)
 
     mountains_in_sight = {}
-    copied_locs = locs.copy()
+    min_mountain_height = min([i.location.elevation for i in filtered_mountains])
+    max_mountain_height = max([i.location.elevation for i in filtered_mountains])
+
+    copied_locs = [
+        i
+        for i in locs
+        if i.elevation >= min_mountain_height and i.elevation <= max_mountain_height
+    ]
+    p_line(
+        [
+            f"Total number of locations:     {len(locs)}",
+            f"Total number of mountains:     {len(mountains)}",
+            f"Number of locations in search: {len(copied_locs)}",
+            f"Number of mountains in search: {len(filtered_mountains)}",
+        ]
+    )
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
             for loc in copied_locs:
-                lat, lon = loc.latitude, loc.longitude
-                if loc_close_to_mountain(lat, lon, mountain.location, radius):
+                if loc_close_to_mountain(loc, mountain.location, radius):
                     mountains_in_sight[mountain.name] = mountain
                     copied_locs.remove(loc)
                     break
             bar()
+
+    if len(mountains_in_sight) == 0:
+        p_e("No mountains in sight")
+    else:
+        p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
     return mountains_in_sight
 
 
-def loc_close_to_mountain(lat, lon, m, r):
-    radius = r
+def loc_close_to_mountain(loc, m, radius):
     mountain_pos = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
-    test_loc = tuple([{"lat": lat, "lng": lon}][0].values())
+    test_loc = tuple([{"lat": loc.latitude, "lng": loc.longitude}][0].values())
     return distance.distance(mountain_pos, test_loc).m <= radius
 
 
-def displace_camera(camera_lat, camera_lon, degrees, distance):
+def displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1):
     delta = distance / EARTH_RADIUS
 
     def to_radians(theta):
@@ -315,16 +241,26 @@ def get_min_max_coordinates(dem_file):
     return lower_left + upper_right
 
 
-def get_raster_bounds(dem_file):
+def get_raster_bounds(dem_file, lat_lon=True):
     ds_raster = rasterio.open(dem_file)
     bounds = ds_raster.bounds
 
     def format_coords(coords):
         return [c[0] for c in coords]
 
-    lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
-    upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
-    upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
-    lower_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.bottom))
+    if lat_lon:
+
+        lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
+        upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
+        upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
+        lower_right = format_coords(
+            crs_to_wgs84(ds_raster, bounds.right, bounds.bottom)
+        )
+
+    else:
+        lower_left = (bounds.left, bounds.bottom)
+        upper_left = (bounds.left, bounds.top)
+        upper_right = (bounds.right, bounds.top)
+        lower_right = (bounds.right, bounds.bottom)
 
     return lower_left, upper_left, upper_right, lower_right

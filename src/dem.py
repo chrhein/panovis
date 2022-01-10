@@ -4,10 +4,10 @@ import subprocess
 from data_getters.mountains import get_mountain_data
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
-    plot_to_map,
     get_mountains_in_sight,
     get_raster_data,
 )
+from map_plotting import plot_to_map
 from povs import primary_pov, debug_pov
 from tools.color_map import (
     create_route_texture,
@@ -40,7 +40,7 @@ def render_dem(panorama_path, mode, mountains):
 
     pov_filename = "/tmp/pov_file.pov"
     scale = 1.25
-    render_shape = [4800 * scale, 900 * scale]
+    render_shape = [4800 * scale, 800 * scale]
 
     raster_data = get_raster_data(dem_file, coordinates)
     if not raster_data:
@@ -55,14 +55,20 @@ def render_dem(panorama_path, mode, mountains):
     ]
 
     if mode == "debug":
-        route_texture, texture_bounds = create_route_texture(dem_file, gpx_file, True)
+        debug_mode = 2  # 1 for hike route texture
+        if debug_mode == 1:
+            route_texture, texture_bounds = create_route_texture(
+                dem_file, gpx_file, True
+            )
+        else:
+            route_texture, texture_bounds = "", None
         pov_filename, folder, _ = pov
         with open(pov_filename, "w") as pf:
-            pov = debug_pov(dem_file, route_texture, texture_bounds, raster_data[1][3])
+            pov = debug_pov(dem_file, route_texture, texture_bounds, raster_data[1][2])
             pf.write(pov)
             pf.close()
         out_filename = f"{folder}{ds_name}-render-debug.png"
-        params = [pov_filename, out_filename, [2400, 2400], "color"]
+        params = [pov_filename, out_filename, [500, 500], "color"]
         execute_pov(params)
     else:
         pov_filename, folder, im_dimensions = pov
@@ -108,7 +114,7 @@ def render_dem(panorama_path, mode, mountains):
             pov_mode = "gradient"
             out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
             gradient_render = os.path.isfile("%s" % out_filename)
-            gradient_path, _ = create_color_gradient_image(dem_file)
+            gradient_path, _ = create_color_gradient_image()
             if not gradient_render:
                 pov = primary_pov(
                     dem_file, raster_data, texture_path=gradient_path, mode=pov_mode
