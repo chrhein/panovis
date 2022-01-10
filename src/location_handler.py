@@ -1,8 +1,7 @@
-from math import floor, radians, asin, cos, sin, atan2, degrees, pi
-import math
+from math import radians, asin, cos, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
-from osgeo import ogr, osr, gdal
+from osgeo import ogr, osr
 from rasterio.warp import transform
 from image_manipulations import rotate_image
 from tools.debug import p_i, p_e, p_line, p_s
@@ -16,27 +15,13 @@ import operator
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
 import cv2
-from subprocess import call
-from os import system
-from numpy import arctan2, random, sin, cos, degrees
+from numpy import arctan2, sin, cos, degrees
 
 # constants
 EARTH_RADIUS = 6378.1
 
 
 def get_raster_data(dem_file, coordinates):
-    """lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
-
-    ll1, ll2 = lower_left
-    ul1, ul2 = upper_left
-    ur1, ur2 = upper_right
-    lr1, lr2 = lower_right
-    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGBA)
-    angle = get_bearing(ll1, ll2, ul1, ul2)
-    im = rotate_image(im, angle / 2)
-    cv2.imshow("gradient", im)
-    cv2.waitKey(0)
-    exit()"""
     ds_raster = rasterio.open(dem_file)
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
@@ -272,42 +257,20 @@ def plot_to_map(
     lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
 
     ll1, ll2 = lower_left
-    ul1, ul2 = upper_left
-    ur1, ur2 = upper_right
-    lr1, lr2 = lower_right
+    _, ul2 = upper_left
+    ur1, _ = upper_right
+    _, lr2 = lower_right
 
     color_gradient = folium.FeatureGroup(name="Color Gradient (Not Working)", show=True)
     m.add_child(color_gradient)
     im = cv2.imread("data/color_gradient.png")
     angle = get_bearing(ll1, ll2, ur1, ul2)
     rotated = rotate_image(im, angle)
-    black_mask = np.all(rotated == 0, axis=-1)
-    alpha = np.uint8(np.logical_not(black_mask)) * 255
+    whites = np.all(rotated == 255, axis=-1)
+    alpha = np.uint8(np.logical_not(whites)) * 255
     bgra = np.dstack((rotated, alpha))
     im = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGBA)
 
-    """ h, w, _ = im.shape
-
-    os_call = " "
-
-    system(
-        os_call.join(
-            [
-                "gdal_translate -a_srs EPSG:4326",
-                f"-gcp 0 0 {ll1} {ll2}",
-                f"-gcp {h} 0 {ul1} {ul2}",
-                f"-gcp 0 {w} {lr1} {lr2}",
-                f"-gcp {h} {w} {ur1} {ur2}",
-                "data/color_gradient.png dev/image_trans.tiff",
-            ]
-        )
-    )
-
-    system(
-        "gdalwarp -dstalpha -t_srs EPSG:4326 dev/image_trans.tiff dev/image_warped.tiff"
-    )
-
-    im = cv2.cvtColor(cv2.imread("dev/image_warped.tiff"), cv2.COLOR_BGR2RGB) """
     folium.raster_layers.ImageOverlay(
         image=im,
         bounds=[(ll1, ul2), (ur1, lr2)],

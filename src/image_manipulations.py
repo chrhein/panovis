@@ -24,16 +24,9 @@ def change_brightness(img, value=30):
     return img
 
 
-def rotate_image(mat, angle):
-    """
-    Rotates an image (angle in degrees) and expands image to avoid cropping
-    """
-
-    height, width = mat.shape[:2]  # image shape has 3 dimensions
-    image_center = (
-        width / 2,
-        height / 2,
-    )  # getRotationMatrix2D needs coordinates in reverse order (width, height) compared to shape
+def rotate_image(image, angle):
+    height, width, _ = image.shape
+    image_center = (width / 2, height / 2)
 
     rotation_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
 
@@ -50,7 +43,13 @@ def rotate_image(mat, angle):
     rotation_mat[1, 2] += bound_h / 2 - image_center[1]
 
     # rotate image with the new bounds and translated rotation matrix
-    rotated_mat = cv2.warpAffine(mat, rotation_mat, (bound_w, bound_h))
+    rotated_mat = cv2.warpAffine(
+        image,
+        rotation_mat,
+        (bound_w, bound_h),
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(255, 255, 255, 0),
+    )
     return rotated_mat
 
 
