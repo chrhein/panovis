@@ -1,19 +1,19 @@
-from math import radians, asin, cos, sin, atan2, degrees, pi
+from math import asin, cos, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
-from osgeo import ogr, osr
-from rasterio.warp import transform
+from tools.converters import (
+    convert_coordinates,
+    crs_to_cor,
+    crs_to_wgs84,
+    get_earth_radius,
+)
 from tools.debug import p_i, p_e, p_line, p_s
-from tools.types import Location
 from geopy import distance
-from functools import reduce
-import operator
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
-
-# constants
-EARTH_RADIUS = 6378.1
+import cv2
+from operator import attrgetter
 
 
 def get_raster_data(dem_file, coordinates):
@@ -49,112 +49,34 @@ def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
     return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
 
 
-def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
-    min_x, min_y, max_x, max_y = bounds
-    coordinate_pair = cor_to_crs(to_espg, lat, lon)
-    polar_lat = coordinate_pair.GetX()
-    polar_lon = coordinate_pair.GetY()
-    lat_scaled = (polar_lat - min_x) / (max_x - min_x)
-    lon_scaled = (polar_lon - min_y) / (max_y - min_y)
-    return [lat_scaled, lon_scaled]
+def find_visible_coordinates_in_render(ds_name, gradient_path, folder, dem_file):
+    render_with_gradient = f"{ds_name}-render-gradient.png"
+    p_i(f"Finding all visible coordinates in {render_with_gradient}")
+    render_path = f"{folder}{render_with_gradient}"
+    image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
+    p_i("Computing list of unique colors")
+    unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
 
+    p_i("Getting pixel coordinates for colors in render")
+    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
+    color_coordinates = [np.where(np.all(g == i, axis=-1)) for i in unique_colors]
+    color_coordinates = [(i[0][0], i[1][0]) for i in color_coordinates if len(i[0]) > 0]
 
-def convert_coordinates(raster, to_espg, lat, lon):
-    b = raster.bounds
-    min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
-    coordinate_pair = cor_to_crs(to_espg, lat, lon)
-    polar_lat = coordinate_pair.GetX()
-    polar_lon = coordinate_pair.GetY()
+    latlon_color_coordinates = []
+    ds_raster = rasterio.open(dem_file)
+    ds_raster_height_band = ds_raster.read(1)
+    crs = int(ds_raster.crs.to_authority()[1])
+    dims = ds_raster_height_band.shape
 
-    resolution = raster.transform[0]
-    lat_scaled = (polar_lat - min_x) / (max_x - min_x)
-    lon_scaled = (polar_lon - min_y) / (max_y - min_y)
+    x_ = dims[0] / (2 ** 8)
+    y_ = dims[1] / (2 ** 8)
 
-    to_crs = raster.crs
-    from_crs = rasterio.crs.CRS.from_epsg(4326)
-    new_x, new_y = reduce(operator.add, transform(from_crs, to_crs, [lon], [lat]))
-    row, col = raster.index(new_x, new_y)
-    h = raster.read(1)
-
-    try:
-        height = h[row][col]
-    except IndexError:
-        return
-
-    def scale_height(height):
-        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2.1
-
-    height_scaled = scale_height(height)
-    height_max_mountain_scaled = scale_height(h.max())
-
-    return [
-        lat_scaled,
-        height_scaled,
-        lon_scaled,
-        height_max_mountain_scaled,
-    ]
-
-
-# lat/lon to coordinate reference system coordinates
-def cor_to_crs(to_espg, lat, lon):
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_espg)
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(in_sr)
-    coordinate_pair.TransformTo(out_sr)
-    return coordinate_pair
-
-
-def crs_to_cor(to_espg, lat, lon, ele):
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_espg)
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(out_sr)
-    coordinate_pair.TransformTo(in_sr)
-    lat = coordinate_pair.GetX()
-    lon = coordinate_pair.GetY()
-    return Location(latitude=float(lat), longitude=float(lon), elevation=ele)
-
-
-def crs_to_wgs84(dataset, x, y):
-    crs = rasterio.crs.CRS.from_epsg(4326)
-    lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
-    return (lat, lon)
-
-
-def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
-    bearing = radians(true_course)
-    d = dist_in_kms
-    lat1, lon1 = radians(in_lat), radians(in_lon)
-    lat2 = asin(
-        sin(lat1) * cos(d / EARTH_RADIUS)
-        + cos(lat1) * sin(d / EARTH_RADIUS) * cos(bearing)
-    )
-    lon2 = lon1 + atan2(
-        sin(bearing) * sin(d / EARTH_RADIUS) * cos(lat1),
-        cos(d / EARTH_RADIUS) - sin(lat1) * sin(lat2),
-    )
-    lat2, lon2 = degrees(lat2), degrees(lon2)
-    return lat2, lon2
-
-
-def get_bearing(lat1, lon1, lat2, lon2):
-    dL = lon2 - lon1
-    X = cos(lat2) * sin(dL)
-    Y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dL)
-    bearing = arctan2(X, Y)
-    return degrees(bearing)
-
-
-def to_latlon(x, y, ds_raster):
-    latitude, longitude = crs_to_wgs84(ds_raster, x, y)
-    return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
+    for x, y in color_coordinates:
+        s_x, s_y = round(x * x_), round(y * y_)
+        px, py = ds_raster.xy(s_x, s_y)
+        height = ds_raster_height_band[s_x, s_y]
+        latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
+    return latlon_color_coordinates
 
 
 def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
@@ -175,13 +97,8 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
 
     mountains_in_sight = {}
     min_mountain_height = min([i.location.elevation for i in filtered_mountains])
-    max_mountain_height = max([i.location.elevation for i in filtered_mountains])
 
-    copied_locs = [
-        i
-        for i in locs
-        if i.elevation >= min_mountain_height and i.elevation <= max_mountain_height
-    ]
+    copied_locs = [i for i in locs if i.elevation >= min_mountain_height]
     p_line(
         [
             f"Total number of locations:     {len(locs)}",
@@ -213,7 +130,7 @@ def loc_close_to_mountain(loc, m, radius):
 
 
 def displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1):
-    delta = distance / EARTH_RADIUS
+    delta = distance / get_earth_radius()
 
     def to_radians(theta):
         return np.dot(theta, np.pi) / np.float32(180.0)
@@ -249,14 +166,12 @@ def get_raster_bounds(dem_file, lat_lon=True):
         return [c[0] for c in coords]
 
     if lat_lon:
-
         lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
         upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
         upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
         lower_right = format_coords(
             crs_to_wgs84(ds_raster, bounds.right, bounds.bottom)
         )
-
     else:
         lower_left = (bounds.left, bounds.bottom)
         upper_left = (bounds.left, bounds.top)
@@ -264,3 +179,23 @@ def get_raster_bounds(dem_file, lat_lon=True):
         lower_right = (bounds.right, bounds.bottom)
 
     return lower_left, upper_left, upper_right, lower_right
+
+
+def get_bearing(lat1, lon1, lat2, lon2):
+    dL = lon2 - lon1
+    X = cos(lat2) * sin(dL)
+    Y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dL)
+    bearing = arctan2(X, Y)
+    return degrees(bearing)
+
+
+def find_minimums(locations):
+    min_lat = min(locations, key=attrgetter("latitude"))
+    min_lon = min(locations, key=attrgetter("longitude"))
+    return [min_lat, min_lon]
+
+
+def find_maximums(locations):
+    max_lat = max(locations, key=attrgetter("latitude"))
+    max_lon = max(locations, key=attrgetter("longitude"))
+    return [max_lat, max_lon]

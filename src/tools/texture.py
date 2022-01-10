@@ -5,8 +5,8 @@ import pickle
 import rasterio
 import subprocess
 from osgeo import gdal
-from data_getters.mountains import read_hike_gpx
-from location_handler import convert_single_coordinate_pair, cor_to_crs, crs_to_cor
+from tools.converters import convert_single_coordinate_pair, cor_to_crs
+from tools.file_handling import read_hike_gpx
 from tools.types import TextureBounds
 from tools.debug import p_i
 
@@ -41,11 +41,6 @@ def create_color_gradient_image():
     img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
     cv2.imwrite(gradient_path, img)
     return gradient_path, gradient
-
-
-def load_pickle(path):
-    with open(path, "rb") as f:
-        return pickle.load(f)
 
 
 def create_route_texture(dem_file, gpx_path, debugging=False):
@@ -158,39 +153,3 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     subprocess.call(["rm", "-r", f"{folder}/{filename}-output_crop_raster.tif"])
 
     return [im_path, tex_bounds]
-
-
-def colors_to_coordinates(ds_name, gradient_path, folder, dem_file):
-    render_with_gradient = f"{ds_name}-render-gradient.png"
-    p_i(f"Finding all visible coordinates in {render_with_gradient}")
-    render_path = f"{folder}{render_with_gradient}"
-    image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
-    p_i("Computing list of unique colors")
-    unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
-
-    p_i("Getting pixel coordinates for colors in render")
-    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-    color_coordinates = [np.where(np.all(g == i, axis=-1)) for i in unique_colors]
-    color_coordinates = [(i[0][0], i[1][0]) for i in color_coordinates if len(i[0]) > 0]
-
-    latlon_color_coordinates = []
-    ds_raster = rasterio.open(dem_file)
-    ds_raster_height_band = ds_raster.read(1)
-    crs = int(ds_raster.crs.to_authority()[1])
-    dims = ds_raster_height_band.shape
-
-    x_ = dims[0] / (2 ** 8)
-    y_ = dims[1] / (2 ** 8)
-
-    for x, y in color_coordinates:
-        s_x, s_y = round(x * x_), round(y * y_)
-        px, py = ds_raster.xy(s_x, s_y)
-        height = ds_raster_height_band[s_x, s_y]
-        latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
-    return latlon_color_coordinates
-
-
-def rgb_to_hex(color, bgr=False):
-    r, g, b = color
-    color_space = (b, g, r) if bgr else (r, g, b)
-    return "%02X%02X%02X" % (color_space)
