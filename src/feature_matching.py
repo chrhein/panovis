@@ -1,5 +1,5 @@
 import cv2
-from image_manipulations import flip, trim_edges
+from image_handling import flip, trim_edges
 
 
 def sift(image, detector):

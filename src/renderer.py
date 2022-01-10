@@ -1,19 +1,19 @@
 import os
 import time
 import subprocess
-from data_getters.mountains import get_mountain_data
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
+    find_visible_coordinates_in_render,
     get_mountains_in_sight,
     get_raster_data,
 )
 from map_plotting import plot_to_map
 from povs import primary_pov, debug_pov
-from tools.color_map import (
+from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
-    colors_to_coordinates,
 )
+from tools.file_handling import get_mountain_data
 
 
 def render_dem(panorama_path, mode, mountains):
@@ -123,7 +123,9 @@ def render_dem(panorama_path, mode, mountains):
                 with open(pov_filename, "w") as pf:
                     pf.write(pov)
                 execute_pov(params)
-            locs = colors_to_coordinates(ds_name, gradient_path, folder, dem_file)
+            locs = find_visible_coordinates_in_render(
+                ds_name, gradient_path, folder, dem_file
+            )
 
             radius = 150  # in meters
             mountains_in_sight = get_mountains_in_sight(

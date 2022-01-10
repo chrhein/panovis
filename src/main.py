@@ -1,10 +1,14 @@
 import os
 from feature_matching import feature_matching
 from edge_detection import edge_detection
-from dem import render_dem
-from data_getters.mountains import get_mountains, compare_two_mountain_lists
-from im import save_image
-from tools.file_handling import select_file, tui_select
+from renderer import render_dem
+from image_handling import save_image
+from tools.file_handling import (
+    compare_two_mountain_lists,
+    get_mountains,
+    select_file,
+    tui_select,
+)
 
 
 def main():

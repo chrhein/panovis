@@ -1,5 +1,4 @@
-import numpy as np
-from image_manipulations import rotate_image_on_map
+from image_handling import rotate_image_on_map
 from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
@@ -122,4 +121,45 @@ def plot_to_map(
     ).add_to(color_gradient)
 
     folium.LayerControl().add_to(m)
+    m.save(filename)
+
+
+def compare_mtns_on_map(all_mtns, mn1, mn2, filename):
+    def get_marker_color(i):
+        if i in mn1 and i in mn2:
+            return "green"
+        elif i in mn1:
+            return "red"
+        elif i in mn2:
+            return "blue"
+        else:
+            return "white"
+
+    load_dotenv()
+    MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
+    MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
+    lats, lons = zip(*[(i.location.latitude, i.location.longitude) for i in mn1])
+    m = folium.Map(
+        location=[(sum(lats) / len(lats)), (sum(lons) / len(lons))],
+        tiles=MAPBOX_STYLE_URL,
+        API_key=MAPBOX_TOKEN,
+        zoom_start=12,
+        attr="Christian Hein",
+    )
+    [
+        (
+            folium.Marker(
+                location=(float(i.location.latitude), float(i.location.longitude)),
+                popup="%s\n%.4f, %.4f\n%im"
+                % (
+                    str(i.name),
+                    i.location.latitude,
+                    i.location.longitude,
+                    i.location.elevation,
+                ),
+                icon=folium.Icon(color=get_marker_color(i), icon="mountain"),
+            ).add_to(m)
+        )
+        for i in all_mtns
+    ]
     m.save(filename)
