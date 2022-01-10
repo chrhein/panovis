@@ -12,7 +12,6 @@ from tools.file_handling import get_files, tui_select
 from tools.types import Location, Mountain, MountainBounds
 from operator import attrgetter
 from osgeo import gdal
-from affine import Affine
 
 
 def get_mountain_data(json_path, panorama_path):

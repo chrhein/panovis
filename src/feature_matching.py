@@ -1,6 +1,5 @@
 import cv2
-from image_manipulations import flip, resizer, trim_edges
-from tools.debug import custom_imshow
+from image_manipulations import flip, trim_edges
 
 
 def sift(image, detector):
@@ -14,7 +13,6 @@ def feature_matching(pano, render):
 
     def get_key_points(image):
         im = cv2.imread(image)
-        # resized = resizer(im, im_width=2800) if max(im.shape[:2]) > 2800 else im
         flipped = flip(im)
         flipped = cv2.GaussianBlur(flipped, (3, 5), 0)
         trimmed = trim_edges(flipped)
@@ -50,4 +48,3 @@ def feature_matching(pano, render):
         pano, kp_pano, render, kp_render, matches, None, **draw_params
     )
     return flip(result, 1)
-    # return res
