@@ -1,8 +1,10 @@
-from math import radians, asin, cos, sin, atan2, degrees, pi
+from math import floor, radians, asin, cos, sin, atan2, degrees, pi
+import math
 import numpy as np
 import rasterio
-from osgeo import ogr, osr
+from osgeo import ogr, osr, gdal
 from rasterio.warp import transform
+from image_manipulations import rotate_image
 from tools.debug import p_i, p_e, p_line, p_s
 from dotenv import load_dotenv
 import folium, folium.raster_layers
@@ -14,14 +16,28 @@ import operator
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
 import cv2
+from subprocess import call
+from os import system
+from numpy import arctan2, random, sin, cos, degrees
 
 # constants
 EARTH_RADIUS = 6378.1
 
 
 def get_raster_data(dem_file, coordinates):
+    """lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+
+    ll1, ll2 = lower_left
+    ul1, ul2 = upper_left
+    ur1, ur2 = upper_right
+    lr1, lr2 = lower_right
+    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGBA)
+    angle = get_bearing(ll1, ll2, ul1, ul2)
+    im = rotate_image(im, angle / 2)
+    cv2.imshow("gradient", im)
+    cv2.waitKey(0)
+    exit()"""
     ds_raster = rasterio.open(dem_file)
-    # plot_to_map(None, coordinates, "dev/test_map.html", dem_file)
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     # convert lat_lon to grid coordinates in the interval [0, 1]
@@ -148,6 +164,14 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     return lat2, lon2
 
 
+def get_bearing(lat1, lon1, lat2, lon2):
+    dL = lon2 - lon1
+    X = cos(lat2) * sin(dL)
+    Y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dL)
+    bearing = arctan2(X, Y)
+    return degrees(bearing)
+
+
 def to_latlon(x, y, ds_raster):
     latitude, longitude = crs_to_wgs84(ds_raster, x, y)
     return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
@@ -245,14 +269,48 @@ def plot_to_map(
         raster_bounds
     )
 
-    color_gradient = folium.FeatureGroup(
-        name="Color Gradient (Not Working)", show=False
-    )
+    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+
+    ll1, ll2 = lower_left
+    ul1, ul2 = upper_left
+    ur1, ur2 = upper_right
+    lr1, lr2 = lower_right
+
+    color_gradient = folium.FeatureGroup(name="Color Gradient (Not Working)", show=True)
     m.add_child(color_gradient)
-    im = cv2.cvtColor(cv2.imread("data/color_gradient.png"), cv2.COLOR_BGR2RGB)
+    im = cv2.imread("data/color_gradient.png")
+    angle = get_bearing(ll1, ll2, ur1, ul2)
+    rotated = rotate_image(im, angle)
+    black_mask = np.all(rotated == 0, axis=-1)
+    alpha = np.uint8(np.logical_not(black_mask)) * 255
+    bgra = np.dstack((rotated, alpha))
+    im = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGBA)
+
+    """ h, w, _ = im.shape
+
+    os_call = " "
+
+    system(
+        os_call.join(
+            [
+                "gdal_translate -a_srs EPSG:4326",
+                f"-gcp 0 0 {ll1} {ll2}",
+                f"-gcp {h} 0 {ul1} {ul2}",
+                f"-gcp 0 {w} {lr1} {lr2}",
+                f"-gcp {h} {w} {ur1} {ur2}",
+                "data/color_gradient.png dev/image_trans.tiff",
+            ]
+        )
+    )
+
+    system(
+        "gdalwarp -dstalpha -t_srs EPSG:4326 dev/image_trans.tiff dev/image_warped.tiff"
+    )
+
+    im = cv2.cvtColor(cv2.imread("dev/image_warped.tiff"), cv2.COLOR_BGR2RGB) """
     folium.raster_layers.ImageOverlay(
         image=im,
-        bounds=[ll, ur],
+        bounds=[(ll1, ul2), (ur1, lr2)],
         mercator_project=True,
         origin="upper",
     ).add_to(color_gradient)
@@ -345,16 +403,26 @@ def get_min_max_coordinates(dem_file):
     return lower_left + upper_right
 
 
-def get_raster_bounds(dem_file):
+def get_raster_bounds(dem_file, lat_lon=True):
     ds_raster = rasterio.open(dem_file)
     bounds = ds_raster.bounds
 
     def format_coords(coords):
         return [c[0] for c in coords]
 
-    lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
-    upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
-    upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
-    lower_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.bottom))
+    if lat_lon:
+
+        lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
+        upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
+        upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
+        lower_right = format_coords(
+            crs_to_wgs84(ds_raster, bounds.right, bounds.bottom)
+        )
+
+    else:
+        lower_left = (bounds.left, bounds.bottom)
+        upper_left = (bounds.left, bounds.top)
+        upper_right = (bounds.right, bounds.top)
+        lower_right = (bounds.right, bounds.bottom)
 
     return lower_left, upper_left, upper_right, lower_right
