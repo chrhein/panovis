@@ -4,10 +4,10 @@ import subprocess
 from data_getters.mountains import get_mountain_data
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
-    plot_to_map,
     get_mountains_in_sight,
     get_raster_data,
 )
+from map_plotting import plot_to_map
 from povs import primary_pov, debug_pov
 from tools.color_map import (
     create_route_texture,
