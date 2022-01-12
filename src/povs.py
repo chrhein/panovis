@@ -94,10 +94,10 @@ def primary_pov(
     #end
 
     camera {
-        cylinder 1
+        spherical
+        angle 360 180
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle 360
     }
 
     light_source { CAMERAPOS color White }
