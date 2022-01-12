@@ -1,14 +1,13 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for
-from main import main
 
 
 def create_app():
-    app = Flask(__name__, static_url_path="/static")
-    UPLOAD_FOLDER = "static/uploads/"
+    app = Flask(__name__, static_url_path="/src/static")
+    UPLOAD_FOLDER = "src/static/"
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
     main_modes = [
         "DEM Rendering",
         "Edge Detection",
@@ -26,20 +25,27 @@ def create_app():
         if request.method == "POST":
             mode = int(request.form["mode-selector"]) - 1
             if mode == 0:
-                return redirect(f"/panos")
+                return redirect(f"/select_panorama")
             elif mode == 1:
                 return redirect(f"/ed")
             elif mode == 2:
                 return redirect(f"/fm")
 
-    @app.route("/panos", methods=["POST", "GET"])
-    def select_panorama():
-        pics = sorted(os.listdir("src/static/panoramas/"))
-        return render_template("photo_select.html", pics=pics)
+    @app.route("/select_panorama", methods=["POST", "GET"])
+    def choose_pano():
+        return render_template("upload_pano.html")
+
+    @app.route("/upload", methods=["POST", "GET"])
+    def upload():
+        if request.method == "POST":
+            f = request.files["file"]
+            pano = f"src/static/{f.filename}"
+            f.save(pano)
+            return redirect(url_for("dem", pano=pano))
 
     @app.route("/dem")
     def dem():
-        return render_template("dem.html")
+        return render_template("dem.html", pano=request.args.get("pano"))
 
     @app.route("/ed")
     def ed():
