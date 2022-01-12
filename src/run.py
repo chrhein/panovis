@@ -1,5 +1,14 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    send_from_directory,
+)
+
+from renderer import render_dem
 
 
 def create_app():
@@ -7,53 +16,40 @@ def create_app():
     UPLOAD_FOLDER = "src/static/"
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-    main_modes = [
-        "DEM Rendering",
-        "Edge Detection",
-        "Feature Matching",
-        "Compare Datasets",
-        "Previous Choices",
-    ]
+    app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 
-    @app.route("/")
+    @app.route("/", methods=["POST", "GET"])
     def homepage():
-        return render_template("index.html", modes=main_modes)
-
-    @app.route("/modes", methods=["POST", "GET"])
-    def select_mode():
-        if request.method == "POST":
-            mode = int(request.form["mode-selector"]) - 1
-            if mode == 0:
-                return redirect(f"/select_panorama")
-            elif mode == 1:
-                return redirect(f"/ed")
-            elif mode == 2:
-                return redirect(f"/fm")
-
-    @app.route("/select_panorama", methods=["POST", "GET"])
-    def choose_pano():
         return render_template("upload_pano.html")
 
     @app.route("/upload", methods=["POST", "GET"])
     def upload():
         if request.method == "POST":
             f = request.files["file"]
-            pano = f"src/static/{f.filename}"
+            pano = f"{UPLOAD_FOLDER}{f.filename}"
             f.save(pano)
-            return redirect(url_for("dem", pano=pano))
+            return redirect(url_for("rendering_dem", pano=pano))
 
-    @app.route("/dem")
-    def dem():
-        return render_template("dem.html", pano=request.args.get("pano"))
+    @app.route("/uploads/<filename>")
+    def download_file(filename):
+        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-    @app.route("/ed")
-    def ed():
-        return render_template("ed.html")
+    @app.route("/rendering_dem")
+    def rendering_dem():
+        pano = request.args.get("pano")
+        return render_template("rendering_dem.html", pano=pano)
 
-    @app.route("/fm")
-    def fm():
-        return render_template("fm.html")
+    @app.route("/rendering")
+    def rendering():
+        pano = request.args.get("pano")
+        app.logger.info(f"Rendering {pano}")
+        render = render_dem(pano, 2, "")
+        return redirect(url_for("render_preview", render=render))
+
+    @app.route("/render_preview")
+    def render_preview():
+        render = request.args.get("render")
+        return render_template("render_preview.html", render=render)
 
     return app
 

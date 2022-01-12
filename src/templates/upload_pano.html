@@ -9,25 +9,27 @@
             integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
             crossorigin="anonymous"
         />
-        <title>Choose Panorama</title>
+        <title>E2 - Choose Panorama</title>
     </head>
     <body>
-        <div class="px-4 py-5 my-5 text-center">
-            <h3 class="fw-bold">Select panorama:</h3>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                <form
-                    action="/upload"
-                    method="POST"
-                    enctype="multipart/form-data"
-                >
-                    <input type="file" name="file" />
-                    <button
-                        type="submit"
-                        class="btn btn-primary btn-lg px-4 gap-3"
+        <div class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">Select panorama</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
+                    <form
+                        action="/upload"
+                        method="POST"
+                        enctype="multipart/form-data"
                     >
-                        Select
-                    </button>
-                </form>
+                        <input type="file" name="file" />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
+                        >
+                            Select
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
         <script

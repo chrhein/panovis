@@ -19,7 +19,7 @@ from tools.file_handling import get_mountain_data
 def render_dem(panorama_path, mode, mountains):
     start_time = time.time()
     panorama_filename = panorama_path.split("/")[-1].split(".")[0]
-    folder = "exports/%s/" % panorama_filename
+    folder = "src/static/"
     gpx_file = "data/hikes/%s.gpx" % panorama_filename
 
     try:
@@ -84,12 +84,13 @@ def render_dem(panorama_path, mode, mountains):
         elif mode == 2:
             pov_mode = "height"
             pov = primary_pov(dem_file, raster_data, mode=pov_mode)
-            out_filename = f"{folder}{ds_name}-render-{pov_mode}.png"
+            out_filename = f"{folder}render.png"
             params = [pov_filename, out_filename, im_dimensions, "color"]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
             pf.close()
             execute_pov(params)
+            return out_filename
         elif mode == 3:
             pov_mode = "texture"
             gpx_exists = os.path.isfile("%s" % gpx_file)
