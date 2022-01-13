@@ -9,30 +9,69 @@
             integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
             crossorigin="anonymous"
         />
-        <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>
+        <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
+        <script type="text/javascript">
+            AFRAME.registerComponent('drag-rotate-component', {
+                schema: { speed: { default: 1 } },
+                init: function () {
+                    this.ifMouseDown = false
+                    this.x_cord = 0
+                    this.y_cord = 0
+                    document.addEventListener(
+                        'mousedown',
+                        this.OnDocumentMouseDown.bind(this)
+                    )
+                    document.addEventListener(
+                        'mouseup',
+                        this.OnDocumentMouseUp.bind(this)
+                    )
+                    document.addEventListener(
+                        'mousemove',
+                        this.OnDocumentMouseMove.bind(this)
+                    )
+                },
+                OnDocumentMouseDown: function (event) {
+                    this.ifMouseDown = true
+                    this.x_cord = event.clientX
+                    this.y_cord = event.clientY
+                },
+                OnDocumentMouseUp: function () {
+                    this.ifMouseDown = false
+                },
+                OnDocumentMouseMove: function (event) {
+                    if (this.ifMouseDown) {
+                        var temp_x = this.x_cord - event.clientX
+                        var temp_y = this.y_cord - event.clientY
+                        if (Math.abs(temp_y) < Math.abs(temp_x)) {
+                            this.el.object3D.rotateY(
+                                (temp_x * this.data.speed) / 1000
+                            )
+                        } else {
+                            this.el.object3D.rotateX(
+                                (temp_y * this.data.speed) / 1000
+                            )
+                        }
+                        this.x_cord = event.clientX
+                        this.y_cord = event.clientY
+                    }
+                },
+            })
+        </script>
         <title>E2 - DEM Rendering</title>
     </head>
     <body>
-        <!-- <a-scene>
-            <a-cylinder side="double"></a-cylinder>
-            <a-entity
-                geometry="primitive: cylinder"
-                material="src: src/static/render.png; side: double"
-            ></a-entity>
-
-            <a-sky src="src/static/render.png"></a-sky>
-        </a-scene> -->
-
         <a-scene>
             <a-assets>
                 <img id="render" src="src/static/render.png" />
+                <img id="pano" src="src/static/panorama1.jpg" />
             </a-assets>
 
             <a-entity light="type: ambient; color: #FFF"></a-entity>
 
             <a-plane
-                position="0 -0.75 0"
+                position="0 -2.25 0"
                 rotation="-90 0 0"
                 width="10"
                 height="10"
@@ -44,20 +83,21 @@
                 side="back"
                 material="side: back; repeat: -1 1"
                 open-ended="true"
-                position="0 1.5 0"
+                position="0 0 0"
                 height="4.5"
                 radius="5"
             ></a-cylinder>
 
-            <!-- <a-curvedimage
-                src="src/static/render_c.png"
-                position="0 1.75 0"
-                radius="10"
-                height="15"
-                thetaStart="0"
-                thetaLength="360"
-                side="double"
-            ></a-curvedimage> -->
+            <a-curvedimage
+                src="#pano"
+                position="0 0 0"
+                radius="5"
+                height="3"
+                drag-rotate-component
+            ></a-curvedimage>
+            <a-camera position="0 0 0" look-controls="enabled:false">
+                <a-cursor></a-cursor>
+            </a-camera>
         </a-scene>
 
         <script
