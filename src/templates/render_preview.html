@@ -18,11 +18,22 @@
                 init: function () {
                     this.ifMouseDown = false
                     this.opacityDecreased = false
+                    this.ifShiftKeyDown = false
                     this.x_cord = 0
                     this.y_cord = 0
 
                     var curvedImagePano =
                         document.getElementById('curvedImagePano')
+
+                    var cylinderImageRender = document.getElementById(
+                        'cylinderImageRender'
+                    )
+
+                    this.viewDirection =
+                        cylinderImageRender.getAttribute('rotation').y
+
+                    this.yHeight =
+                        cylinderImageRender.getAttribute('position').y
 
                     document.addEventListener(
                         'mousedown',
@@ -36,6 +47,14 @@
                         'mousemove',
                         this.OnDocumentMouseMove.bind(this)
                     )
+                    document.addEventListener(
+                        'keydown',
+                        this.OnDocumentKeyDown.bind(this)
+                    )
+                    document.addEventListener(
+                        'keyup',
+                        this.OnDocumentKeyUp.bind(this)
+                    )
                 },
                 OnDocumentMouseDown: function (event) {
                     this.ifMouseDown = true
@@ -48,24 +67,42 @@
                     this.opacityDecreased = false
                 },
                 OnDocumentMouseMove: function (event) {
-                    if (this.ifMouseDown) {
+                    if (this.ifMouseDown && this.ifShiftKeyDown) {
                         if (!this.opacityDecreased) {
-                            curvedImagePano.setAttribute('opacity', '0.5')
+                            curvedImagePano.setAttribute('opacity', '0.25')
+                            this.opacityDecreased = true
+                        }
+                        var temp_y = event.clientY - this.y_cord
+                        var new_y = (this.yHeight - temp_y) * 0.005
+                        cylinderImageRender.setAttribute('position', {
+                            x: 0,
+                            y: new_y,
+                            z: 0,
+                        })
+                        this.yHeight = new_y
+                    } else if (this.ifMouseDown) {
+                        if (!this.opacityDecreased) {
+                            curvedImagePano.setAttribute('opacity', '0.25')
                             this.opacityDecreased = true
                         }
                         var temp_x = this.x_cord - event.clientX
-                        var temp_y = this.y_cord - event.clientY
-                        if (Math.abs(temp_y) < Math.abs(temp_x)) {
-                            this.el.object3D.rotateY(
-                                (temp_x * this.data.speed) / 1000
-                            )
-                        } else {
-                            this.el.object3D.rotateX(
-                                (temp_y * this.data.speed) / 1000
-                            )
-                        }
-                        this.x_cord = event.clientX
-                        this.y_cord = event.clientY
+                        var new_x = (this.viewDirection + temp_x) * 0.1
+                        cylinderImageRender.setAttribute('rotation', {
+                            x: 0,
+                            y: new_x,
+                            z: 0,
+                        })
+                        this.viewDirection = new_x
+                    }
+                },
+                OnDocumentKeyDown: function (event) {
+                    if (event.keyCode == 16) {
+                        this.ifShiftKeyDown = true
+                    }
+                },
+                OnDocumentKeyUp: function (event) {
+                    if (event.keyCode == 16) {
+                        this.ifShiftKeyDown = false
                     }
                 },
             })
@@ -90,6 +127,7 @@
             ></a-plane>
 
             <a-cylinder
+                id="cylinderImageRender"
                 src="#render"
                 side="back"
                 material="side: back; repeat: -1 1"
@@ -100,7 +138,11 @@
                 drag-rotate-component
             ></a-cylinder>
 
-            <a-camera position="0 0 0" look-controls="enabled:false">
+            <a-camera
+                position="0 0 0"
+                look-controls="enabled:false"
+                wasd-controls-enabled="false"
+            >
                 <a-curvedimage
                     src="#pano"
                     id="curvedImagePano"
