@@ -17,8 +17,13 @@
                 schema: { speed: { default: 1 } },
                 init: function () {
                     this.ifMouseDown = false
+                    this.opacityDecreased = false
                     this.x_cord = 0
                     this.y_cord = 0
+
+                    var curvedImagePano =
+                        document.getElementById('curvedImagePano')
+
                     document.addEventListener(
                         'mousedown',
                         this.OnDocumentMouseDown.bind(this)
@@ -39,9 +44,15 @@
                 },
                 OnDocumentMouseUp: function () {
                     this.ifMouseDown = false
+                    curvedImagePano.setAttribute('opacity', '1')
+                    this.opacityDecreased = false
                 },
                 OnDocumentMouseMove: function (event) {
                     if (this.ifMouseDown) {
+                        if (!this.opacityDecreased) {
+                            curvedImagePano.setAttribute('opacity', '0.5')
+                            this.opacityDecreased = true
+                        }
                         var temp_x = this.x_cord - event.clientX
                         var temp_y = this.y_cord - event.clientY
                         if (Math.abs(temp_y) < Math.abs(temp_x)) {
@@ -62,7 +73,7 @@
         <title>E2 - DEM Rendering</title>
     </head>
     <body>
-        <a-scene>
+        <a-scene cursor="rayOrigin:mouse">
             <a-assets>
                 <img id="render" src="src/static/render.png" />
                 <img id="pano" src="src/static/panorama1.jpg" />
@@ -86,17 +97,20 @@
                 position="0 0 0"
                 height="4.5"
                 radius="5"
+                drag-rotate-component
             ></a-cylinder>
 
-            <a-curvedimage
-                src="#pano"
-                position="0 0 0"
-                radius="5"
-                height="3"
-                drag-rotate-component
-            ></a-curvedimage>
             <a-camera position="0 0 0" look-controls="enabled:false">
-                <a-cursor></a-cursor>
+                <a-curvedimage
+                    src="#pano"
+                    id="curvedImagePano"
+                    position="0 0 0"
+                    height="3"
+                    radius="4.95"
+                    theta-length="90"
+                    rotation="0 135 0"
+                >
+                </a-curvedimage>
             </a-camera>
         </a-scene>
 
