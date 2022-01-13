@@ -21,6 +21,7 @@
                     this.ifShiftKeyDown = false
                     this.x_cord = 0
                     this.y_cord = 0
+                    this.z_cord = 0
 
                     var curvedImagePano =
                         document.getElementById('curvedImagePano')
@@ -34,6 +35,9 @@
 
                     this.yHeight =
                         cylinderImageRender.getAttribute('position').y
+
+                    this.zPosition =
+                        cylinderImageRender.getAttribute('position').z
 
                     document.addEventListener(
                         'mousedown',
@@ -55,6 +59,10 @@
                         'keyup',
                         this.OnDocumentKeyUp.bind(this)
                     )
+                    document.addEventListener(
+                        'wheel',
+                        this.OnDocumentWheel.bind(this)
+                    )
                 },
                 OnDocumentMouseDown: function (event) {
                     this.ifMouseDown = true
@@ -73,25 +81,28 @@
                             this.opacityDecreased = true
                         }
                         var temp_y = event.clientY - this.y_cord
-                        var new_y = (this.yHeight - temp_y) * 0.005
+                        var new_y = this.yHeight - temp_y * 0.01
                         cylinderImageRender.setAttribute('position', {
                             x: 0,
                             y: new_y,
-                            z: 0,
+                            z: this.zPosition,
                         })
+                        this.y_cord = event.clientY
                         this.yHeight = new_y
-                    } else if (this.ifMouseDown) {
+                    }
+                    if (this.ifMouseDown) {
                         if (!this.opacityDecreased) {
                             curvedImagePano.setAttribute('opacity', '0.25')
                             this.opacityDecreased = true
                         }
-                        var temp_x = this.x_cord - event.clientX
-                        var new_x = (this.viewDirection + temp_x) * 0.1
+                        var temp_x = event.clientX - this.x_cord
+                        var new_x = this.viewDirection - temp_x * 0.1
                         cylinderImageRender.setAttribute('rotation', {
                             x: 0,
                             y: new_x,
-                            z: 0,
+                            z: this.zPosition,
                         })
+                        this.x_cord = event.clientX
                         this.viewDirection = new_x
                     }
                 },
@@ -103,6 +114,18 @@
                 OnDocumentKeyUp: function (event) {
                     if (event.keyCode == 16) {
                         this.ifShiftKeyDown = false
+                    }
+                },
+                OnDocumentWheel: function (event) {
+                    if (this.ifShiftKeyDown) {
+                        var scroll = event.deltaY - this.z_cord
+                        var new_z = this.zPosition - scroll * 0.01
+                        cylinderImageRender.setAttribute('position', {
+                            x: 0,
+                            y: this.yHeight,
+                            z: new_z,
+                        })
+                        this.zPosition = new_z
                     }
                 },
             })
@@ -117,14 +140,6 @@
             </a-assets>
 
             <a-entity light="type: ambient; color: #FFF"></a-entity>
-
-            <a-plane
-                position="0 -2.25 0"
-                rotation="-90 0 0"
-                width="10"
-                height="10"
-                color="#7BC8A4"
-            ></a-plane>
 
             <a-cylinder
                 id="cylinderImageRender"
