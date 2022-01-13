@@ -14,8 +14,50 @@
         <title>E2 - DEM Rendering</title>
     </head>
     <body>
-        <a-scene>
+        <!-- <a-scene>
+            <a-cylinder side="double"></a-cylinder>
+            <a-entity
+                geometry="primitive: cylinder"
+                material="src: src/static/render.png; side: double"
+            ></a-entity>
+
             <a-sky src="src/static/render.png"></a-sky>
+        </a-scene> -->
+
+        <a-scene>
+            <a-assets>
+                <img id="render" src="src/static/render.png" />
+            </a-assets>
+
+            <a-entity light="type: ambient; color: #FFF"></a-entity>
+
+            <a-plane
+                position="0 -0.75 0"
+                rotation="-90 0 0"
+                width="10"
+                height="10"
+                color="#7BC8A4"
+            ></a-plane>
+
+            <a-cylinder
+                src="#render"
+                side="back"
+                material="side: back; repeat: -1 1"
+                open-ended="true"
+                position="0 1.5 0"
+                height="4.5"
+                radius="5"
+            ></a-cylinder>
+
+            <!-- <a-curvedimage
+                src="src/static/render_c.png"
+                position="0 1.75 0"
+                radius="10"
+                height="15"
+                thetaStart="0"
+                thetaLength="360"
+                side="double"
+            ></a-curvedimage> -->
         </a-scene>
 
         <script

@@ -94,8 +94,8 @@ def primary_pov(
     #end
 
     camera {
-        spherical
-        angle 360 180
+        cylinder 1
+        angle 360
         location CAMERAPOS
         look_at CAMERALOOKAT
     }
