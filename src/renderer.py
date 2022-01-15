@@ -16,7 +16,7 @@ from tools.texture import (
 from tools.file_handling import get_mountain_data
 
 
-def render_dem(panorama_path, mode, mountains):
+def render_dem(panorama_path, mode, mountains, render_filename):
     start_time = time.time()
     panorama_filename = panorama_path.split("/")[-1].split(".")[0]
     folder = "src/static/"
@@ -39,7 +39,7 @@ def render_dem(panorama_path, mode, mountains):
         return
 
     pov_filename = "/tmp/pov_file.pov"
-    render_shape = [3000, 1000]
+    render_shape = [1500, 750]
 
     raster_data = get_raster_data(dem_file, coordinates)
     if not raster_data:
@@ -84,12 +84,11 @@ def render_dem(panorama_path, mode, mountains):
             pov_mode = "height"
             pov = primary_pov(dem_file, raster_data, mode=pov_mode)
             out_filename = f"{folder}render.png"
-            params = [pov_filename, out_filename, im_dimensions, "color"]
+            params = [pov_filename, render_filename, im_dimensions, "color"]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
             pf.close()
             execute_pov(params)
-            return out_filename
         elif mode == 3:
             pov_mode = "texture"
             gpx_exists = os.path.isfile("%s" % gpx_file)

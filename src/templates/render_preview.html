@@ -130,13 +130,13 @@
                 },
             })
         </script>
-        <title>E2 - DEM Rendering</title>
+        <title>E2 - Render Preview</title>
     </head>
     <body>
         <a-scene cursor="rayOrigin:mouse">
             <a-assets>
-                <img id="render" src="src/static/render.png" />
-                <img id="pano" src="src/static/panorama1.jpg" />
+                <img id="render" src="{{render_path}}" />
+                <img id="pano" src="{{pano_path}}" />
             </a-assets>
 
             <a-entity light="type: ambient; color: #FFF"></a-entity>

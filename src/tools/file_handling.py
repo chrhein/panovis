@@ -20,14 +20,14 @@ def get_mountain_data(json_path, panorama_path):
     with open(json_path) as json_file:
         data = json.load(json_file)
         dem_file = data["dem-path"]
-        camera_mountain = data["panoramas"][
-            "%s_camera" % panorama_path.split("/")[-1].split(".")[0]
-        ]
         image_location = get_exif_data(panorama_path)
         if image_location:
             camera_lat, camera_lon = image_location.latitude, image_location.longitude
         else:
             try:
+                camera_mountain = data["panoramas"][
+                    "%s_camera" % panorama_path.split("/")[-1].split(".")[0]
+                ]
                 camera_lat, camera_lon = camera_mountain["latlon"]
             except KeyError:
                 camera_lat, camera_lon = input_latlon()

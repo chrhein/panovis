@@ -30,26 +30,29 @@ def create_app():
             f.save(pano)
             return redirect(url_for("rendering_dem", pano=pano))
 
-    @app.route("/uploads/<filename>")
-    def download_file(filename):
-        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
-
     @app.route("/rendering_dem")
     def rendering_dem():
-        pano = request.args.get("pano")
-        return render_template("rendering_dem.html", pano=pano)
+        pano_path = request.args.get("pano")
+        pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
+        render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
+        return render_template(
+            "rendering_dem.html", pano_path=pano_path, render_path=render_path
+        )
 
     @app.route("/rendering")
     def rendering():
-        pano = request.args.get("pano")
-        app.logger.info(f"Rendering {pano}")
-        render = render_dem(pano, 2, "")
-        return redirect(url_for("render_preview", render=render))
+        pano_path = request.args.get("pano_path")
+        render_path = request.args.get("render_path")
+        render_dem(pano_path, 2, "", render_filename=render_path)
+        return ("", 204)
 
     @app.route("/render_preview")
     def render_preview():
-        render = request.args.get("render")
-        return render_template("render_preview.html", render=render)
+        pano_path = request.args.get("pano_path")
+        render_path = request.args.get("render_path")
+        return render_template(
+            "render_preview.html", pano_path=pano_path, render_path=render_path
+        )
 
     return app
 

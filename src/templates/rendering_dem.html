@@ -11,9 +11,12 @@
         />
         <script>
             function navigate() {
-                window.location.href = 'render_preview' // redirect when done!
+                window.location.href =
+                    'render_preview?pano_path={{pano_path}}&render_path={{render_path}}' // redirect when done!
             }
-            fetch('/rendering?pano={{pano}}').then(navigate) // load the slow url then navigate
+            fetch(
+                '/rendering?pano_path={{pano_path}}&render_path={{render_path}}'
+            ).then(navigate) // load the slow url then navigate
         </script>
         <title>E2 - DEM Rendering</title>
     </head>
@@ -21,7 +24,7 @@
         <div class="px-4 py-5 my-5 text-center">
             <div class="container px-4">
                 <div class="row gx-5">
-                    <img src="{{pano}}" alt="Panorama" width="100%" />
+                    <img src="{{pano_path}}" alt="Panorama" width="100%" />
                     <div class="p-4">
                         <button class="btn btn-primary" type="button" disabled>
                             <span
