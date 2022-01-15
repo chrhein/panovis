@@ -1,14 +1,11 @@
-import os
 from flask import (
     Flask,
     render_template,
     request,
     redirect,
     url_for,
-    send_from_directory,
 )
 from werkzeug.utils import secure_filename
-from PIL import Image
 from image_handling import reduce_filesize
 from renderer import render_dem
 from tools.file_handling import make_folder

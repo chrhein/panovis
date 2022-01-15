@@ -9,172 +9,53 @@
             integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
             crossorigin="anonymous"
         />
-        <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css"
+            integrity="sha512-UoT/Ca6+2kRekuB1IDZgwtDt0ZUfsweWmyNhMqhG4hpnf7sFnhrLrO0zHJr2vFp7eZEvJ3FN58dhVx+YMJMt2A=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
 
-        <script type="text/javascript">
-            AFRAME.registerComponent('drag-rotate-component', {
-                schema: { speed: { default: 1 } },
-                init: function () {
-                    this.ifMouseDown = false
-                    this.opacityDecreased = false
-                    this.ifShiftKeyDown = false
-                    this.x_cord = 0
-                    this.y_cord = 0
-                    this.z_cord = 0
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"
+            integrity="sha512-EmZuy6vd0ns9wP+3l1hETKq/vNGELFRuLfazPnKKBbDpgZL0sZ7qyao5KgVbGJKOWlAFPNn6G9naB/8WnKN43Q=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
 
-                    var curvedImagePano =
-                        document.getElementById('curvedImagePano')
+        <style>
+            * {
+                padding: 0;
+                margin: 0;
+            }
 
-                    var cylinderImageRender = document.getElementById(
-                        'cylinderImageRender'
-                    )
-
-                    this.viewDirection =
-                        cylinderImageRender.getAttribute('rotation').y
-
-                    this.yHeight =
-                        cylinderImageRender.getAttribute('position').y
-
-                    this.zPosition =
-                        cylinderImageRender.getAttribute('position').z
-
-                    document.addEventListener(
-                        'mousedown',
-                        this.OnDocumentMouseDown.bind(this)
-                    )
-                    document.addEventListener(
-                        'mouseup',
-                        this.OnDocumentMouseUp.bind(this)
-                    )
-                    document.addEventListener(
-                        'mousemove',
-                        this.OnDocumentMouseMove.bind(this)
-                    )
-                    document.addEventListener(
-                        'keydown',
-                        this.OnDocumentKeyDown.bind(this)
-                    )
-                    document.addEventListener(
-                        'keyup',
-                        this.OnDocumentKeyUp.bind(this)
-                    )
-                    document.addEventListener(
-                        'wheel',
-                        this.OnDocumentWheel.bind(this)
-                    )
-                },
-                OnDocumentMouseDown: function (event) {
-                    this.ifMouseDown = true
-                    this.x_cord = event.clientX
-                    this.y_cord = event.clientY
-                },
-                OnDocumentMouseUp: function () {
-                    this.ifMouseDown = false
-                    curvedImagePano.setAttribute('opacity', '1')
-                    this.opacityDecreased = false
-                },
-                OnDocumentMouseMove: function (event) {
-                    if (this.ifMouseDown && this.ifShiftKeyDown) {
-                        if (!this.opacityDecreased) {
-                            curvedImagePano.setAttribute('opacity', '0.25')
-                            this.opacityDecreased = true
-                        }
-                        var temp_y = event.clientY - this.y_cord
-                        var new_y = this.yHeight - temp_y * 0.01
-                        cylinderImageRender.setAttribute('position', {
-                            x: 0,
-                            y: new_y,
-                            z: this.zPosition,
-                        })
-                        this.y_cord = event.clientY
-                        this.yHeight = new_y
-                    }
-                    if (this.ifMouseDown) {
-                        if (!this.opacityDecreased) {
-                            curvedImagePano.setAttribute('opacity', '0.25')
-                            this.opacityDecreased = true
-                        }
-                        var temp_x = event.clientX - this.x_cord
-                        var new_x = this.viewDirection - temp_x * 0.1
-                        cylinderImageRender.setAttribute('rotation', {
-                            x: 0,
-                            y: new_x,
-                            z: this.zPosition,
-                        })
-                        this.x_cord = event.clientX
-                        this.viewDirection = new_x
-                    }
-                },
-                OnDocumentKeyDown: function (event) {
-                    if (event.keyCode == 16) {
-                        this.ifShiftKeyDown = true
-                    }
-                },
-                OnDocumentKeyUp: function (event) {
-                    if (event.keyCode == 16) {
-                        this.ifShiftKeyDown = false
-                    }
-                },
-                OnDocumentWheel: function (event) {
-                    if (this.ifShiftKeyDown) {
-                        var scroll = event.deltaY - this.z_cord
-                        var new_z = this.zPosition - scroll * 0.01
-                        cylinderImageRender.setAttribute('position', {
-                            x: 0,
-                            y: this.yHeight,
-                            z: new_z,
-                        })
-                        this.zPosition = new_z
-                    }
-                },
-            })
-        </script>
+            #render-preview {
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
         <title>E2 - Render Preview</title>
     </head>
     <body>
-        <a-scene cursor="rayOrigin:mouse">
-            <a-assets>
-                <img id="render" src="{{render_path}}" />
-                <img id="pano" src="{{pano_path}}" />
-            </a-assets>
-
-            <a-entity light="type: ambient; color: #FFF"></a-entity>
-
-            <a-cylinder
-                id="cylinderImageRender"
-                src="#render"
-                side="back"
-                material="side: back; repeat: -1 1"
-                open-ended="true"
-                position="0 0 0"
-                height="4.5"
-                radius="5"
-                drag-rotate-component
-            ></a-cylinder>
-
-            <a-camera
-                position="0 0 0"
-                look-controls="enabled:false"
-                wasd-controls-enabled="false"
-            >
-                <a-curvedimage
-                    src="#pano"
-                    id="curvedImagePano"
-                    position="0 0 0"
-                    height="3"
-                    radius="4.95"
-                    theta-length="90"
-                    rotation="0 135 0"
-                >
-                </a-curvedimage>
-            </a-camera>
-        </a-scene>
-
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
-            crossorigin="anonymous"
-        ></script>
+        <div id="render-preview"></div>
+        <script>
+            pannellum.viewer('render-preview', {
+                type: 'equirectangular',
+                panorama: '{{render_path}}',
+                autoLoad: true,
+                yaw: 0,
+                hfov: 180,
+                pitch: 0,
+                roll: 0,
+                compass: true,
+                northOffset: 0,
+                vaov: 100,
+                vOffset: 0,
+                minPitch: -80,
+                maxPitch: 80,
+            })
+        </script>
     </body>
 </html>

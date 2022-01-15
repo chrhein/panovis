@@ -31,6 +31,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
         render_height = data["render_height"]
 
         render_shape = [render_width, render_height]
+        json_file.close()
 
     dem_path, original_dem, coordinates = get_mountain_data(dem_path, panorama_path)
 
