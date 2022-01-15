@@ -16,44 +16,35 @@ from tools.types import Location, Mountain, MountainBounds
 from osgeo import gdal
 
 
-def get_mountain_data(json_path, panorama_path):
-    with open(json_path) as json_file:
-        data = json.load(json_file)
-        dem_file = data["dem-path"]
-        image_location = get_exif_data(panorama_path)
-        if image_location:
-            camera_lat, camera_lon = image_location.latitude, image_location.longitude
-        else:
-            try:
-                camera_mountain = data["panoramas"][
-                    "%s_camera" % panorama_path.split("/")[-1].split(".")[0]
-                ]
-                camera_lat, camera_lon = camera_mountain["latlon"]
-            except KeyError:
-                camera_lat, camera_lon = input_latlon()
-        viewing_direction = 0.0
-        look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
+def get_mountain_data(dem_file, panorama_path):
+    image_location = get_exif_data(panorama_path)
+    if image_location:
+        camera_lat, camera_lon = image_location.latitude, image_location.longitude
+    else:
+            camera_lat, camera_lon = input_latlon()
+    viewing_direction = 0.0
+    look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
 
-        ds_raster = rasterio.open(dem_file)
-        crs = int(ds_raster.crs.to_authority()[1])
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
 
-        camera_placement_crs = cor_to_crs(crs, camera_lat, camera_lon)
+    camera_placement_crs = cor_to_crs(crs, camera_lat, camera_lon)
 
-        displacement_distance = 15000  # in meters from camera placement
+    displacement_distance = 15000  # in meters from camera placement
 
-        bbox = (
-            camera_placement_crs.GetX() - displacement_distance,
-            camera_placement_crs.GetY() + displacement_distance,
-            camera_placement_crs.GetX() + displacement_distance,
-            camera_placement_crs.GetY() - displacement_distance,
-        )
+    bbox = (
+        camera_placement_crs.GetX() - displacement_distance,
+        camera_placement_crs.GetY() + displacement_distance,
+        camera_placement_crs.GetX() + displacement_distance,
+        camera_placement_crs.GetY() - displacement_distance,
+    )
 
-        coordinates = [camera_lat, camera_lon, *look_ats]
+    coordinates = [camera_lat, camera_lon, *look_ats]
 
-        cropped_dem = "dev/cropped.png"
-        gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+    cropped_dem = "dev/cropped.png"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox)
 
-        return [cropped_dem, dem_file, coordinates]
+    return [cropped_dem, dem_file, coordinates]
 
 
 def read_hike_gpx(gpx_path):
@@ -254,3 +245,10 @@ def file_chooser(title, multiple=False):
     except AttributeError:
         p_i("Exiting...")
         exit()
+
+
+def make_folder(folder):
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass

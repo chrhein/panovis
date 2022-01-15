@@ -1,3 +1,5 @@
+import os
+from PIL import Image
 import cv2
 import numpy as np
 from location_handler import get_bearing
@@ -7,6 +9,7 @@ from datetime import datetime
 from tkinter.filedialog import askdirectory
 from exifread import process_file
 from tools.types import Location
+from piexif import transplant
 
 
 def get_exif_data(file_path):
@@ -210,3 +213,12 @@ def trim_edges(image):
     trimmed = remove_contours(trimmed, min_area=1250, lb=1)
 
     return trimmed
+
+
+def reduce_filesize(image_path, image_quality=50):
+    im = Image.open(image_path)
+    resized_pano = f"/tmp/resized.jpg"
+    im.save(resized_pano, quality=image_quality, optimize=True)
+    transplant(image_path, resized_pano)
+    os.remove(image_path)
+    os.rename(resized_pano, image_path)

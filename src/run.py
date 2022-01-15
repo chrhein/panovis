@@ -7,8 +7,11 @@ from flask import (
     url_for,
     send_from_directory,
 )
-
+from werkzeug.utils import secure_filename
+from PIL import Image
+from image_handling import reduce_filesize
 from renderer import render_dem
+from tools.file_handling import make_folder
 
 
 def create_app():
@@ -26,8 +29,11 @@ def create_app():
     def upload():
         if request.method == "POST":
             f = request.files["file"]
-            pano = f"{UPLOAD_FOLDER}{f.filename}"
+            filename = secure_filename(f.filename)
+            pano = f"{UPLOAD_FOLDER}{filename}"
+            make_folder(UPLOAD_FOLDER)
             f.save(pano)
+            reduce_filesize(pano)
             return redirect(url_for("rendering_dem", pano=pano))
 
     @app.route("/rendering_dem")
