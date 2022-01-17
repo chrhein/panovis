@@ -41,6 +41,13 @@
                 width: 100vw;
                 height: 15vh;
             }
+
+            .custom-hotspot {
+                height: 1.25rem;
+                width: 1.25rem;
+                background: #f00;
+                border-radius: 50%;
+            }
         </style>
         <title>E2 - Render Preview</title>
     </head>
@@ -86,11 +93,16 @@
             viewer.on('mousedown', function (event) {
                 if (shiftPressed && clickedCoords.length <= 2) {
                     clickedCoords.push(viewer.mouseEventToCoords(event))
-                    console.log(clickedCoords)
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.length +
                         '/3 '
+                    viewer.addHotSpot({
+                        id: 'selected-location-' + clickedCoords.length,
+                        pitch: clickedCoords[clickedCoords.length - 1][0],
+                        yaw: clickedCoords[clickedCoords.length - 1][1],
+                        cssClass: 'custom-hotspot',
+                    })
                     if (clickedCoords.length == 3) {
                         addSubmitButton()
                     }
@@ -108,7 +120,9 @@
             })
             document.addEventListener('keydown', function (event) {
                 if (event.keyCode == 67) {
-                    console.log('Clearing clickedCoords')
+                    for (var i = 1; i <= clickedCoords.length; i++) {
+                        viewer.removeHotSpot('selected-location-' + i)
+                    }
                     clickedCoords = []
                     document
                         .getElementById('submit-coordinates')
