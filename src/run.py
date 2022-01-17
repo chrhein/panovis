@@ -1,3 +1,5 @@
+import ast
+import json
 from flask import (
     Flask,
     render_template,
@@ -10,9 +12,6 @@ from image_handling import reduce_filesize
 from renderer import render_dem
 from tools.file_handling import make_folder
 
-render_selected_coordinates = []
-pano_selected_coordinates = []
-
 
 def create_app():
     app = Flask(__name__, static_url_path="/src/static")
@@ -20,9 +19,6 @@ def create_app():
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
-
-    global render_selected_coordinates
-    global pano_selected_coordinates
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
@@ -59,7 +55,6 @@ def create_app():
     def render_preview():
         pano_path = request.args.get("pano_path")
         render_path = request.args.get("render_path")
-        app.logger.info(render_selected_coordinates)
         return render_template(
             "render_preview.html", pano_path=pano_path, render_path=render_path
         )
@@ -67,9 +62,34 @@ def create_app():
     @app.route("/save_coordinates", methods=["POST", "GET"])
     def save_coordinates():
         if request.method == "POST":
-            render_selected_coordinates = request.form.get("coordinates")
-            app.logger.info(render_selected_coordinates)
-            return ("", 204)
+            render_selected_coordinates = []
+            req = request.form.get("coordinates")
+            app.logger.info(req)
+            """ render_selected_coordinates = [
+                {"pitch": i[1], "yaw": i[0]} for i in req.split("")
+            ] """
+            req = ast.literal_eval(req)
+            app.logger.info(req)
+
+            for pitch, yaw in req:
+                render_selected_coordinates.append({"pitch": pitch, "yaw": yaw})
+                app.logger.info(f"Appending pitch: {pitch} and yaw: {yaw} to list.")
+                app.logger.info(render_selected_coordinates)
+            return redirect(
+                url_for(
+                    "testing",
+                    render_selected_coordinates=json.dumps(
+                        render_selected_coordinates, separators=(",", ":")
+                    ),
+                )
+            )
+
+    @app.route("/testing")
+    def testing():
+        raw_coords = request.args.get("render_selected_coordinates")
+        render_selected_coordinates = json.loads(raw_coords)
+        app.logger.info(render_selected_coordinates)
+        return ("", 204)
 
     return app
 
