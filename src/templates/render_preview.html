@@ -33,15 +33,38 @@
 
             #render-preview {
                 width: 100vw;
-                height: 100vh;
+                height: 85vh;
+            }
+
+            #coordinates {
+                background: #e9e9e9;
+                width: 100vw;
+                height: 15vh;
             }
         </style>
         <title>E2 - Render Preview</title>
     </head>
     <body>
         <div id="render-preview"></div>
+        <div id="coordinates">
+            <h5>Choose three recognizable points in the render.</h5>
+            <div id="selected-coordinates">
+                Press Shift while clicking to select a location. Press "C" to
+                clear selection.
+            </div>
+            <form
+                id="submit-coordinates"
+                method="POST"
+                action="/save_coordinates"
+                enctype="multipart/form-data"
+            ></form>
+        </div>
         <script>
-            pannellum.viewer('render-preview', {
+            var clickedCoords = []
+            var shiftPressed = false
+            var threshold = 0.1
+
+            viewer = pannellum.viewer('render-preview', {
                 type: 'equirectangular',
                 panorama: '{{render_path}}',
                 autoLoad: true,
@@ -55,7 +78,61 @@
                 vOffset: 0,
                 minPitch: -80,
                 maxPitch: 80,
+                doubleClickZoom: false,
+                mouseZoom: false,
+                keyboardZoom: false,
             })
+
+            viewer.on('mousedown', function (event) {
+                if (shiftPressed && clickedCoords.length <= 2) {
+                    clickedCoords.push(viewer.mouseEventToCoords(event))
+                    console.log(clickedCoords)
+                    document.getElementById('selected-coordinates').innerHTML =
+                        'Number of clicked locations: ' +
+                        clickedCoords.length +
+                        '/3 '
+                    if (clickedCoords.length == 3) {
+                        addSubmitButton()
+                    }
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.keyCode == 16) {
+                    shiftPressed = true
+                }
+            })
+            document.addEventListener('keyup', function (event) {
+                if (event.keyCode == 16) {
+                    shiftPressed = false
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.keyCode == 67) {
+                    console.log('Clearing clickedCoords')
+                    clickedCoords = []
+                    document
+                        .getElementById('submit-coordinates')
+                        .replaceChildren()
+                    document.getElementById('selected-coordinates').innerHTML =
+                        'Number of clicked locations: ' +
+                        clickedCoords.length +
+                        '/3'
+                }
+            })
+
+            function addSubmitButton() {
+                var td = document.getElementById('submit-coordinates')
+                var coordinates = document.createElement('input')
+                coordinates.setAttribute('type', 'hidden')
+                coordinates.setAttribute('name', 'coordinates')
+                coordinates.setAttribute('value', JSON.stringify(clickedCoords))
+                td.appendChild(coordinates)
+                var submitButton = document.createElement('input')
+                submitButton.setAttribute('type', 'submit')
+                submitButton.setAttribute('value', 'Submit')
+                submitButton.setAttribute('class', 'btn btn-primary')
+                td.appendChild(submitButton)
+            }
         </script>
     </body>
 </html>

@@ -10,6 +10,9 @@ from image_handling import reduce_filesize
 from renderer import render_dem
 from tools.file_handling import make_folder
 
+render_selected_coordinates = []
+pano_selected_coordinates = []
+
 
 def create_app():
     app = Flask(__name__, static_url_path="/src/static")
@@ -17,6 +20,9 @@ def create_app():
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+
+    global render_selected_coordinates
+    global pano_selected_coordinates
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
@@ -53,9 +59,17 @@ def create_app():
     def render_preview():
         pano_path = request.args.get("pano_path")
         render_path = request.args.get("render_path")
+        app.logger.info(render_selected_coordinates)
         return render_template(
             "render_preview.html", pano_path=pano_path, render_path=render_path
         )
+
+    @app.route("/save_coordinates", methods=["POST", "GET"])
+    def save_coordinates():
+        if request.method == "POST":
+            render_selected_coordinates = request.form.get("coordinates")
+            app.logger.info(render_selected_coordinates)
+            return ("", 204)
 
     return app
 
