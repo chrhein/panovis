@@ -230,18 +230,28 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     print(f"Render:        {render_path}")
     print(f"Pano coords:   {pano_coords}")
     print(f"Render coords: {render_coords}")
-    pano_coords = ast.literal_eval(pano_coords)
-    render_coords = ast.literal_eval(render_coords)
 
-    p_c = np.array([[x, y] for x, y in pano_coords])
-    r_c = np.array([[x, y] for x, y in render_coords])
-    matrix, mask = cv2.findHomography(p_c, r_c)
+    pano_coords = {
+        k: v
+        for k, v in sorted(
+            ast.literal_eval(pano_coords).items(), key=lambda v: ord(v[0])
+        )
+    }
+    render_coords = {
+        k: v
+        for k, v in sorted(
+            ast.literal_eval(render_coords).items(), key=lambda v: ord(v[0])
+        )
+    }
+
+    pts_src = np.array([[x, y] for x, y in pano_coords.values()])
+    im_src = cv2.imread(pano_path)
+
+    pts_dst = np.array([[x, y] for x, y in render_coords.values()])
+    im_dst = cv2.imread(render_path)
+
+    matrix, mask = cv2.findHomography(pts_src, pts_dst)
     print(matrix)
 
-    pano = cv2.imread(pano_path)
-    render = cv2.imread(render_path)
-
-    im_out = cv2.warpPerspective(
-        render, matrix, (render.shape[1], render.shape[0]), borderValue=[255, 255, 255]
-    )
+    im_out = cv2.warpPerspective(im_src, matrix, (im_dst.shape[1], im_dst.shape[0]))
     cv2.imwrite("test.png", im_out)

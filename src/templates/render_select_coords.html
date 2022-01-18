@@ -37,7 +37,7 @@
             ></form>
         </div>
         <script>
-            var clickedCoords = []
+            var clickedCoords = new Map()
             var shiftPressed = false
 
             const horizontal_fov = parseFloat('{{horizontal_fov}}')
@@ -110,7 +110,7 @@
             })
 
             viewer.on('mousedown', function (event) {
-                if (shiftPressed && clickedCoords.length <= 3) {
+                if (shiftPressed && clickedCoords.size <= 3) {
                     var coords = viewer.mouseEventToCoords(event)
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
@@ -126,18 +126,19 @@
                         return
                     }
 
-                    clickedCoords.push([x, y])
+                    var itemNum = clickedCoords.size + 1
+                    clickedCoords.set(itemNum, [x, y])
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
-                        clickedCoords.length +
+                        clickedCoords.size +
                         '/4 '
                     viewer.addHotSpot({
-                        id: 'selected-location-' + clickedCoords.length,
+                        id: 'selected-location-' + clickedCoords.size,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.length == 4) {
+                    if (clickedCoords.size == 4) {
                         addSubmitButton()
                     }
                 }
@@ -154,16 +155,16 @@
             })
             document.addEventListener('keydown', function (event) {
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoords.length; i++) {
+                    for (var i = 1; i <= clickedCoords.size; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
-                    clickedCoords = []
+                    clickedCoords = {}
                     document
                         .getElementById('submit-coordinates')
                         .replaceChildren()
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
-                        clickedCoords.length +
+                        clickedCoords.size +
                         '/4 '
                 }
             })
@@ -173,7 +174,10 @@
                 var coordinates = document.createElement('input')
                 coordinates.setAttribute('type', 'hidden')
                 coordinates.setAttribute('name', 'renderCoords')
-                coordinates.setAttribute('value', JSON.stringify(clickedCoords))
+                coordinates.setAttribute(
+                    'value',
+                    JSON.stringify(Object.fromEntries(clickedCoords))
+                )
                 td.appendChild(coordinates)
                 var submitButton = document.createElement('input')
                 submitButton.setAttribute('type', 'submit')
