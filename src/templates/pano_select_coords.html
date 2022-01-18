@@ -39,7 +39,7 @@
             <form
                 id="submit-coordinates"
                 method="POST"
-                action="/save_pano_coordinates"
+                action="/gpsc"
                 enctype="multipart/form-data"
                 style="visibility: hidden"
             ></form>
@@ -71,6 +71,8 @@
                     var coords = viewer.mouseEventToCoords(event)
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
+
+                    console.log(x, y)
 
                     if (
                         x < 0 ||

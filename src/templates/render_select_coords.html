@@ -32,7 +32,7 @@
             <form
                 id="submit-coordinates"
                 method="POST"
-                action="/save_coordinates"
+                action="/grsc"
                 enctype="multipart/form-data"
             ></form>
         </div>
@@ -115,6 +115,8 @@
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
 
+                    console.log(x, y)
+
                     if (
                         x < 0 ||
                         x > panorama_width ||
@@ -170,7 +172,7 @@
                 var td = document.getElementById('submit-coordinates')
                 var coordinates = document.createElement('input')
                 coordinates.setAttribute('type', 'hidden')
-                coordinates.setAttribute('name', 'coordinates')
+                coordinates.setAttribute('name', 'renderCoords')
                 coordinates.setAttribute('value', JSON.stringify(clickedCoords))
                 td.appendChild(coordinates)
                 var submitButton = document.createElement('input')

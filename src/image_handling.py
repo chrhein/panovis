@@ -222,3 +222,12 @@ def reduce_filesize(image_path, image_quality=50):
     transplant(image_path, resized_pano)
     os.remove(image_path)
     os.rename(resized_pano, image_path)
+
+
+def transform_panorama(pano_path, render_path, pano_coords, render_coords):
+    print(f"Pano:          {pano_path}")
+    print(f"Render:        {render_path}")
+    print(f"Pano coords:   {pano_coords}")
+    print(f"Render coords: {render_coords}")
+    pano = cv2.imread(pano_path)
+    render = cv2.imread(render_path)

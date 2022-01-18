@@ -9,7 +9,7 @@ from flask import (
     url_for,
 )
 from werkzeug.utils import secure_filename
-from image_handling import reduce_filesize
+from image_handling import reduce_filesize, transform_panorama
 from renderer import render_dem
 from tools.file_handling import make_folder
 from PIL import Image
@@ -36,10 +36,18 @@ def create_app():
             f.save(pano_path)
             reduce_filesize(pano_path)
             session["pano_path"] = pano_path
-            return redirect(url_for("psc"))
+            return redirect(url_for("spcoords"))
 
-    @app.route("/psc")
-    def psc():
+    @app.route("/rendering")
+    def rendering():
+        pano_path = session.get("pano_path", None)
+        render_path = session.get("render_path", None)
+        render_dem(pano_path, 2, "", render_filename=render_path)
+        return ("", 204)
+
+    # select pano coordinates
+    @app.route("/spcoords")
+    def spcoords():
         pano_path = session["pano_path"]
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
@@ -47,8 +55,8 @@ def create_app():
         with Image.open(render_path) as img:
             width, height = img.size
             img.close()
-        horizontal_fov = 120
-        vertical_fov = 50
+        horizontal_fov = 360 / (width / height) - 30
+        vertical_fov = 180 / (width / height) - 15
         return render_template(
             "pano_select_coords.html",
             pano_path=pano_path,
@@ -59,21 +67,32 @@ def create_app():
             vertical_fov=vertical_fov,
         )
 
-    @app.route("/rendering")
-    def rendering():
-        pano_path = session.get("pano_path", None)
-        render_path = session.get("render_path", None)
-        render_dem(pano_path, 2, "", render_filename=render_path)
-        return ("", 204)
+    # get pano selectec coordinates
+    @app.route("/gpsc", methods=["POST"])
+    def gpsc():
+        if request.method == "POST":
+            pano_coords = request.form.get("panoCoords")
+            pano_coords = ast.literal_eval(pano_coords)
+            session["pano_coords"] = pano_coords
+            app.logger.info(f"pano_coords: {pano_coords}")
+            render_path = session.get("render_path", None)
+            return redirect(
+                url_for(
+                    "srcoords",
+                    render_path=render_path,
+                )
+            )
+        return ("", 404)
 
-    @app.route("/rsc")
-    def rsc():
+    # select render coordinates
+    @app.route("/srcoords")
+    def srcoords():
         render_path = session.get("render_path", None)
         with Image.open(render_path) as img:
             width, height = img.size
             img.close()
         horizontal_fov = 360
-        vertical_fov = 105
+        vertical_fov = 115
         return render_template(
             "render_select_coords.html",
             render_path=render_path,
@@ -83,58 +102,31 @@ def create_app():
             vertical_fov=vertical_fov,
         )
 
-    @app.route("/save_pano_coordinates", methods=["POST"])
-    def save_pano_coordinates():
+    # get render selected coordinates
+    @app.route("/grsc", methods=["POST"])
+    def grsc():
         if request.method == "POST":
-            pano_selected_coordinates = []
-            req = request.form.get("panoCoords")
-            req = ast.literal_eval(req)
-            for x, y in req:
-                pano_selected_coordinates.append({"x": x, "y": y})
+            render_coords = request.form.get("renderCoords")
+            render_coords = ast.literal_eval(render_coords)
+            session["render_coords"] = render_coords
+            app.logger.info(f"render_coords: {render_coords}")
+            return redirect(url_for("transform"))
 
-            session["pano_selected_coordinates"] = json.dumps(
-                pano_selected_coordinates, separators=(",", ":")
-            )
+    @app.route("/transform")
+    def transform():
+        pano_path = session.get("pano_path", None)
+        render_path = session.get("render_path", None)
+        pano_coords = session.get("pano_coords", None)
+        render_coords = session.get("render_coords", None)
+        transform_panorama(pano_path, render_path, pano_coords, render_coords)
+        return ("", 204)
 
-            render_path = session.get("render_path", None)
-            return redirect(
-                url_for(
-                    "rsc",
-                    render_path=render_path,
-                )
-            )
-
-    @app.route("/save_coordinates", methods=["POST"])
-    def save_coordinates():
-        if request.method == "POST":
-            render_selected_coordinates = []
-            req = request.form.get("coordinates")
-            app.logger.info(req)
-            """ render_selected_coordinates = [
-                {"pitch": i[1], "yaw": i[0]} for i in req.split("")
-            ] """
-            req = ast.literal_eval(req)
-            app.logger.info(req)
-
-            for pitch, yaw in req:
-                render_selected_coordinates.append({"pitch": pitch, "yaw": yaw})
-                app.logger.info(f"Appending pitch: {pitch} and yaw: {yaw} to list.")
-                app.logger.info(render_selected_coordinates)
-            return redirect(
-                url_for(
-                    "testing",
-                    render_selected_coordinates=json.dumps(
-                        render_selected_coordinates, separators=(",", ":")
-                    ),
-                )
-            )
-
-    @app.route("/testing")
+    """ @app.route("/testing")
     def testing():
         raw_coords = request.args.get("render_selected_coordinates")
         render_selected_coordinates = json.loads(raw_coords)
         app.logger.info(render_selected_coordinates)
-        return ("", 204)
+        return ("", 204) """
 
     return app
 
