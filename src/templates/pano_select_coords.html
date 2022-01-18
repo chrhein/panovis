@@ -81,15 +81,15 @@
                         return
                     }
 
-                    clickedCoords.push(viewer.mouseEventToCoords(event))
+                    clickedCoords.push([x, y])
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.length +
                         '/3 '
                     viewer.addHotSpot({
                         id: 'selected-location-' + clickedCoords.length,
-                        pitch: clickedCoords[clickedCoords.length - 1][0],
-                        yaw: clickedCoords[clickedCoords.length - 1][1],
+                        pitch: coords[0],
+                        yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
                     if (clickedCoords.length == 3) {

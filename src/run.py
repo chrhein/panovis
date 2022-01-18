@@ -72,11 +72,15 @@ def create_app():
         with Image.open(render_path) as img:
             width, height = img.size
             img.close()
+        horizontal_fov = 360
+        vertical_fov = 105
         return render_template(
             "render_select_coords.html",
             render_path=render_path,
             rwidth=width,
             rheight=height,
+            horizontal_fov=horizontal_fov,
+            vertical_fov=vertical_fov,
         )
 
     @app.route("/save_pano_coordinates", methods=["POST"])

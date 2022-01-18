@@ -40,14 +40,18 @@
             var clickedCoords = []
             var shiftPressed = false
 
+            const horizontal_fov = parseFloat('{{horizontal_fov}}')
+            const vertical_fov = parseFloat('{{vertical_fov}}')
+
+            const panorama_width = parseInt('{{rwidth}}')
+            const panorama_height = parseInt('{{rheight}}')
+
             viewer = pannellum.viewer('render-preview', {
                 type: 'equirectangular',
                 panorama: '{{render_path}}',
                 autoLoad: true,
-                hfov: 180,
-                vaov: 105,
-                minPitch: -75,
-                maxPitch: 75,
+                hfov: horizontal_fov,
+                vaov: vertical_fov,
                 compass: true,
                 doubleClickZoom: false,
                 mouseZoom: false,
@@ -108,10 +112,19 @@
             viewer.on('mousedown', function (event) {
                 if (shiftPressed && clickedCoords.length <= 2) {
                     var coords = viewer.mouseEventToCoords(event)
-                    var x = (coords[1] / 360 + 0.5) * parseFloat('{{rwidth}}')
-                    var y = (0.5 - coords[0] / 180) * parseFloat('{{rheight}}')
+                    var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
+                    var y = (0.5 - coords[0] / vertical_fov) * panorama_height
+
+                    if (
+                        x < 0 ||
+                        x > panorama_width ||
+                        y < 0 ||
+                        y > panorama_height
+                    ) {
+                        return
+                    }
+
                     clickedCoords.push([x, y])
-                    console.log([x, y])
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.length +
