@@ -44,8 +44,19 @@ def create_app():
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
         session["render_path"] = render_path
+        with Image.open(render_path) as img:
+            width, height = img.size
+            img.close()
+        horizontal_fov = 120
+        vertical_fov = 50
         return render_template(
-            "pano_select_coords.html", pano_path=pano_path, render_path=render_path
+            "pano_select_coords.html",
+            pano_path=pano_path,
+            render_path=render_path,
+            pwidth=width,
+            pheight=height,
+            horizontal_fov=horizontal_fov,
+            vertical_fov=vertical_fov,
         )
 
     @app.route("/rendering")
