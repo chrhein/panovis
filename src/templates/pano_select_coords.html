@@ -58,6 +58,7 @@
                 type: 'equirectangular',
                 panorama: '{{pano_path}}',
                 autoLoad: true,
+                autoRotate: true,
                 compass: false,
                 haov: horizontal_fov,
                 vaov: vertical_fov,
@@ -67,7 +68,7 @@
             })
 
             viewer.on('mousedown', function (event) {
-                if (shiftPressed && clickedCoords.length <= 2) {
+                if (shiftPressed && clickedCoords.length <= 3) {
                     var coords = viewer.mouseEventToCoords(event)
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
@@ -87,14 +88,14 @@
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.length +
-                        '/3 '
+                        '/4 '
                     viewer.addHotSpot({
                         id: 'selected-location-' + clickedCoords.length,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.length == 3) {
+                    if (clickedCoords.length == 4) {
                         addSubmitButton()
                     }
                 }
@@ -121,7 +122,7 @@
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.length +
-                        '/3'
+                        '/4 '
                 }
             })
 

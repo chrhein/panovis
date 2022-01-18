@@ -1,3 +1,4 @@
+import ast
 import os
 from PIL import Image
 import cv2
@@ -229,5 +230,18 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     print(f"Render:        {render_path}")
     print(f"Pano coords:   {pano_coords}")
     print(f"Render coords: {render_coords}")
+    pano_coords = ast.literal_eval(pano_coords)
+    render_coords = ast.literal_eval(render_coords)
+
+    p_c = np.array([[x, y] for x, y in pano_coords])
+    r_c = np.array([[x, y] for x, y in render_coords])
+    matrix, mask = cv2.findHomography(p_c, r_c)
+    print(matrix)
+
     pano = cv2.imread(pano_path)
     render = cv2.imread(render_path)
+
+    im_out = cv2.warpPerspective(
+        render, matrix, (render.shape[1], render.shape[0]), borderValue=[255, 255, 255]
+    )
+    cv2.imwrite("test.png", im_out)
