@@ -5,12 +5,14 @@ from flask import (
     render_template,
     request,
     redirect,
+    session,
     url_for,
 )
 from werkzeug.utils import secure_filename
 from image_handling import reduce_filesize
 from renderer import render_dem
 from tools.file_handling import make_folder
+from PIL import Image
 
 
 def create_app():
@@ -29,37 +31,65 @@ def create_app():
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
-            pano = f"{UPLOAD_FOLDER}{filename}"
+            pano_path = f"{UPLOAD_FOLDER}{filename}"
             make_folder(UPLOAD_FOLDER)
-            f.save(pano)
-            reduce_filesize(pano)
-            return redirect(url_for("rendering_dem", pano=pano))
+            f.save(pano_path)
+            reduce_filesize(pano_path)
+            session["pano_path"] = pano_path
+            return redirect(url_for("psc"))
 
-    @app.route("/rendering_dem")
-    def rendering_dem():
-        pano_path = request.args.get("pano")
+    @app.route("/psc")
+    def psc():
+        pano_path = session["pano_path"]
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
+        session["render_path"] = render_path
         return render_template(
-            "rendering_dem.html", pano_path=pano_path, render_path=render_path
+            "pano_select_coords.html", pano_path=pano_path, render_path=render_path
         )
 
     @app.route("/rendering")
     def rendering():
-        pano_path = request.args.get("pano_path")
-        render_path = request.args.get("render_path")
+        pano_path = session.get("pano_path", None)
+        render_path = session.get("render_path", None)
         render_dem(pano_path, 2, "", render_filename=render_path)
         return ("", 204)
 
-    @app.route("/render_preview")
-    def render_preview():
-        pano_path = request.args.get("pano_path")
-        render_path = request.args.get("render_path")
+    @app.route("/rsc")
+    def rsc():
+        render_path = session.get("render_path", None)
+        with Image.open(render_path) as img:
+            width, height = img.size
+            img.close()
         return render_template(
-            "render_preview.html", pano_path=pano_path, render_path=render_path
+            "render_select_coords.html",
+            render_path=render_path,
+            rwidth=width,
+            rheight=height,
         )
 
-    @app.route("/save_coordinates", methods=["POST", "GET"])
+    @app.route("/save_pano_coordinates", methods=["POST"])
+    def save_pano_coordinates():
+        if request.method == "POST":
+            pano_selected_coordinates = []
+            req = request.form.get("panoCoords")
+            req = ast.literal_eval(req)
+            for x, y in req:
+                pano_selected_coordinates.append({"x": x, "y": y})
+
+            session["pano_selected_coordinates"] = json.dumps(
+                pano_selected_coordinates, separators=(",", ":")
+            )
+
+            render_path = session.get("render_path", None)
+            return redirect(
+                url_for(
+                    "rsc",
+                    render_path=render_path,
+                )
+            )
+
+    @app.route("/save_coordinates", methods=["POST"])
     def save_coordinates():
         if request.method == "POST":
             render_selected_coordinates = []
