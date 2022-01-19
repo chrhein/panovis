@@ -244,27 +244,40 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
         )
     }
 
-    pts_src = np.float32([[x, y] for x, y in pano_coords.values()])
-    im_src = cv2.imread(pano_path)
-    pts_dst = np.float32([[x, y] for x, y in render_coords.values()])
-    im_dst = cv2.imread(render_path)
+    pts_panorama = np.float32([[x, y] for x, y in pano_coords.values()])
+    panorama_image = cv2.imread(pano_path)
+    pts_render = np.float32([[x, y] for x, y in render_coords.values()])
+    render_image = cv2.imread(render_path)
+    render_width = render_image.shape[1]
 
-    TRANSFORM_MATRIX = cv2.getAffineTransform(pts_src, pts_dst)
-    print(TRANSFORM_MATRIX)
+    prev_x_coord = 0
+    out_of_bounds = False
+    for i in range(len(pts_render)):
+        x = pts_render[i][0]
+        if x < prev_x_coord:
+            pts_render[i][0] = x + render_width
+            out_of_bounds = True
+        prev_x_coord = x
 
-    im_out = cv2.warpAffine(
-        im_src,
+    if out_of_bounds:
+        print("Out of bounds! Adjusting render ...")
+        render_image = cv2.hconcat([render_image, render_image])
+        cv2.imwrite("src/static/merged_render.png", render_image)
+
+    TRANSFORM_MATRIX = cv2.getAffineTransform(pts_panorama, pts_render)
+
+    warped_panorama = cv2.warpAffine(
+        panorama_image,
         TRANSFORM_MATRIX,
-        (im_dst.shape[1], im_dst.shape[0]),
-        borderValue=(0, 0, 0, 0),
+        (render_image.shape[1], render_image.shape[0]),
         flags=cv2.INTER_AREA,
     )
 
-    for pt in render_coords.values():
-        cv2.circle(im_dst, (int(pt[0]), int(pt[1])), 5, (0, 0, 255), -1)
-    for pt in pano_coords.values():
-        cv2.circle(im_src, (int(pt[0]), int(pt[1])), 20, (0, 0, 255), -1)
-
-    cv2.imwrite("warped.png", im_out)
-    cv2.imwrite("warped_r.png", im_src)
-    cv2.imwrite("warped_p.png", im_dst)
+    mask = np.where((warped_panorama == (0, 0, 0)).all(axis=2), 0, 255).astype(np.uint8)
+    warped_panorama = cv2.cvtColor(warped_panorama, cv2.COLOR_BGR2BGRA)
+    warped_panorama[:, :, 3] = mask
+    render_image = cv2.cvtColor(render_image, cv2.COLOR_BGR2BGRA)
+    bg_render = cv2.bitwise_and(render_image, render_image, mask=cv2.bitwise_not(mask))
+    fg_panorama = cv2.bitwise_and(warped_panorama, warped_panorama, mask=mask)
+    im_overlay = cv2.add(bg_render, fg_panorama)
+    cv2.imwrite("src/static/overlay.png", im_overlay)
