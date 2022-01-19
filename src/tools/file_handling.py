@@ -21,7 +21,8 @@ def get_mountain_data(dem_file, panorama_path):
     if image_location:
         camera_lat, camera_lon = image_location.latitude, image_location.longitude
     else:
-            camera_lat, camera_lon = input_latlon()
+        p_e("No location data found in image. Exiting program.")
+        return [False, False, False]
     viewing_direction = 0.0
     look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
 

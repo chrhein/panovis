@@ -34,6 +34,8 @@ def render_dem(panorama_path, mode, mountains, render_filename):
         json_file.close()
 
     dem_path, original_dem, coordinates = get_mountain_data(dem_path, panorama_path)
+    if not dem_path:
+        return False
 
     if mode == "debug":
         dem_path = original_dem
@@ -97,7 +99,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
                 execute_pov(params)
             else:
                 p_e("Could not find corresponding GPX")
-                return
+                return False
         elif mode == 4:
             pov_mode = "gradient"
             gradient_render = os.path.isfile(render_filename)
@@ -127,7 +129,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
                 mountain_radius=radius,
             )
         else:
-            return
+            return False
     stats = [
         "Information about completed task: \n",
         "File:      %s" % panorama_filename,
@@ -136,6 +138,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
     ]
     subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
     p_line(stats)
+    return True
 
 
 def execute_pov(params):

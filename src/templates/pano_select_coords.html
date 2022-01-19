@@ -47,6 +47,7 @@
         <script>
             var clickedCoords = new Map()
             var shiftPressed = false
+            const NUMBER_OF_CLICKS = 3
 
             const horizontal_fov = parseFloat('{{horizontal_fov}}')
             const vertical_fov = parseFloat('{{vertical_fov}}')
@@ -68,7 +69,7 @@
             })
 
             viewer.on('mousedown', function (event) {
-                if (shiftPressed && clickedCoords.size <= 3) {
+                if (shiftPressed && clickedCoords.size < NUMBER_OF_CLICKS) {
                     const coords = viewer.mouseEventToCoords(event)
                     const x =
                         (coords[1] / horizontal_fov + 0.5) * panorama_width
@@ -90,14 +91,15 @@
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.size +
-                        '/4 '
+                        '/' +
+                        NUMBER_OF_CLICKS
                     viewer.addHotSpot({
                         id: 'selected-location-' + clickedCoords.size,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.size == 4) {
+                    if (clickedCoords.size == NUMBER_OF_CLICKS) {
                         addSubmitButton()
                     }
                 }
@@ -124,7 +126,8 @@
                     document.getElementById('selected-coordinates').innerHTML =
                         'Number of clicked locations: ' +
                         clickedCoords.size +
-                        '/4 '
+                        '/' +
+                        NUMBER_OF_CLICKS
                 }
             })
 

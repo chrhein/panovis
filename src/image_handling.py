@@ -244,14 +244,27 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
         )
     }
 
-    pts_src = np.array([[x, y] for x, y in pano_coords.values()])
+    pts_src = np.float32([[x, y] for x, y in pano_coords.values()])
     im_src = cv2.imread(pano_path)
-
-    pts_dst = np.array([[x, y] for x, y in render_coords.values()])
+    pts_dst = np.float32([[x, y] for x, y in render_coords.values()])
     im_dst = cv2.imread(render_path)
 
-    matrix, mask = cv2.findHomography(pts_src, pts_dst)
-    print(matrix)
+    TRANSFORM_MATRIX = cv2.getAffineTransform(pts_src, pts_dst)
+    print(TRANSFORM_MATRIX)
 
-    im_out = cv2.warpPerspective(im_src, matrix, (im_dst.shape[1], im_dst.shape[0]))
-    cv2.imwrite("test.png", im_out)
+    im_out = cv2.warpAffine(
+        im_src,
+        TRANSFORM_MATRIX,
+        (im_dst.shape[1], im_dst.shape[0]),
+        borderValue=(0, 0, 0, 0),
+        flags=cv2.INTER_AREA,
+    )
+
+    for pt in render_coords.values():
+        cv2.circle(im_dst, (int(pt[0]), int(pt[1])), 5, (0, 0, 255), -1)
+    for pt in pano_coords.values():
+        cv2.circle(im_src, (int(pt[0]), int(pt[1])), 20, (0, 0, 255), -1)
+
+    cv2.imwrite("warped.png", im_out)
+    cv2.imwrite("warped_r.png", im_src)
+    cv2.imwrite("warped_p.png", im_dst)
