@@ -1,4 +1,6 @@
 import ast
+from base64 import b64encode
+import io
 import os
 from PIL import Image
 import cv2
@@ -259,19 +261,31 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             out_of_bounds = True
         prev_x_coord = x
 
+    pano_filename = pano_path.split("/")[-1].split(".")[0]
+
     if out_of_bounds:
-        print("Out of bounds! Adjusting render ...")
         render_image = cv2.hconcat([render_image, render_image])
-        cv2.imwrite("src/static/merged_render.png", render_image)
+        cv2.imwrite(f"src/static/{pano_filename}-720.png", render_image)
 
-    TRANSFORM_MATRIX = cv2.getAffineTransform(pts_panorama, pts_render)
+    if len(pts_render) == len(pts_panorama) == 3:
 
-    warped_panorama = cv2.warpAffine(
-        panorama_image,
-        TRANSFORM_MATRIX,
-        (render_image.shape[1], render_image.shape[0]),
-        flags=cv2.INTER_AREA,
-    )
+        TRANSFORM_MATRIX = cv2.getAffineTransform(pts_panorama, pts_render)
+
+        warped_panorama = cv2.warpAffine(
+            panorama_image,
+            TRANSFORM_MATRIX,
+            (render_image.shape[1], render_image.shape[0]),
+            flags=cv2.INTER_AREA,
+        )
+    else:
+        TRANSFORM_MATRIX, _ = cv2.findHomography(pts_panorama, pts_render)
+
+        warped_panorama = cv2.warpPerspective(
+            panorama_image,
+            TRANSFORM_MATRIX,
+            (render_image.shape[1], render_image.shape[0]),
+            flags=cv2.INTER_AREA,
+        )
 
     mask = np.where((warped_panorama == (0, 0, 0)).all(axis=2), 0, 255).astype(np.uint8)
     warped_panorama = cv2.cvtColor(warped_panorama, cv2.COLOR_BGR2BGRA)
@@ -280,4 +294,15 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     bg_render = cv2.bitwise_and(render_image, render_image, mask=cv2.bitwise_not(mask))
     fg_panorama = cv2.bitwise_and(warped_panorama, warped_panorama, mask=mask)
     im_overlay = cv2.add(bg_render, fg_panorama)
-    cv2.imwrite("src/static/overlay.png", im_overlay)
+
+    return im_overlay
+
+
+def image_array_to_flask(im):
+    file_object = io.BytesIO()
+    img = Image.fromarray(cv2.cvtColor(im, cv2.COLOR_BGR2RGB).astype("uint8"))
+    img.save(file_object, "PNG")
+    base64img = "data:image/png;base64," + b64encode(file_object.getvalue()).decode(
+        "ascii"
+    )
+    return base64img

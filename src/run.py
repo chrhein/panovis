@@ -9,7 +9,12 @@ from flask import (
     url_for,
 )
 from werkzeug.utils import secure_filename
-from image_handling import get_exif_data, reduce_filesize, transform_panorama
+from image_handling import (
+    image_array_to_flask,
+    get_exif_data,
+    reduce_filesize,
+    transform_panorama,
+)
 from renderer import render_dem
 from tools.file_handling import make_folder
 from PIL import Image
@@ -86,7 +91,7 @@ def create_app():
     @app.route("/gpsc", methods=["POST"])
     def gpsc():
         if request.method == "POST":
-            pano_coords = request.form.get("panoCoords")
+            pano_coords = request.form.get("pano-coords")
             pano_coords = ast.literal_eval(pano_coords)
             session["pano_coords"] = pano_coords
             app.logger.info(f"pano_coords: {pano_coords}")
@@ -121,7 +126,7 @@ def create_app():
     @app.route("/grsc", methods=["POST"])
     def grsc():
         if request.method == "POST":
-            render_coords = request.form.get("renderCoords")
+            render_coords = request.form.get("render-coords")
             render_coords = ast.literal_eval(render_coords)
             session["render_coords"] = render_coords
             app.logger.info(f"render_coords: {render_coords}")
@@ -133,8 +138,14 @@ def create_app():
         render_path = session.get("render_path", None)
         pano_coords = str(session.get("pano_coords", None))
         render_coords = str(session.get("render_coords", None))
-        transform_panorama(pano_path, render_path, pano_coords, render_coords)
-        return ("", 204)
+        transformed_im = transform_panorama(
+            pano_path, render_path, pano_coords, render_coords
+        )
+        return render_template(
+            "preview_warped.html",
+            warped=image_array_to_flask(transformed_im),
+            render=render_path,
+        )
 
     """ @app.route("/testing")
     def testing():

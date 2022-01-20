@@ -19,6 +19,7 @@
             type="text/css"
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
+        <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
         <title>E2 - Render Preview</title>
     </head>
     <body>
@@ -34,12 +35,23 @@
                 method="POST"
                 action="/grsc"
                 enctype="multipart/form-data"
-            ></form>
+            >
+                <button
+                    id="submit-button"
+                    type="submit"
+                    class="btn btn-secondary"
+                    disabled
+                    hidden
+                    aria-disabled="true"
+                >
+                    Submit
+                </button>
+            </form>
         </div>
         <script>
             var clickedCoords = new Map()
             var shiftPressed = false
-            const NUMBER_OF_CLICKS = 3
+            const NUMBER_OF_CLICKS = getSampleNumber()
 
             const horizontal_fov = parseFloat('{{horizontal_fov}}')
             const vertical_fov = parseFloat('{{vertical_fov}}')
@@ -116,32 +128,33 @@
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
 
-                    console.log(x, y)
-
-                    if (
-                        x < 0 ||
-                        x > panorama_width ||
-                        y < 0 ||
-                        y > panorama_height
-                    ) {
+                    if (outOfBounds(x, y, panorama_width, panorama_height)) {
                         return
                     }
 
                     var itemNum = clickedCoords.size + 1
                     clickedCoords.set(itemNum, [x, y])
-                    document.getElementById('selected-coordinates').innerHTML =
-                        'Number of clicked locations: ' +
-                        clickedCoords.size +
-                        '/' +
-                        NUMBER_OF_CLICKS
+                    updateFormText(document, clickedCoords.size)
                     viewer.addHotSpot({
                         id: 'selected-location-' + clickedCoords.size,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
+                    if (clickedCoords.size == 1) {
+                        document
+                            .getElementById('submit-button')
+                            .removeAttribute('hidden')
+                    }
                     if (clickedCoords.size == NUMBER_OF_CLICKS) {
-                        addSubmitButton()
+                        var form = document.getElementById('submit-coordinates')
+                        form.appendChild(
+                            addCoords(document, 'render-coords', clickedCoords)
+                        )
+                        var submitButton =
+                            document.getElementById('submit-button')
+                        submitButton.setAttribute('class', 'btn btn-primary')
+                        submitButton.removeAttribute('disabled')
                     }
                 }
             })
@@ -160,34 +173,12 @@
                     for (var i = 1; i <= clickedCoords.size; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
-                    clickedCoords = {}
-                    document
-                        .getElementById('submit-coordinates')
-                        .replaceChildren()
-                    document.getElementById('selected-coordinates').innerHTML =
-                        'Number of clicked locations: ' +
-                        clickedCoords.size +
-                        '/' +
-                        NUMBER_OF_CLICKS
+                    clickedCoords.clear()
+                    var submitButton = document.getElementById('submit-button')
+                    submitButton.setAttribute('class', 'btn btn-secondary')
+                    updateFormText(document, clickedCoords.size)
                 }
             })
-
-            function addSubmitButton() {
-                var td = document.getElementById('submit-coordinates')
-                var coordinates = document.createElement('input')
-                coordinates.setAttribute('type', 'hidden')
-                coordinates.setAttribute('name', 'renderCoords')
-                coordinates.setAttribute(
-                    'value',
-                    JSON.stringify(Object.fromEntries(clickedCoords))
-                )
-                td.appendChild(coordinates)
-                var submitButton = document.createElement('input')
-                submitButton.setAttribute('type', 'submit')
-                submitButton.setAttribute('value', 'Submit')
-                submitButton.setAttribute('class', 'btn btn-primary')
-                td.appendChild(submitButton)
-            }
         </script>
     </body>
 </html>
