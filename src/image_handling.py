@@ -236,13 +236,13 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     pano_coords = {
         k: v
         for k, v in sorted(
-            ast.literal_eval(pano_coords).items(), key=lambda v: ord(v[0])
+            ast.literal_eval(pano_coords).items(), key=lambda x: int(x[0])
         )
     }
     render_coords = {
         k: v
         for k, v in sorted(
-            ast.literal_eval(render_coords).items(), key=lambda v: ord(v[0])
+            ast.literal_eval(render_coords).items(), key=lambda x: int(x[0])
         )
     }
 
@@ -253,19 +253,13 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     render_width = render_image.shape[1]
 
     prev_x_coord = 0
-    out_of_bounds = False
     for i in range(len(pts_render)):
         x = pts_render[i][0]
         if x < prev_x_coord:
             pts_render[i][0] = x + render_width
-            out_of_bounds = True
         prev_x_coord = x
 
-    pano_filename = pano_path.split("/")[-1].split(".")[0]
-
-    if out_of_bounds:
-        render_image = cv2.hconcat([render_image, render_image])
-        cv2.imwrite(f"src/static/{pano_filename}-720.png", render_image)
+    render_image = cv2.hconcat([render_image, render_image])
 
     if len(pts_render) == len(pts_panorama) == 3:
 
@@ -277,7 +271,9 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             (render_image.shape[1], render_image.shape[0]),
             flags=cv2.INTER_AREA,
         )
+
     else:
+
         TRANSFORM_MATRIX, _ = cv2.findHomography(pts_panorama, pts_render)
 
         warped_panorama = cv2.warpPerspective(
@@ -285,17 +281,41 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             TRANSFORM_MATRIX,
             (render_image.shape[1], render_image.shape[0]),
             flags=cv2.INTER_AREA,
+            borderMode=cv2.BORDER_TRANSPARENT,
         )
 
     mask = np.where((warped_panorama == (0, 0, 0)).all(axis=2), 0, 255).astype(np.uint8)
     warped_panorama = cv2.cvtColor(warped_panorama, cv2.COLOR_BGR2BGRA)
+
     warped_panorama[:, :, 3] = mask
     render_image = cv2.cvtColor(render_image, cv2.COLOR_BGR2BGRA)
     bg_render = cv2.bitwise_and(render_image, render_image, mask=cv2.bitwise_not(mask))
     fg_panorama = cv2.bitwise_and(warped_panorama, warped_panorama, mask=mask)
+
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    return im_overlay
+    y, x = fg_panorama[:, :, 3].nonzero()  # get the nonzero alpha coordinates
+    minx = np.min(x)
+    miny = np.min(y)
+    maxx = np.max(x)
+    maxy = np.max(y)
+
+    print(f"Min x: {minx}")
+    print(f"Min y: {miny}")
+    print(f"Max x: {maxx}")
+    print(f"Max y: {maxy}")
+
+    pano_filename = pano_path.split("/")[-1].split(".")[0]
+    overlay_path = f"src/static/{pano_filename}-overlay.jpg"
+    ultrawide_render_path = f"src/static/{pano_filename}-ultrawide.jpg"
+
+    overlay_crop = im_overlay[0 : im_overlay.shape[0], minx:maxx]
+    ultrawide_render_crop = render_image[0 : im_overlay.shape[0], minx:maxx]
+
+    cv2.imwrite(overlay_path, overlay_crop)
+    cv2.imwrite(ultrawide_render_path, ultrawide_render_crop)
+
+    return overlay_path, ultrawide_render_path
 
 
 def image_array_to_flask(im):

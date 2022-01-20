@@ -75,8 +75,8 @@ def create_app():
         with Image.open(pano_path) as img:
             width, height = img.size
             img.close()
-        horizontal_fov = 360 / (width / height) - 30
-        vertical_fov = 180 / (width / height) - 25
+        horizontal_fov = 360 / (width / height)
+        vertical_fov = 180 / (width / height)
         return render_template(
             "pano_select_coords.html",
             pano_path=pano_path,
@@ -138,13 +138,13 @@ def create_app():
         render_path = session.get("render_path", None)
         pano_coords = str(session.get("pano_coords", None))
         render_coords = str(session.get("render_coords", None))
-        transformed_im = transform_panorama(
+        transformed_im, ultrawide_render = transform_panorama(
             pano_path, render_path, pano_coords, render_coords
         )
         return render_template(
             "preview_warped.html",
-            warped=image_array_to_flask(transformed_im),
-            render=render_path,
+            warped=transformed_im,
+            render=ultrawide_render,
         )
 
     """ @app.route("/testing")

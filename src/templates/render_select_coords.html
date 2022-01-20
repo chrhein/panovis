@@ -25,7 +25,7 @@
     <body>
         <div id="render-preview"></div>
         <div id="coordinates">
-            <h5>Choose three recognizable points in the render.</h5>
+            <h5>Select some recognizable points in the render.</h5>
             <div id="selected-coordinates">
                 Press Shift while clicking to select a location. Press "C" to
                 clear selection.
@@ -38,20 +38,30 @@
             >
                 <button
                     id="submit-button"
-                    type="submit"
+                    type="button"
                     class="btn btn-secondary"
                     disabled
                     hidden
                     aria-disabled="true"
+                    onclick="submitCoords()"
                 >
                     Submit
                 </button>
+                <button id="submit_" type="submit" hidden></button>
             </form>
         </div>
         <script>
             var clickedCoords = new Map()
             var shiftPressed = false
-            const NUMBER_OF_CLICKS = getSampleNumber()
+            const minimum_samples = getSampleNumber()
+
+            function submitCoords() {
+                var form = document.getElementById('submit-coordinates')
+                form.appendChild(
+                    addCoords(document, clickedCoords, 'render-coords')
+                )
+                form.submit()
+            }
 
             const horizontal_fov = parseFloat('{{horizontal_fov}}')
             const vertical_fov = parseFloat('{{vertical_fov}}')
@@ -123,7 +133,7 @@
             })
 
             viewer.on('mousedown', function (event) {
-                if (shiftPressed && clickedCoords.size < NUMBER_OF_CLICKS) {
+                if (shiftPressed) {
                     var coords = viewer.mouseEventToCoords(event)
                     var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
                     var y = (0.5 - coords[0] / vertical_fov) * panorama_height
@@ -146,11 +156,7 @@
                             .getElementById('submit-button')
                             .removeAttribute('hidden')
                     }
-                    if (clickedCoords.size == NUMBER_OF_CLICKS) {
-                        var form = document.getElementById('submit-coordinates')
-                        form.appendChild(
-                            addCoords(document, 'render-coords', clickedCoords)
-                        )
+                    if (clickedCoords.size >= minimum_samples) {
                         var submitButton =
                             document.getElementById('submit-button')
                         submitButton.setAttribute('class', 'btn btn-primary')
