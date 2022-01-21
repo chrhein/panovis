@@ -3,12 +3,11 @@ from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
 import tkinter as tk
-import json
 import os
 import gpxpy
 import gpxpy.gpx
 import rasterio
-from image_handling import get_exif_data
+import image_handling
 from location_handler import displace_camera, find_maximums, find_minimums
 from tools.converters import cor_to_crs
 from tools.debug import p_i, p_line
@@ -16,14 +15,18 @@ from tools.types import Location, Mountain, MountainBounds
 from osgeo import gdal
 
 
-def get_mountain_data(dem_file, panorama_path):
-    image_location = get_exif_data(panorama_path)
+def get_mountain_data(dem_file, panorama_path, fov=None):
+    image_location = image_handling.get_exif_data(panorama_path)
     if image_location:
         camera_lat, camera_lon = image_location.latitude, image_location.longitude
     else:
         p_e("No location data found in image. Exiting program.")
         return [False, False, False]
-    viewing_direction = 0.0
+    if fov:
+        min_heading, max_heading = fov
+        viewing_direction = (max_heading - min_heading) % 360
+    else:
+        viewing_direction = 0.0
     look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
 
     ds_raster = rasterio.open(dem_file)

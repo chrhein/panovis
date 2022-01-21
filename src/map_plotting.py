@@ -1,4 +1,4 @@
-from image_handling import rotate_image_on_map
+import image_handling
 from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
@@ -111,7 +111,7 @@ def plot_to_map(
     )
     m.add_child(color_gradient)
     im = cv2.imread("data/color_gradient.png")
-    rotated_image = rotate_image_on_map(im, lower_left, upper_left)
+    rotated_image = image_handling.rotate_image_on_map(im, lower_left, upper_left)
 
     folium.raster_layers.ImageOverlay(
         image=rotated_image,

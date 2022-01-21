@@ -199,3 +199,12 @@ def find_maximums(locations):
     max_lat = max(locations, key=attrgetter("latitude"))
     max_lon = max(locations, key=attrgetter("longitude"))
     return [max_lat, max_lon]
+
+
+def get_field_of_view(total_width, minx, maxx):
+    def convert_to_degrees(x):
+        return ((x * 360 / total_width) - 180) % 360
+
+    minx = convert_to_degrees(minx)
+    maxx = convert_to_degrees(maxx)
+    return (minx, maxx)

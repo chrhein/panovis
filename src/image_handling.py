@@ -5,7 +5,8 @@ import os
 from PIL import Image
 import cv2
 import numpy as np
-from location_handler import get_bearing
+from location_handler import get_bearing, get_field_of_view
+from renderer import render_height
 from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
@@ -294,16 +295,15 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    y, x = fg_panorama[:, :, 3].nonzero()  # get the nonzero alpha coordinates
+    _, x = fg_panorama[:, :, 3].nonzero()
     minx = np.min(x)
-    miny = np.min(y)
     maxx = np.max(x)
-    maxy = np.max(y)
 
-    print(f"Min x: {minx}")
-    print(f"Min y: {miny}")
-    print(f"Max x: {maxx}")
-    print(f"Max y: {maxy}")
+    min_heading, max_heading = get_field_of_view(render_image.shape[1], minx, maxx)
+
+    print(f"Min heading: {min_heading}")
+    print(f"Max heading: {max_heading}")
+    print(f"FOV:         {(max_heading-min_heading) % 360}")
 
     pano_filename = pano_path.split("/")[-1].split(".")[0]
     overlay_path = f"src/static/{pano_filename}-overlay.jpg"
@@ -314,6 +314,15 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     cv2.imwrite(overlay_path, overlay_crop)
     cv2.imwrite(ultrawide_render_path, ultrawide_render_crop)
+
+    c_h, c_w = ultrawide_render_crop.shape[:2]
+
+    render_height(
+        pano_path,
+        f"src/static/{pano_filename}-dem.png",
+        imdims=[c_w, c_h],
+        fov=get_field_of_view(render_image.shape[1], minx, maxx),
+    )
 
     return overlay_path, ultrawide_render_path
 

@@ -141,6 +141,48 @@ def render_dem(panorama_path, mode, mountains, render_filename):
     return True
 
 
+def render_height(panorama_path, render_filename, imdims=[], fov=None):
+    start_time = time.time()
+    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
+    pov_filename = "/tmp/pov_file.pov"
+
+    render_settings_path = "render_settings.json"
+    with open(render_settings_path) as json_file:
+        data = load(json_file)
+        dem_path = data["dem_path"]
+        if imdims:
+            render_width = imdims[0]
+            render_height = imdims[1]
+        else:
+            render_width = data["render_width"]
+            render_height = data["render_height"]
+
+        render_shape = [render_width, render_height]
+        json_file.close()
+
+    dem_path, _, coordinates = get_mountain_data(dem_path, panorama_path, fov)
+
+    raster_data = get_raster_data(dem_path, coordinates)
+    if not raster_data:
+        return
+
+    pov_mode = "height"
+    pov = primary_pov(dem_path, raster_data, mode=pov_mode)
+    params = [pov_filename, render_filename, render_shape, "color"]
+    with open(pov_filename, "w") as pf:
+        pf.write(pov)
+    pf.close()
+    execute_pov(params)
+    stats = [
+        "Information about completed task: \n",
+        f"File:      {panorama_filename}",
+        f"Mode:      {pov_mode}",
+        f"Duration:  {time.time() - start_time} seconds",
+    ]
+    subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
+    p_line(stats)
+
+
 def execute_pov(params):
     pov_filename, out_filename, dimensions, mode = params
     out_width, out_height = dimensions

@@ -1,5 +1,4 @@
 import ast
-import json
 from flask import (
     Flask,
     render_template,
@@ -10,7 +9,6 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from image_handling import (
-    image_array_to_flask,
     get_exif_data,
     reduce_filesize,
     transform_panorama,
@@ -158,14 +156,6 @@ def create_app():
 
 
 if __name__ == "__main__":
-
-    """pano_path = "src/static/panorama1.jpg"
-    render_path = "src/static/panorama1-render.png"
-    pano_coords = "[[1286.8924817408247, 127.35575452483627], [845.2103367504903, 199.94802861739322], [756.5816809492201, 134.7696987596589], [410.63766318325224, 71.95208202296402]]"
-    render_coords = "[[274.39006324293285, 367.5188668909752], [85.15999074062833, 401.8913696460148], [32.114775209471205, 366.52459835992335], [1334.6563210168401, 344.32867980734034]]"
-    transform_panorama(pano_path, render_path, pano_coords, render_coords)
-    exit()"""
-
     app = create_app()
     app.run(host="localhost", port=8080, debug=True)
     # main()

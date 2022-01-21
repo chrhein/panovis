@@ -4,6 +4,7 @@ def primary_pov(
     texture_path="",
     tex_bounds=None,
     mode="height",
+    fov=None,
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
@@ -24,6 +25,12 @@ def primary_pov(
         texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
 
+    if fov:
+        min_heading, max_heading = fov
+        fov = (max_heading - min_heading) % 360
+    else:
+        fov = 360
+
     pov_text = """
     #version 3.8;
     #include "colors.inc"
@@ -42,6 +49,7 @@ def primary_pov(
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
+    #declare FOV = %f;
 
     #declare HEIGHT = CAMERAHEIGHT;
 
@@ -95,7 +103,7 @@ def primary_pov(
 
     camera {
         cylinder 1
-        angle 360
+        angle FOV
         location CAMERAPOS
         look_at CAMERALOOKAT
     }
@@ -199,6 +207,7 @@ def primary_pov(
         y_l,
         x_l,
         mode,
+        fov,
     )
     return pov_text
 
