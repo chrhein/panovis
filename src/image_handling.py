@@ -316,15 +316,17 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     cv2.imwrite(ultrawide_render_path, ultrawide_render_crop)
 
     c_h, c_w = ultrawide_render_crop.shape[:2]
+    fov = get_field_of_view(render_image.shape[1], minx, maxx)
 
+    """
     render_height(
         pano_path,
         f"src/static/{pano_filename}-dem.png",
         imdims=[c_w, c_h],
         fov=get_field_of_view(render_image.shape[1], minx, maxx),
-    )
+    ) """
 
-    return overlay_path, ultrawide_render_path
+    return overlay_path, ultrawide_render_path, c_h, c_w, fov
 
 
 def image_array_to_flask(im):

@@ -49,10 +49,9 @@ def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
     return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
 
 
-def find_visible_coordinates_in_render(ds_name, gradient_path, folder, dem_file):
+def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_file):
     render_with_gradient = f"{ds_name}-render-gradient.png"
     p_i(f"Finding all visible coordinates in {render_with_gradient}")
-    render_path = f"{folder}{render_with_gradient}"
     image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
     p_i("Computing list of unique colors")
     unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
@@ -120,6 +119,7 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
         p_e("No mountains in sight")
     else:
         p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
+        print(mountains_in_sight)
     return mountains_in_sight
 
 

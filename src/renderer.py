@@ -14,7 +14,7 @@ from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
 )
-from tools.file_handling import get_mountain_data
+from tools.file_handling import get_mountain_data, read_mountain_gpx
 
 
 def render_dem(panorama_path, mode, mountains, render_filename):
@@ -173,6 +173,75 @@ def render_height(panorama_path, render_filename, imdims=[], fov=None):
         pf.write(pov)
     pf.close()
     execute_pov(params)
+    stats = [
+        "Information about completed task: \n",
+        f"File:      {panorama_filename}",
+        f"Mode:      {pov_mode}",
+        f"Duration:  {time.time() - start_time} seconds",
+    ]
+    subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
+    p_line(stats)
+
+
+def mountain_lookup(panorama_path, render_filename, gpx_file, imdims=[], fov=None):
+    start_time = time.time()
+    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
+    pov_filename = "/tmp/pov_file.pov"
+
+    render_settings_path = "render_settings.json"
+    with open(render_settings_path) as json_file:
+        data = load(json_file)
+        dem_path = data["dem_path"]
+        if imdims:
+            render_width = imdims[0]
+            render_height = imdims[1]
+        else:
+            render_width = data["render_width"]
+            render_height = data["render_height"]
+
+        render_shape = [render_width, render_height]
+        json_file.close()
+
+    dem_path, original_dem, coordinates = get_mountain_data(
+        dem_path, panorama_path, fov
+    )
+
+    ds_name = original_dem.split("/")[-1].split(".")[0]
+
+    raster_data = get_raster_data(dem_path, coordinates)
+    if not raster_data:
+        return
+
+    pov_mode = "gradient"
+    gradient_render = os.path.isfile(render_filename)
+    gradient_path, _ = create_color_gradient_image()
+    if not gradient_render:
+        pov = primary_pov(
+            dem_path, raster_data, texture_path=gradient_path, mode=pov_mode
+        )
+        params = [pov_filename, render_filename, render_shape, pov_mode]
+        with open(pov_filename, "w") as pf:
+            pf.write(pov)
+        execute_pov(params)
+    locs = find_visible_coordinates_in_render(
+        ds_name, gradient_path, render_filename, dem_path
+    )
+
+    radius = 100  # in meters
+    mountains = read_mountain_gpx(gpx_file)
+    mountains_in_sight = get_mountains_in_sight(
+        dem_path, locs, mountains, radius=radius
+    )
+    plot_filename = f"src/static/{panorama_filename}.html"
+    plot_to_map(
+        mountains_in_sight,
+        coordinates,
+        plot_filename,
+        dem_path,
+        locs=locs,
+        mountains=mountains,
+        mountain_radius=radius,
+    )
     stats = [
         "Information about completed task: \n",
         f"File:      {panorama_filename}",

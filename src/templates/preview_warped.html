@@ -21,6 +21,22 @@
                         <img src="{{ render }}" />
                     </div>
                 </div>
+                <h5 class="fw-bold text-start">Select a list of mountains</h5>
+                <div class="py-2 d-grid d-sm-flex justify-content-sm-center">
+                    <form
+                        action="/uploadmtns"
+                        method="POST"
+                        enctype="multipart/form-data"
+                    >
+                        <input type="file" name="file" />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
+                        >
+                            Select
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
