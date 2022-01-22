@@ -55,3 +55,7 @@
 .south-west::before {
     content: 'SW';
 }
+
+.juxtapose {
+    max-height: 100vh;
+}

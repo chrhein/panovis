@@ -79,7 +79,8 @@
             function submitCoords() {
                 var form = document.getElementById('submit-coordinates')
                 form.appendChild(
-                    addCoords(document, clickedCoords, 'pano-coords')
+                    addCoords(document, clickedCoords, 'pano-coords'),
+                    clickedCoords.clear()
                 )
                 form.submit()
             }

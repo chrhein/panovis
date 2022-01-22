@@ -317,3 +317,4 @@ hed_model
 panorama*.html
 compared_ds/
 *.txt
+src/static/*.html

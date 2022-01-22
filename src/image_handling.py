@@ -247,17 +247,26 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     }
 
     pts_panorama = np.float32([[x, y] for x, y in pano_coords.values()])
+    print(f"Pano coords: {pts_panorama}")
     panorama_image = cv2.imread(pano_path)
     pts_render = np.float32([[x, y] for x, y in render_coords.values()])
+    print(f"Render coords: {pts_render}")
     render_image = cv2.imread(render_path)
     render_width = render_image.shape[1]
 
+    if len(pano_coords) != len(render_coords):
+        return
+
     prev_x_coord = 0
+    shift_coords = False
     for i in range(len(pts_render)):
         x = pts_render[i][0]
-        if x < prev_x_coord:
+        if x < prev_x_coord or shift_coords:
             pts_render[i][0] = x + render_width
+            shift_coords = True
         prev_x_coord = x
+
+    print(f"Render coords shifted: {pts_render}")
 
     render_image = cv2.hconcat([render_image, render_image])
 
@@ -273,16 +282,17 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
         )
 
     else:
-
         TRANSFORM_MATRIX, _ = cv2.findHomography(pts_panorama, pts_render)
 
         warped_panorama = cv2.warpPerspective(
             panorama_image,
             TRANSFORM_MATRIX,
             (render_image.shape[1], render_image.shape[0]),
-            flags=cv2.INTER_AREA,
+            flags=cv2.RANSAC,
             borderMode=cv2.BORDER_TRANSPARENT,
         )
+
+    print(f"TRANSFORM_MATRIX: {TRANSFORM_MATRIX}")
 
     p_h, p_w, _ = panorama_image.shape
 
@@ -304,12 +314,19 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     ub_l, ub_r, lb_r, lb_l = warped_bbox[0]
 
+    print(f"ub_l: {ub_l}, ub_r: {ub_r}, lb_r: {lb_r}, lb_l: {lb_l}")
+
     if ub_r[0] - ub_l[0] < lb_r[0] - lb_l[0]:
         minx = int(ub_l[0])
         maxx = int(ub_r[0])
     else:
         minx = int(lb_l[0])
         maxx = int(lb_r[0])
+
+    if maxx < minx:
+        maxx += render_width
+
+    print(f"Cropping: {minx} {maxx}")
 
     min_heading, max_heading = get_field_of_view(render_image.shape[1], minx, maxx)
 

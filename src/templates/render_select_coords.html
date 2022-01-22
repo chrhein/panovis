@@ -58,7 +58,8 @@
             function submitCoords() {
                 var form = document.getElementById('submit-coordinates')
                 form.appendChild(
-                    addCoords(document, clickedCoords, 'render-coords')
+                    addCoords(document, clickedCoords, 'render-coords'),
+                    clickedCoords.clear()
                 )
                 form.submit()
             }
