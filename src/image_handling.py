@@ -6,7 +6,6 @@ from PIL import Image
 import cv2
 import numpy as np
 from location_handler import get_bearing, get_field_of_view
-from renderer import render_height
 from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
@@ -285,6 +284,14 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             borderMode=cv2.BORDER_TRANSPARENT,
         )
 
+    p_h, p_w, _ = panorama_image.shape
+
+    pano_bbox = np.array(
+        [[0, 0], [p_w, 0], [p_w, p_h], [0, p_h]],
+        dtype=np.float32,
+    )
+    warped_bbox = cv2.perspectiveTransform(pano_bbox[None, :, :], TRANSFORM_MATRIX)
+
     mask = np.where((warped_panorama == (0, 0, 0)).all(axis=2), 0, 255).astype(np.uint8)
     warped_panorama = cv2.cvtColor(warped_panorama, cv2.COLOR_BGR2BGRA)
 
@@ -295,9 +302,14 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    _, x = fg_panorama[:, :, 3].nonzero()
-    minx = np.min(x)
-    maxx = np.max(x)
+    ub_l, ub_r, lb_r, lb_l = warped_bbox[0]
+
+    if ub_r[0] - ub_l[0] < lb_r[0] - lb_l[0]:
+        minx = int(ub_l[0])
+        maxx = int(ub_r[0])
+    else:
+        minx = int(lb_l[0])
+        maxx = int(lb_r[0])
 
     min_heading, max_heading = get_field_of_view(render_image.shape[1], minx, maxx)
 
@@ -317,14 +329,6 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     c_h, c_w = ultrawide_render_crop.shape[:2]
     fov = get_field_of_view(render_image.shape[1], minx, maxx)
-
-    """
-    render_height(
-        pano_path,
-        f"src/static/{pano_filename}-dem.png",
-        imdims=[c_w, c_h],
-        fov=get_field_of_view(render_image.shape[1], minx, maxx),
-    ) """
 
     return overlay_path, ultrawide_render_path, c_h, c_w, fov
 
