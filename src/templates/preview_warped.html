@@ -15,10 +15,12 @@
         <div class="px-4 py-2 my-4 text-center">
             <h3 class="fw-bold text-start">Render/panorama comparison</h3>
             <div class="border bg-light px-5">
-                <div class="py-2 d-grid d-sm-flex justify-content-sm-center">
+                <div
+                    class="py-2 d-grid d-sm-flex justify-content-sm-center compare"
+                >
                     <div class="juxtapose">
-                        <img src="{{ warped }}" />
-                        <img src="{{ render }}" />
+                        <img class="compare-images" src="{{ warped }}" />
+                        <img class="compare-images" src="{{ render }}" />
                     </div>
                 </div>
                 <h5 class="fw-bold text-start">Select a list of mountains</h5>
