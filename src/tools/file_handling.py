@@ -15,19 +15,17 @@ from tools.types import Location, Mountain, MountainBounds
 from osgeo import gdal
 
 
-def get_mountain_data(dem_file, panorama_path, fov=None):
+def get_mountain_data(dem_file, panorama_path, gradient=False):
     image_location = image_handling.get_exif_gps_latlon(panorama_path)
     if image_location:
         camera_lat, camera_lon = image_location.latitude, image_location.longitude
     else:
         p_e("No location data found in image. Exiting program.")
-        return [False, False, False]
+        return
     exif_view_direction = image_handling.get_exif_gsp_img_direction(panorama_path)
-    if exif_view_direction:
+    if exif_view_direction and gradient:
         viewing_direction = exif_view_direction
         print(f"Viewing direction: {viewing_direction}")
-    elif fov:
-        viewing_direction = get_fov(fov)
     else:
         viewing_direction = 0.0
     look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)

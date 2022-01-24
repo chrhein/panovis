@@ -219,3 +219,23 @@ def get_view_direction(fov):
     left_bound, _ = fov
     fov_deg = get_fov(fov)
     return ((left_bound + (fov_deg / 2)) + 180) % 360
+
+
+def get_distance_between_locations(loc1, loc2):
+    return distance.distance(
+        (loc1.latitude, loc1.longitude), (loc2.latitude, loc2.longitude)
+    ).m
+
+
+def get_mountain_3d_location(camera_location, mountains):
+    print(camera_location)
+    for mountain in mountains.values():
+        print(mountain)
+        d = get_distance_between_locations(camera_location, mountain.location)
+        c_e = camera_location.elevation
+        m_e = mountain.location.elevation
+        diff = m_e - c_e
+        h = (d ** 2 + diff ** 2) ** 0.5
+        ang = asin(diff / h)
+        print(ang)
+        print(degrees(ang))

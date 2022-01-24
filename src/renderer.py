@@ -4,9 +4,11 @@ import os
 import time
 import subprocess
 from image_handling import get_image_description
+from tools.converters import convert_coordinates
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
+    get_mountain_3d_location,
     get_mountains_in_sight,
     get_raster_data,
 )
@@ -17,6 +19,7 @@ from tools.texture import (
     create_color_gradient_image,
 )
 from tools.file_handling import get_mountain_data, read_mountain_gpx
+from tools.types import Location
 
 
 def render_dem(panorama_path, mode, mountains, render_filename):
@@ -143,7 +146,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
     return True
 
 
-def render_height(panorama_path, render_filename, imdims=[], fov=None):
+def render_height(panorama_path, render_filename):
     start_time = time.time()
     panorama_filename = panorama_path.split("/")[-1].split(".")[0]
     pov_filename = "/tmp/pov_file.pov"
@@ -152,24 +155,20 @@ def render_height(panorama_path, render_filename, imdims=[], fov=None):
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
-        if imdims:
-            render_width = imdims[0]
-            render_height = imdims[1]
-        else:
-            render_width = data["render_width"]
-            render_height = data["render_height"]
+        render_width = data["render_width"]
+        render_height = data["render_height"]
 
         render_shape = [render_width, render_height]
         json_file.close()
 
-    dem_path, _, coordinates = get_mountain_data(dem_path, panorama_path, fov)
+    dem_path, _, coordinates = get_mountain_data(dem_path, panorama_path)
 
     raster_data = get_raster_data(dem_path, coordinates)
     if not raster_data:
         return
 
     pov_mode = "height"
-    pov = primary_pov(dem_path, raster_data, mode=pov_mode, fov=fov)
+    pov = primary_pov(dem_path, raster_data, mode=pov_mode)
     params = [pov_filename, render_filename, render_shape, "color"]
     with open(pov_filename, "w") as pf:
         pf.write(pov)
@@ -211,7 +210,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         json_file.close()
 
     dem_path, original_dem, coordinates = get_mountain_data(
-        dem_path, panorama_path, fov
+        dem_path, panorama_path, True
     )
 
     ds_name = original_dem.split("/")[-1].split(".")[0]
@@ -238,7 +237,15 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     mountains_in_sight = get_mountains_in_sight(
         dem_path, locs, mountains, radius=radius
     )
-    plot_filename = f"src/static/{panorama_filename}.html"
+
+    ds_raster = raster_data[1][0]
+    crs = int(ds_raster.crs.to_authority()[1])
+    lat, lon = coordinates[0], coordinates[1]
+    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
+
+    camera_location = Location(lat, lon, camera_height)
+    get_mountain_3d_location(camera_location, mountains_in_sight)
+    """ plot_filename = f"src/static/{panorama_filename}.html"
     plot_to_map(
         mountains_in_sight,
         coordinates,
@@ -247,7 +254,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         locs=locs,
         mountains=mountains,
         mountain_radius=radius,
-    )
+    ) """
     stats = [
         "Information about completed task: \n",
         f"File:      {panorama_filename}",
