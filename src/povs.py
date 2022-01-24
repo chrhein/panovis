@@ -1,3 +1,6 @@
+from location_handler import get_fov
+
+
 def primary_pov(
     dem_file,
     raster_data,
@@ -26,8 +29,8 @@ def primary_pov(
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
 
     if fov:
-        min_heading, max_heading = fov
-        fov = (max_heading - min_heading) % 360
+        fov = get_fov(fov)
+        print("FOV:", fov)
     else:
         fov = 360
 

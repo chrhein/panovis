@@ -116,8 +116,5 @@ def to_latlon(x, y, ds_raster):
 
 
 def dms_to_decimal_degrees(coordinate):
-    c = coordinate.values
-    d = c[0].num / c[0].den
-    m = c[1].num / c[1].den
-    s = c[2].num / c[2].den
+    d, m, s = coordinate
     return d + (m / 60.0) + (s / 3600.0)

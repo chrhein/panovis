@@ -1,11 +1,12 @@
 import ast
 from base64 import b64encode
 import io
+import json
 import os
 from PIL import Image
 import cv2
 import numpy as np
-from location_handler import get_bearing, get_field_of_view
+from location_handler import get_bearing, get_fov_bounds, get_fov, get_view_direction
 from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
@@ -13,32 +14,52 @@ from tkinter.filedialog import askdirectory
 from exifread import process_file
 from tools.types import Location
 from piexif import transplant
+import exif
 
 
-def get_exif_data(file_path):
-    with open(file_path, "rb") as f:
-        tags = process_file(f)
-        f.close()
-        has_gps_exif = [
-            i in tags.keys()
-            for i in [
-                "GPS GPSLatitude",
-                "GPS GPSLatitudeRef",
-                "GPS GPSLongitude",
-                "GPS GPSLongitudeRef",
-            ]
-        ]
-        if not all(has_gps_exif):
-            return None
-        lat = tags["GPS GPSLatitude"]
-        lon = tags["GPS GPSLongitude"]
-        lat_ref = tags["GPS GPSLatitudeRef"]
-        lon_ref = tags["GPS GPSLongitudeRef"]
-        if lat_ref.printable == "S":
-            lat = -lat
-        if lon_ref.printable == "W":
-            lon = -lon
+def get_exif_gps_latlon(file_path):
+    with open(file_path, "rb") as image_file:
+        im = exif.Image(image_file)
+        image_file.close()
+
+    lat = im.gps_latitude
+    lon = im.gps_longitude
+    lat_ref = im.gps_latitude_ref
+    lon_ref = im.gps_longitude_ref
+
+    if lat_ref == "S":
+        lat = -lat
+    if lon_ref == "W":
+        lon = -lon
     return Location(dms_to_decimal_degrees(lat), dms_to_decimal_degrees(lon))
+
+
+def get_exif_gsp_img_direction(file_path):
+    with open(file_path, "rb") as image_file:
+        im = exif.Image(image_file)
+        image_file.close()
+    return im.gps_img_direction
+
+
+def write_exif_gps_img_direction(file_path, fov):
+    with open(file_path, "rb") as image_file:
+        im = exif.Image(image_file)
+        image_file.close()
+    im.gps_img_direction = get_view_direction(fov)
+    im.gps_img_direction_ref = "M"
+    imdata = {"fov": fov}
+    custom_exif = json.dumps(imdata, separators=(",", ":"))
+    im.image_description = custom_exif
+    with open("/tmp/exifed.jpg", "wb") as new_image_file:
+        new_image_file.write(im.get_file())
+        new_image_file.close()
+    os.rename("/tmp/exifed.jpg", file_path)
+    """ with open(file_path, "rb") as image_file:
+        im = exif.Image(image_file)
+        image_file.close()
+    print(im.gps_img_direction)
+    print(im.gps_img_direction_ref)
+    print(im.image_description) """
 
 
 def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
@@ -228,11 +249,6 @@ def reduce_filesize(image_path, image_quality=50):
 
 
 def transform_panorama(pano_path, render_path, pano_coords, render_coords):
-    print(f"Pano:          {pano_path}")
-    print(f"Render:        {render_path}")
-    print(f"Pano coords:   {pano_coords}")
-    print(f"Render coords: {render_coords}")
-
     pano_coords = {
         k: v
         for k, v in sorted(
@@ -247,10 +263,10 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     }
 
     pts_panorama = np.float32([[x, y] for x, y in pano_coords.values()])
-    print(f"Pano coords: {pts_panorama}")
+    # print(f"Pano coords: {pts_panorama}")
     panorama_image = cv2.imread(pano_path)
     pts_render = np.float32([[x, y] for x, y in render_coords.values()])
-    print(f"Render coords: {pts_render}")
+    # print(f"Render coords: {pts_render}")
     render_image = cv2.imread(render_path)
     render_width = render_image.shape[1]
 
@@ -266,7 +282,7 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             shift_coords = True
         prev_x_coord = x
 
-    print(f"Render coords shifted: {pts_render}")
+    # print(f"Render coords shifted: {pts_render}")
 
     render_image = cv2.hconcat([render_image, render_image])
 
@@ -291,8 +307,6 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             flags=cv2.RANSAC,
             borderMode=cv2.BORDER_TRANSPARENT,
         )
-
-    print(f"TRANSFORM_MATRIX: {TRANSFORM_MATRIX}")
 
     p_h, p_w, _ = panorama_image.shape
 
@@ -323,16 +337,21 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
         minx = int(lb_l[0])
         maxx = int(lb_r[0])
 
-    if maxx < minx:
-        maxx += render_width
+    render_image2 = cv2.rectangle(
+        render_image.copy(),
+        (minx, 0),
+        (maxx, render_image.shape[0]),
+        (0, 0, 255, 1),
+        5,
+    )
+    cv2.imwrite(f"testcrop.png", render_image2)
 
-    print(f"Cropping: {minx} {maxx}")
+    heading_bound_left, heading_bound_right = get_fov_bounds(render_width, minx, maxx)
+    print(f"Min heading: {heading_bound_left}, max heading: {heading_bound_right}")
 
-    min_heading, max_heading = get_field_of_view(render_image.shape[1], minx, maxx)
-
-    print(f"Min heading: {min_heading}")
-    print(f"Max heading: {max_heading}")
-    print(f"FOV:         {(max_heading-min_heading) % 360}")
+    print(f"Min heading: {heading_bound_left}")
+    print(f"Max heading: {heading_bound_right}")
+    print(f"FOV:         {(heading_bound_right-heading_bound_left) % 360}")
 
     pano_filename = pano_path.split("/")[-1].split(".")[0]
     overlay_path = f"src/static/{pano_filename}-overlay.jpg"
@@ -345,7 +364,10 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     cv2.imwrite(ultrawide_render_path, ultrawide_render_crop)
 
     c_h, c_w = ultrawide_render_crop.shape[:2]
-    fov = get_field_of_view(render_image.shape[1], minx, maxx)
+    fov = (heading_bound_right, heading_bound_left)
+    print(f"FOV 2: {fov}")
+
+    write_exif_gps_img_direction(pano_path, fov)
 
     return overlay_path, ultrawide_render_path, c_h, c_w, fov
 

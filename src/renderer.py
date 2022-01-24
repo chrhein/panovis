@@ -167,7 +167,7 @@ def render_height(panorama_path, render_filename, imdims=[], fov=None):
         return
 
     pov_mode = "height"
-    pov = primary_pov(dem_path, raster_data, mode=pov_mode)
+    pov = primary_pov(dem_path, raster_data, mode=pov_mode, fov=fov)
     params = [pov_filename, render_filename, render_shape, "color"]
     with open(pov_filename, "w") as pf:
         pf.write(pov)
@@ -217,9 +217,9 @@ def mountain_lookup(panorama_path, render_filename, gpx_file, imdims=[], fov=Non
     gradient_path, _ = create_color_gradient_image()
     if not gradient_render:
         pov = primary_pov(
-            dem_path, raster_data, texture_path=gradient_path, mode=pov_mode
+            dem_path, raster_data, texture_path=gradient_path, mode=pov_mode, fov=fov
         )
-        params = [pov_filename, render_filename, render_shape, pov_mode]
+        params = [pov_filename, render_filename, render_shape, "color"]
         with open(pov_filename, "w") as pf:
             pf.write(pov)
         execute_pov(params)

@@ -9,11 +9,11 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from image_handling import (
-    get_exif_data,
+    get_exif_gps_latlon,
     reduce_filesize,
     transform_panorama,
 )
-from renderer import mountain_lookup, render_dem
+from renderer import mountain_lookup, render_dem, render_height
 from tools.file_handling import make_folder
 from PIL import Image
 
@@ -47,7 +47,7 @@ def create_app():
                 if width > 16384:
                     return "<h4>Image is too wide. Must be less than 16384px.</h4>"
                 img.close()
-            has_location_data = get_exif_data(pano_path)
+            has_location_data = get_exif_gps_latlon(pano_path)
             if not has_location_data:
                 return "<h4>Image does not have location data.</h4>"
             session["pano_path"] = pano_path
@@ -168,9 +168,10 @@ def create_app():
         fov = session.get("fov", None)
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_filename = f"{UPLOAD_FOLDER}{pano_filename}-gradient.png"
-        mountain_lookup(
+        render_height(pano_path, render_filename, imdims=[c_w, c_h], fov=fov)
+        """ mountain_lookup(
             pano_path, render_filename, gpx_path, imdims=[c_w, c_h], fov=fov
-        )
+        ) """
         return ("", 204)
 
     """ @app.route("/testing")
