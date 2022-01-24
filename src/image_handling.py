@@ -6,12 +6,11 @@ import os
 from PIL import Image
 import cv2
 import numpy as np
-from location_handler import get_bearing, get_fov_bounds, get_fov, get_view_direction
+from location_handler import get_bearing, get_fov_bounds, get_view_direction
 from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
 from tkinter.filedialog import askdirectory
-from exifread import process_file
 from tools.types import Location
 from piexif import transplant
 import exif
@@ -22,32 +21,48 @@ def get_exif_gps_latlon(file_path):
         im = exif.Image(image_file)
         image_file.close()
 
-    lat = im.gps_latitude
-    lon = im.gps_longitude
-    lat_ref = im.gps_latitude_ref
-    lon_ref = im.gps_longitude_ref
+    try:
+        lat = im.gps_latitude
+        lon = im.gps_longitude
+        lat_ref = im.gps_latitude_ref
+        lon_ref = im.gps_longitude_ref
 
-    if lat_ref == "S":
-        lat = -lat
-    if lon_ref == "W":
-        lon = -lon
-    return Location(dms_to_decimal_degrees(lat), dms_to_decimal_degrees(lon))
+        if lat_ref == "S":
+            lat = -lat
+        if lon_ref == "W":
+            lon = -lon
+        return Location(dms_to_decimal_degrees(lat), dms_to_decimal_degrees(lon))
+    except AttributeError:
+        return None
 
 
 def get_exif_gsp_img_direction(file_path):
     with open(file_path, "rb") as image_file:
         im = exif.Image(image_file)
         image_file.close()
-    return im.gps_img_direction
+    try:
+        return im.gps_img_direction
+    except AttributeError:
+        return None
 
 
-def write_exif_gps_img_direction(file_path, fov):
+def get_image_description(file_path):
+    with open(file_path, "rb") as image_file:
+        im = exif.Image(image_file)
+        image_file.close()
+    try:
+        return im.image_description
+    except AttributeError:
+        return None
+
+
+def write_exif_to_pano(file_path, fov, imdims):
     with open(file_path, "rb") as image_file:
         im = exif.Image(image_file)
         image_file.close()
     im.gps_img_direction = get_view_direction(fov)
     im.gps_img_direction_ref = "M"
-    imdata = {"fov": fov}
+    imdata = {"fov": fov, "imdims": imdims}
     custom_exif = json.dumps(imdata, separators=(",", ":"))
     im.image_description = custom_exif
     with open("/tmp/exifed.jpg", "wb") as new_image_file:
@@ -58,8 +73,8 @@ def write_exif_gps_img_direction(file_path, fov):
         im = exif.Image(image_file)
         image_file.close()
     print(im.gps_img_direction)
-    print(im.gps_img_direction_ref)
-    print(im.image_description) """
+    print(im.gps_img_direction_ref) """
+    print(im.image_description)
 
 
 def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
@@ -330,12 +345,8 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     print(f"ub_l: {ub_l}, ub_r: {ub_r}, lb_r: {lb_r}, lb_l: {lb_l}")
 
-    if ub_r[0] - ub_l[0] < lb_r[0] - lb_l[0]:
-        minx = int(ub_l[0])
-        maxx = int(ub_r[0])
-    else:
-        minx = int(lb_l[0])
-        maxx = int(lb_r[0])
+    minx = int(ub_l[0])
+    maxx = int(ub_r[0])
 
     render_image2 = cv2.rectangle(
         render_image.copy(),
@@ -347,7 +358,6 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     cv2.imwrite(f"testcrop.png", render_image2)
 
     heading_bound_left, heading_bound_right = get_fov_bounds(render_width, minx, maxx)
-    print(f"Min heading: {heading_bound_left}, max heading: {heading_bound_right}")
 
     print(f"Min heading: {heading_bound_left}")
     print(f"Max heading: {heading_bound_right}")
@@ -363,13 +373,10 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     cv2.imwrite(overlay_path, overlay_crop)
     cv2.imwrite(ultrawide_render_path, ultrawide_render_crop)
 
-    c_h, c_w = ultrawide_render_crop.shape[:2]
-    fov = (heading_bound_right, heading_bound_left)
-    print(f"FOV 2: {fov}")
+    fov = heading_bound_left, heading_bound_right
+    write_exif_to_pano(pano_path, fov, ultrawide_render_crop.shape[:2])
 
-    write_exif_gps_img_direction(pano_path, fov)
-
-    return overlay_path, ultrawide_render_path, c_h, c_w, fov
+    return overlay_path, ultrawide_render_path
 
 
 def image_array_to_flask(im):

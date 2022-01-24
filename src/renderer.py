@@ -1,7 +1,9 @@
+import ast
 from json import load
 import os
 import time
 import subprocess
+from image_handling import get_image_description
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
@@ -183,18 +185,24 @@ def render_height(panorama_path, render_filename, imdims=[], fov=None):
     p_line(stats)
 
 
-def mountain_lookup(panorama_path, render_filename, gpx_file, imdims=[], fov=None):
+def mountain_lookup(panorama_path, render_filename, gpx_file):
     start_time = time.time()
     panorama_filename = panorama_path.split("/")[-1].split(".")[0]
     pov_filename = "/tmp/pov_file.pov"
+
+    im_desc = get_image_description(panorama_path)
+    custom_tags = ast.literal_eval(im_desc)
+    fov = custom_tags["fov"]
+    imdims = custom_tags["imdims"]
 
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
+        scale_factor = 2
         if imdims:
-            render_width = imdims[0]
-            render_height = imdims[1]
+            render_width = imdims[1] * scale_factor
+            render_height = imdims[0] * scale_factor
         else:
             render_width = data["render_width"]
             render_height = data["render_height"]
@@ -213,21 +221,19 @@ def mountain_lookup(panorama_path, render_filename, gpx_file, imdims=[], fov=Non
         return
 
     pov_mode = "gradient"
-    gradient_render = os.path.isfile(render_filename)
     gradient_path, _ = create_color_gradient_image()
-    if not gradient_render:
-        pov = primary_pov(
-            dem_path, raster_data, texture_path=gradient_path, mode=pov_mode, fov=fov
-        )
-        params = [pov_filename, render_filename, render_shape, "color"]
-        with open(pov_filename, "w") as pf:
-            pf.write(pov)
-        execute_pov(params)
+    pov = primary_pov(
+        dem_path, raster_data, texture_path=gradient_path, mode=pov_mode, fov=fov
+    )
+    params = [pov_filename, render_filename, render_shape, pov_mode]
+    with open(pov_filename, "w") as pf:
+        pf.write(pov)
+    execute_pov(params)
     locs = find_visible_coordinates_in_render(
         ds_name, gradient_path, render_filename, dem_path
     )
 
-    radius = 100  # in meters
+    radius = 150  # in meters
     mountains = read_mountain_gpx(gpx_file)
     mountains_in_sight = get_mountains_in_sight(
         dem_path, locs, mountains, radius=radius

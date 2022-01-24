@@ -201,23 +201,21 @@ def find_maximums(locations):
     return [max_lat, max_lon]
 
 
-def get_fov_bounds(total_width, minx, maxx):
-    print(total_width, minx, maxx)
-
+def get_fov_bounds(total_width, left_bound, right_bound):
     def convert_to_degrees(x):
         return (x * 360 / total_width) % 360
 
-    minx = convert_to_degrees(minx)
-    maxx = convert_to_degrees(maxx)
-    return (minx, maxx)
+    left_bound = convert_to_degrees(left_bound)
+    right_bound = convert_to_degrees(right_bound)
+    return (left_bound, right_bound)
 
 
 def get_fov(fov):
-    min_heading, max_heading = fov
-    return (min_heading - max_heading) % 360
+    left_bound, right_bound = fov
+    return (right_bound - left_bound) % 360
 
 
 def get_view_direction(fov):
-    minb, _ = fov
+    left_bound, _ = fov
     fov_deg = get_fov(fov)
-    return ((minb + (fov_deg / 2))) % 360
+    return ((left_bound + (fov_deg / 2)) + 180) % 360

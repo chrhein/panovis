@@ -147,12 +147,9 @@ def create_app():
         render_path = session.get("render_path", None)
         pano_coords = str(session.get("pano_coords", None))
         render_coords = str(session.get("render_coords", None))
-        transformed_im, ultrawide_render, c_h, c_w, fov = transform_panorama(
+        transformed_im, ultrawide_render = transform_panorama(
             pano_path, render_path, pano_coords, render_coords
         )
-        session["c_h"] = c_h
-        session["c_w"] = c_w
-        session["fov"] = fov
         return render_template(
             "preview_warped.html",
             warped=transformed_im,
@@ -163,15 +160,10 @@ def create_app():
     def findmtns():
         pano_path = session.get("pano_path", None)
         gpx_path = session.get("gpx_path", None)
-        c_h = session.get("c_h", None)
-        c_w = session.get("c_w", None)
-        fov = session.get("fov", None)
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_filename = f"{UPLOAD_FOLDER}{pano_filename}-gradient.png"
-        render_height(pano_path, render_filename, imdims=[c_w, c_h], fov=fov)
-        """ mountain_lookup(
-            pano_path, render_filename, gpx_path, imdims=[c_w, c_h], fov=fov
-        ) """
+        # render_height(pano_path, render_filename, imdims=[c_w, c_h], fov=fov)
+        mountain_lookup(pano_path, render_filename, gpx_path)
         return ("", 204)
 
     """ @app.route("/testing")
