@@ -1,4 +1,4 @@
-from math import asin, cos, sin, atan2, degrees, pi
+from math import asin, cos, radians, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -14,6 +14,8 @@ from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
+
+from tools.types import Location, Location3D
 
 
 def get_raster_data(dem_file, coordinates):
@@ -129,7 +131,7 @@ def loc_close_to_mountain(loc, m, radius):
     return distance.distance(mountain_pos, test_loc).m <= radius
 
 
-def displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1):
+def displace_camera(camera_lat, camera_lon, deg=0.0, distance=0.1):
     delta = distance / get_earth_radius()
 
     def to_radians(theta):
@@ -138,15 +140,15 @@ def displace_camera(camera_lat, camera_lon, degrees=0.0, distance=0.1):
     def to_degrees(theta):
         return np.dot(theta, np.float32(180.0)) / np.pi
 
-    degrees = to_radians(degrees)
+    deg = to_radians(deg)
     camera_lat = to_radians(camera_lat)
     camera_lon = to_radians(camera_lon)
 
     displaced_lat = asin(
-        sin(camera_lat) * cos(delta) + cos(camera_lat) * sin(delta) * cos(degrees)
+        sin(camera_lat) * cos(delta) + cos(camera_lat) * sin(delta) * cos(deg)
     )
     displaced_lon = camera_lon + atan2(
-        sin(degrees) * sin(delta) * cos(camera_lat),
+        sin(deg) * sin(delta) * cos(camera_lat),
         cos(delta) - sin(camera_lat) * sin(displaced_lat),
     )
     displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
@@ -227,15 +229,26 @@ def get_distance_between_locations(loc1, loc2):
     ).m
 
 
-def get_mountain_3d_location(camera_location, mountains):
-    print(camera_location)
+def find_angle_between_three_locations(loc1, loc2, loc3):
+    return get_bearing(
+        loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude
+    ) - get_bearing(loc1.latitude, loc1.longitude, loc3.latitude, loc3.longitude)
+
+
+def get_mountain_3d_location(camera_location, viewing_direction, mountains):
+    loc2 = camera_location
     for mountain in mountains.values():
-        print(mountain)
         d = get_distance_between_locations(camera_location, mountain.location)
         c_e = camera_location.elevation
         m_e = mountain.location.elevation
         diff = m_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
-        ang = asin(diff / h)
-        print(ang)
-        print(degrees(ang))
+        ang = degrees(asin(diff / h))
+
+        loc3 = mountain.location
+        # deg = find_angle_between_three_locations(loc1, loc2, loc3)
+        deg = get_bearing(loc3.latitude, loc3.longitude, loc2.latitude, loc2.longitude)
+
+        mountain.set_location_in_3d(Location3D(yaw=deg, pitch=ang, distance=d))
+
+    return mountains

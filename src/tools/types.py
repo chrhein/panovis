@@ -22,7 +22,7 @@ class MountainBounds:
 
     def __init__(self, lat, lon):
         displaced_coordinates = [
-            location_handler.displace_camera(lat, lon, degrees=i, distance=0.15)
+            location_handler.displace_camera(lat, lon, deg=i, distance=0.15)
             for i in range(0, 360 + 1, 45)
         ]
         self.bounds = (
@@ -55,10 +55,18 @@ class MountainBounds:
 
 
 @dataclass
+class Location3D:
+    yaw: float
+    pitch: float
+    distance: float
+
+
+@dataclass
 class Mountain:
     name: str
     location: Location
     bounds: MountainBounds
+    location_in_3d: Location3D = None
 
     def __eq__(self, other):
         return self.name == other.name
@@ -68,6 +76,9 @@ class Mountain:
 
     def __cmp__(self, other):
         return operator.eq((str(self), str(other)))
+
+    def set_location_in_3d(self, location_in_3d):
+        self.location_in_3d = location_in_3d
 
 
 @dataclass

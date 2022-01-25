@@ -161,7 +161,7 @@ def render_height(panorama_path, render_filename):
         render_shape = [render_width, render_height]
         json_file.close()
 
-    dem_path, _, coordinates = get_mountain_data(dem_path, panorama_path)
+    dem_path, _, coordinates, _ = get_mountain_data(dem_path, panorama_path)
 
     raster_data = get_raster_data(dem_path, coordinates)
     if not raster_data:
@@ -198,7 +198,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
-        scale_factor = 2
+        scale_factor = 1.5
         if imdims:
             render_width = imdims[1] * scale_factor
             render_height = imdims[0] * scale_factor
@@ -209,7 +209,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         render_shape = [render_width, render_height]
         json_file.close()
 
-    dem_path, original_dem, coordinates = get_mountain_data(
+    dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
         dem_path, panorama_path, True
     )
 
@@ -244,7 +244,9 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
 
     camera_location = Location(lat, lon, camera_height)
-    get_mountain_3d_location(camera_location, mountains_in_sight)
+    mountains_3d = get_mountain_3d_location(
+        camera_location, viewing_direction, mountains_in_sight
+    )
     """ plot_filename = f"src/static/{panorama_filename}.html"
     plot_to_map(
         mountains_in_sight,
@@ -263,6 +265,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     ]
     subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
     p_line(stats)
+    return mountains_3d
 
 
 def execute_pov(params):

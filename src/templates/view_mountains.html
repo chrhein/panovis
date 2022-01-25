@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="no">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"
+            integrity="sha512-EmZuy6vd0ns9wP+3l1hETKq/vNGELFRuLfazPnKKBbDpgZL0sZ7qyao5KgVbGJKOWlAFPNn6G9naB/8WnKN43Q=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+        <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
+        <title>E2 - Render Preview</title>
+    </head>
+    <body>
+        <div id="render-preview"></div>
+
+        <script>
+            const mountains = JSON.parse('{{ hs | tojson | safe }}')
+            const viewDirection = '{{ yaw }}'
+
+            function degrees_to_radians(degrees) {
+                var pi = Math.PI
+                return degrees * (pi / 180)
+            }
+
+            var mns = Object.values(
+                Object.entries(mountains).map(function (d) {
+                    const [key, value] = d
+                    const yaw =
+                        (parseFloat(viewDirection) - parseFloat(value.yaw)) %
+                        360
+                    return {
+                        yaw: yaw,
+                        pitch: value.pitch,
+                        size: 0.5,
+                        type: 'info',
+                        text: key,
+                    }
+                })
+            )
+
+            console.log(viewDirection)
+            console.log(mns)
+
+            viewer = pannellum.viewer('render-preview', {
+                type: 'equirectangular',
+                panorama: '{{ render_path }}',
+                autoLoad: true,
+                yaw: parseFloat(viewDirection),
+                compass: true,
+                doubleClickZoom: false,
+                mouseZoom: false,
+                keyboardZoom: false,
+
+                hotSpots: mns,
+            })
+        </script>
+    </body>
+</html>

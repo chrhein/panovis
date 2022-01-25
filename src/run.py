@@ -1,19 +1,13 @@
 import ast
-from flask import (
-    Flask,
-    render_template,
-    request,
-    redirect,
-    session,
-    url_for,
-)
+from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gps_latlon,
+    get_exif_gsp_img_direction,
     reduce_filesize,
     transform_panorama,
 )
-from renderer import mountain_lookup, render_dem, render_height
+from renderer import mountain_lookup, render_dem
 from tools.file_handling import make_folder
 from PIL import Image
 
@@ -160,11 +154,24 @@ def create_app():
     def findmtns():
         pano_path = session.get("pano_path", None)
         gpx_path = session.get("gpx_path", None)
+        render_path = session.get("render_path", None)
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_filename = f"{UPLOAD_FOLDER}{pano_filename}-gradient.png"
         # render_height(pano_path, render_filename, imdims=[c_w, c_h], fov=fov)
-        mountain_lookup(pano_path, render_filename, gpx_path)
-        return ("", 204)
+        mountains_3d = mountain_lookup(pano_path, render_filename, gpx_path)
+        hs = hotspots(mountains_3d)
+        session["hotspots"] = hs
+        return redirect(url_for("mountains"))
+
+    @app.route("/mountains")
+    def mountains():
+        hs = session.get("hotspots", None)
+        render_path = session.get("render_path", None)
+        pano_path = session.get("pano_path", None)
+        yaw = get_exif_gsp_img_direction(pano_path)
+        return render_template(
+            "view_mountains.html", hs=hs, render_path=render_path, yaw=yaw
+        )
 
     """ @app.route("/testing")
     def testing():
@@ -174,6 +181,21 @@ def create_app():
         return ("", 204) """
 
     return app
+
+
+def hotspots(mountains_3d):
+    hotspots = {}
+    for mountain in mountains_3d.values():
+        loc_3d = mountain.location_in_3d
+        hotspots[mountain.name] = {
+            "yaw": loc_3d.yaw,
+            "pitch": loc_3d.pitch,
+            "distance": loc_3d.distance,
+        }
+
+    print(hotspots)
+
+    return hotspots
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import gpxpy
 import gpxpy.gpx
 import rasterio
 import image_handling
-from location_handler import displace_camera, find_maximums, find_minimums, get_fov
+from location_handler import displace_camera, find_maximums, find_minimums
 from tools.converters import cor_to_crs
 from tools.debug import p_i, p_line
 from tools.types import Location, Mountain, MountainBounds
@@ -25,10 +25,9 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
     exif_view_direction = image_handling.get_exif_gsp_img_direction(panorama_path)
     if exif_view_direction and gradient:
         viewing_direction = exif_view_direction
-        print(f"Viewing direction: {viewing_direction}")
     else:
         viewing_direction = 0.0
-    look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
+    look_ats = displace_camera(camera_lat, camera_lon, deg=viewing_direction)
 
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
@@ -49,7 +48,7 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
     cropped_dem = "dev/cropped.png"
     gdal.Translate(cropped_dem, dem_file, projWin=bbox)
 
-    return [cropped_dem, dem_file, coordinates]
+    return [cropped_dem, dem_file, coordinates, viewing_direction]
 
 
 def read_hike_gpx(gpx_path):
