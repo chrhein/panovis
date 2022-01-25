@@ -27,7 +27,7 @@
 
         <script>
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
-            const viewDirection = '{{ yaw }}'
+            const viewDirection = parseFloat('{{ yaw }}')
 
             function degrees_to_radians(degrees) {
                 var pi = Math.PI
@@ -37,11 +37,10 @@
             var mns = Object.values(
                 Object.entries(mountains).map(function (d) {
                     const [key, value] = d
-                    const yaw =
-                        (parseFloat(viewDirection) - parseFloat(value.yaw)) %
-                        360
+                    const yaw = parseFloat(value.yaw)
+
                     return {
-                        yaw: yaw,
+                        yaw: -yaw - 180,
                         pitch: value.pitch,
                         size: 0.5,
                         type: 'info',
