@@ -38,7 +38,9 @@ def render_dem(panorama_path, mode, mountains, render_filename):
         render_shape = [render_width, render_height]
         json_file.close()
 
-    dem_path, original_dem, coordinates = get_mountain_data(dem_path, panorama_path)
+    dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
+        dem_path, panorama_path
+    )
     if not dem_path:
         return False
 
@@ -182,6 +184,7 @@ def render_height(panorama_path, render_filename):
     ]
     subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
     p_line(stats)
+    return True
 
 
 def mountain_lookup(panorama_path, render_filename, gpx_file):
@@ -198,7 +201,7 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
-        scale_factor = 1.5
+        scale_factor = 0.75
         if imdims:
             render_width = imdims[1] * scale_factor
             render_height = imdims[0] * scale_factor

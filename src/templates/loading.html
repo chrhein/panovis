@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+
+        <script>
+            function navigate() {
+                window.location.href = '{{ redirect_url }}' // redirect when done!
+            }
+            fetch('/{{ task }}').then(navigate) // load the slow url then navigate
+        </script>
+
+        <title>E2 - {{ title }}</title>
+    </head>
+    <body>
+        <div class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">{{ text }}</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
+                    <span class="loader"></span>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

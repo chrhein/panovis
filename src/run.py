@@ -1,13 +1,15 @@
 import ast
+import os
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gps_latlon,
     get_exif_gsp_img_direction,
+    get_image_description,
     reduce_filesize,
     transform_panorama,
 )
-from renderer import mountain_lookup, render_dem
+from renderer import mountain_lookup, render_dem, render_height
 from tools.file_handling import make_folder
 from PIL import Image
 
@@ -23,9 +25,17 @@ def create_app():
     def homepage():
         session["pano_path"] = ""
         session["render_path"] = ""
-        session["render_coords"] = ""
-        session["pano_coords"] = ""
         return render_template("upload_pano.html")
+
+    @app.route("/loading", methods=["POST", "GET"])
+    def loading():
+        redirect_url = request.args.get("redirect_url")
+        task = request.args.get("task")
+        title = request.args.get("title")
+        text = request.args.get("text")
+        return render_template(
+            "loading.html", redirect_url=redirect_url, task=task, title=title, text=text
+        )
 
     @app.route("/upload", methods=["POST", "GET"])
     def upload():
@@ -34,17 +44,28 @@ def create_app():
             filename = secure_filename(f.filename)
             pano_path = f"{UPLOAD_FOLDER}{filename}"
             make_folder(UPLOAD_FOLDER)
-            f.save(pano_path)
-            reduce_filesize(pano_path)
+            if not os.path.exists(pano_path):
+                f.save(pano_path)
+                reduce_filesize(pano_path)
             with Image.open(pano_path) as img:
                 width, _ = img.size
                 if width > 16384:
                     return "<h4>Image is too wide. Must be less than 16384px.</h4>"
                 img.close()
-            has_location_data = get_exif_gps_latlon(pano_path)
-            if not has_location_data:
+            im_location = get_exif_gps_latlon(pano_path)
+            if not im_location:
                 return "<h4>Image does not have location data.</h4>"
             session["pano_path"] = pano_path
+
+            im_view_direction = get_exif_gsp_img_direction(pano_path)
+            im_description = get_image_description(pano_path)
+
+            if im_location and im_view_direction and im_description:
+                pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
+                render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
+                if os.path.exists(render_path):
+                    session["render_path"] = render_path
+                    return redirect(url_for("selectgpx"))
             return redirect(url_for("spcoords"))
 
     @app.route("/uploadmtns", methods=["POST", "GET"])
@@ -56,13 +77,25 @@ def create_app():
             make_folder(UPLOAD_FOLDER)
             f.save(gpx_path)
             session["gpx_path"] = gpx_path
-            return redirect(url_for("findmtns"))
+            redir_url = "mountains"
+            task = "findmtns"
+            title = "Locating Mountains"
+            text = "Finding mountains in panorama..."
+            return redirect(
+                url_for(
+                    "loading", redirect_url=redir_url, task=task, title=title, text=text
+                )
+            )
+
+    @app.route("/selectgpx", methods=["POST", "GET"])
+    def selectgpx():
+        return render_template("select_gpx.html")
 
     @app.route("/rendering")
     def rendering():
         pano_path = session.get("pano_path", None)
         render_path = session.get("render_path", None)
-        render_complete = render_dem(pano_path, 2, "", render_filename=render_path)
+        render_complete = render_height(pano_path, render_path)
         if render_complete:
             return ("", 204)
         else:
@@ -154,10 +187,8 @@ def create_app():
     def findmtns():
         pano_path = session.get("pano_path", None)
         gpx_path = session.get("gpx_path", None)
-        render_path = session.get("render_path", None)
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         render_filename = f"{UPLOAD_FOLDER}{pano_filename}-gradient.png"
-        # render_height(pano_path, render_filename, imdims=[c_w, c_h], fov=fov)
         mountains_3d = mountain_lookup(pano_path, render_filename, gpx_path)
         hs = hotspots(mountains_3d)
         session["hotspots"] = hs
@@ -187,10 +218,13 @@ def hotspots(mountains_3d):
     hotspots = {}
     for mountain in mountains_3d.values():
         loc_3d = mountain.location_in_3d
+        loc = mountain.location
         hotspots[mountain.name] = {
             "yaw": loc_3d.yaw,
             "pitch": loc_3d.pitch,
             "distance": loc_3d.distance,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
         }
 
     print(hotspots)

@@ -20,7 +20,7 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
-        <title>E2 - Render Preview</title>
+        <title>E2 - View Mountains</title>
     </head>
     <body>
         <div id="render-preview"></div>
@@ -29,28 +29,33 @@
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
             const viewDirection = parseFloat('{{ yaw }}')
 
-            function degrees_to_radians(degrees) {
-                var pi = Math.PI
-                return degrees * (pi / 180)
+            function hotspot(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('mountain-tooltip')
+                var span = document.createElement('span')
+                span.innerHTML = args
+                hotSpotDiv.appendChild(span)
+                span.style.width = span.scrollWidth - 20 + 'px'
+                span.style.marginLeft =
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 + 'px'
+                span.style.marginTop = -span.scrollHeight - 12 + 'px'
             }
 
             var mns = Object.values(
                 Object.entries(mountains).map(function (d) {
                     const [key, value] = d
-                    const yaw = parseFloat(value.yaw)
-
+                    const lat = value.latitude
+                    const lon = value.longitude
+                    const url = `https://www.google.com/maps/search/${lat},${lon}/`
                     return {
-                        yaw: -yaw - 180,
+                        yaw: 180 - (parseFloat(value.yaw) % 360),
                         pitch: value.pitch,
-                        size: 0.5,
-                        type: 'info',
-                        text: key,
+                        cssClass: 'custom-hotspot mountain-hotspot',
+                        createTooltipArgs: key,
+                        createTooltipFunc: hotspot,
+                        URL: url,
                     }
                 })
             )
-
-            console.log(viewDirection)
-            console.log(mns)
 
             viewer = pannellum.viewer('render-preview', {
                 type: 'equirectangular',
@@ -61,7 +66,6 @@
                 doubleClickZoom: false,
                 mouseZoom: false,
                 keyboardZoom: false,
-
                 hotSpots: mns,
             })
         </script>
