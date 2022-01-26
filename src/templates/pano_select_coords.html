@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="no">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"
+            integrity="sha512-EmZuy6vd0ns9wP+3l1hETKq/vNGELFRuLfazPnKKBbDpgZL0sZ7qyao5KgVbGJKOWlAFPNn6G9naB/8WnKN43Q=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+
+        <!-- <script>
+            function showContinueButton() {
+                document.getElementById('submit-coordinates').style.visibility =
+                    'visible'
+            }
+            fetch(
+                '/rendering?pano_path={{pano_path}}&render_path={{render_path}}'
+            ).then(showContinueButton)
+        </script> -->
+        <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
+        <title>E2 - DEM Rendering</title>
+    </head>
+    <body>
+        <div id="panorama-preview"></div>
+        <div id="coordinates">
+            <h5>Select some recognizable points in the panorama.</h5>
+            <div id="selected-coordinates">
+                Press Shift while clicking to select a location. Press "C" to
+                clear selection.
+            </div>
+            <form
+                id="submit-coordinates"
+                method="POST"
+                action="/gpsc"
+                enctype="multipart/form-data"
+            >
+                <button
+                    id="submit-button"
+                    type="button"
+                    class="btn btn-secondary"
+                    disabled
+                    hidden
+                    aria-disabled="true"
+                    onclick="submitCoords()"
+                >
+                    Submit
+                </button>
+                <button id="submit_" type="submit" hidden></button>
+            </form>
+        </div>
+        <script>
+            var clickedCoords = new Map()
+            var shiftPressed = false
+            const minimum_samples = getSampleNumber()
+            var renderComplete = false
+
+            function onRenderComplete() {
+                renderComplete = true
+                if (clickedCoords.size >= minimum_samples) {
+                    var submitButton = document.getElementById('submit-button')
+                    submitButton.setAttribute('class', 'btn btn-primary')
+                    submitButton.innerText = 'Submit'
+                    submitButton.removeAttribute('disabled')
+                }
+            }
+
+            fetch(
+                '/rendering?pano_path={{pano_path}}&render_path={{render_path}}'
+            ).then(onRenderComplete)
+
+            function submitCoords() {
+                var form = document.getElementById('submit-coordinates')
+                form.appendChild(
+                    addCoords(document, clickedCoords, 'pano-coords'),
+                    clickedCoords.clear()
+                )
+                form.submit()
+            }
+
+            const horizontal_fov = parseFloat('{{ horizontal_fov }}')
+            const vertical_fov = parseFloat('{{ vertical_fov }}')
+
+            const panorama_width = parseInt('{{ pwidth }}')
+            const panorama_height = parseInt('{{ pheight }}')
+
+            viewer = pannellum.viewer('panorama-preview', {
+                type: 'equirectangular',
+                panorama: '{{ pano_path }}',
+                autoLoad: true,
+                compass: false,
+                haov: horizontal_fov,
+                vaov: vertical_fov,
+                doubleClickZoom: false,
+                mouseZoom: false,
+                keyboardZoom: false,
+            })
+
+            viewer.on('mousedown', function (event) {
+                if (shiftPressed) {
+                    const coords = viewer.mouseEventToCoords(event)
+                    const x =
+                        (coords[1] / horizontal_fov + 0.5) * panorama_width
+                    const y = (0.5 - coords[0] / vertical_fov) * panorama_height
+
+                    if (outOfBounds(x, y, panorama_width, panorama_height)) {
+                        return
+                    }
+
+                    const itemNum = clickedCoords.size + 1
+                    clickedCoords.set(itemNum, [x, y])
+                    console.log(clickedCoords)
+                    updateFormText(document, clickedCoords.size)
+                    viewer.addHotSpot({
+                        id: 'selected-location-' + clickedCoords.size,
+                        pitch: coords[0],
+                        yaw: coords[1],
+                        cssClass: 'custom-hotspot',
+                    })
+                    if (clickedCoords.size == 1) {
+                        document
+                            .getElementById('submit-button')
+                            .removeAttribute('hidden')
+                    }
+                    if (clickedCoords.size >= minimum_samples) {
+                        var submitButton =
+                            document.getElementById('submit-button')
+                        if (renderComplete) {
+                            submitButton.setAttribute(
+                                'class',
+                                'btn btn-primary'
+                            )
+                            submitButton.removeAttribute('disabled')
+                        } else {
+                            submitButton.innerText = 'Waiting ...'
+                        }
+                    }
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Shift') {
+                    shiftPressed = true
+                }
+            })
+            document.addEventListener('keyup', function (event) {
+                if (event.key === 'Shift') {
+                    shiftPressed = false
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.keyCode === 67) {
+                    for (var i = 1; i <= clickedCoords.size; i++) {
+                        viewer.removeHotSpot('selected-location-' + i)
+                    }
+                    clickedCoords.clear()
+                    var submitButton = document.getElementById('submit-button')
+                    submitButton.setAttribute('class', 'btn btn-secondary')
+                    submitButton.innerText = 'Submit'
+                    updateFormText(document, clickedCoords.size)
+                }
+            })
+        </script>
+    </body>
+</html>

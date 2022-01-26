@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="no">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"
+            integrity="sha512-EmZuy6vd0ns9wP+3l1hETKq/vNGELFRuLfazPnKKBbDpgZL0sZ7qyao5KgVbGJKOWlAFPNn6G9naB/8WnKN43Q=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+        <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
+        <title>E2 - Render Preview</title>
+    </head>
+    <body>
+        <div id="render-preview"></div>
+        <div id="coordinates">
+            <h5>Select some recognizable points in the render.</h5>
+            <div id="selected-coordinates">
+                Press Shift while clicking to select a location. Press "C" to
+                clear selection.
+            </div>
+            <form
+                id="submit-coordinates"
+                method="POST"
+                action="/grsc"
+                enctype="multipart/form-data"
+            >
+                <button
+                    id="submit-button"
+                    type="button"
+                    class="btn btn-secondary"
+                    disabled
+                    hidden
+                    aria-disabled="true"
+                    onclick="submitCoords()"
+                >
+                    Submit
+                </button>
+                <button id="submit_" type="submit" hidden></button>
+            </form>
+        </div>
+        <script>
+            var clickedCoords = new Map()
+            var shiftPressed = false
+            const minimum_samples = getSampleNumber()
+
+            function submitCoords() {
+                var form = document.getElementById('submit-coordinates')
+                form.appendChild(
+                    addCoords(document, clickedCoords, 'render-coords'),
+                    clickedCoords.clear()
+                )
+                form.submit()
+            }
+
+            const horizontal_fov = parseFloat('{{horizontal_fov}}')
+            const vertical_fov = parseFloat('{{vertical_fov}}')
+
+            const panorama_width = parseInt('{{rwidth}}')
+            const panorama_height = parseInt('{{rheight}}')
+
+            viewer = pannellum.viewer('render-preview', {
+                type: 'equirectangular',
+                panorama: '{{render_path}}',
+                autoLoad: true,
+                hfov: horizontal_fov,
+                vaov: vertical_fov,
+                compass: true,
+                doubleClickZoom: false,
+                mouseZoom: false,
+                keyboardZoom: false,
+
+                hotSpots: [
+                    {
+                        pitch: -45,
+                        yaw: 0,
+                        size: 0.25,
+                        cssClass: 'north heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: 45,
+                        size: 0.25,
+                        cssClass: 'north-east heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: 90,
+                        size: 0.25,
+                        cssClass: 'east heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: 135,
+                        size: 0.25,
+                        cssClass: 'south-east heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: 180,
+                        size: 0.25,
+                        cssClass: 'south heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: -135,
+                        size: 0.25,
+                        cssClass: 'south-west heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: -90,
+                        size: 0.25,
+                        cssClass: 'west heading',
+                    },
+                    {
+                        pitch: -45,
+                        yaw: -45,
+                        size: 0.25,
+                        cssClass: 'north-west heading',
+                    },
+                ],
+            })
+
+            viewer.on('mousedown', function (event) {
+                if (shiftPressed) {
+                    var coords = viewer.mouseEventToCoords(event)
+                    var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
+                    var y = (0.5 - coords[0] / vertical_fov) * panorama_height
+
+                    if (outOfBounds(x, y, panorama_width, panorama_height)) {
+                        return
+                    }
+
+                    var itemNum = clickedCoords.size + 1
+                    clickedCoords.set(itemNum, [x, y])
+                    updateFormText(document, clickedCoords.size)
+                    viewer.addHotSpot({
+                        id: 'selected-location-' + clickedCoords.size,
+                        pitch: coords[0],
+                        yaw: coords[1],
+                        cssClass: 'custom-hotspot',
+                    })
+                    if (clickedCoords.size == 1) {
+                        document
+                            .getElementById('submit-button')
+                            .removeAttribute('hidden')
+                    }
+                    if (clickedCoords.size >= minimum_samples) {
+                        var submitButton =
+                            document.getElementById('submit-button')
+                        submitButton.setAttribute('class', 'btn btn-primary')
+                        submitButton.removeAttribute('disabled')
+                    }
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Shift') {
+                    shiftPressed = true
+                }
+            })
+            document.addEventListener('keyup', function (event) {
+                if (event.key === 'Shift') {
+                    shiftPressed = false
+                }
+            })
+            document.addEventListener('keydown', function (event) {
+                if (event.keyCode === 67) {
+                    for (var i = 1; i <= clickedCoords.size; i++) {
+                        viewer.removeHotSpot('selected-location-' + i)
+                    }
+                    clickedCoords.clear()
+                    var submitButton = document.getElementById('submit-button')
+                    submitButton.setAttribute('class', 'btn btn-secondary')
+                    updateFormText(document, clickedCoords.size)
+                }
+            })
+        </script>
+    </body>
+</html>

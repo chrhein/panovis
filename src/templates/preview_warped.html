@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+
+        <title>E2 - Warped</title>
+    </head>
+    <body>
+        <div class="px-4 py-2 my-4 text-center">
+            <h3 class="fw-bold text-start">Render/panorama comparison</h3>
+            <div class="border bg-light px-5">
+                <div
+                    class="py-2 d-grid d-sm-flex justify-content-sm-center compare"
+                >
+                    <div class="juxtapose">
+                        <img class="compare-images" src="{{ warped }}" />
+                        <img class="compare-images" src="{{ render }}" />
+                    </div>
+                </div>
+                <h5 class="fw-bold text-start">Select a list of mountains</h5>
+                <div class="py-2 d-grid d-sm-flex justify-content-sm-center">
+                    <form
+                        action="/uploadmtns"
+                        method="POST"
+                        enctype="multipart/form-data"
+                    >
+                        <input type="file" name="file" />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
+                        >
+                            Select
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.knightlab.com/libs/juxtapose/latest/js/juxtapose.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
+        />
+    </body>
+</html>

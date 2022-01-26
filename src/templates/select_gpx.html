@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+            rel="stylesheet"
+            type="text/css"
+            href="{{ url_for('static', filename='styling/index.css') }}"
+        />
+
+        <title>E2 - Select Mountain DS</title>
+    </head>
+    <body>
+        <div class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">Select a list of mountains</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
+                    <form
+                        action="/uploadmtns"
+                        method="POST"
+                        enctype="multipart/form-data"
+                    >
+                        <input type="file" name="file" />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
+                        >
+                            Select
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

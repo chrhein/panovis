@@ -314,5 +314,7 @@ hed_model
 *.pov-state
 *.gpx
 *.pkl
-*.html
+panorama*.html
+compared_ds/
 *.txt
+src/static/*.html

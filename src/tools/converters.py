@@ -25,7 +25,7 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(raster, to_espg, lat, lon):
+def convert_coordinates(raster, to_espg, lat, lon, only_height=False):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = cor_to_crs(to_espg, lat, lon)
@@ -44,6 +44,8 @@ def convert_coordinates(raster, to_espg, lat, lon):
 
     try:
         height = h[row][col]
+        if only_height:
+            return height
     except IndexError:
         return
 
@@ -116,8 +118,5 @@ def to_latlon(x, y, ds_raster):
 
 
 def dms_to_decimal_degrees(coordinate):
-    c = coordinate.values
-    d = c[0].num / c[0].den
-    m = c[1].num / c[1].den
-    s = c[2].num / c[2].den
+    d, m, s = coordinate
     return d + (m / 60.0) + (s / 3600.0)

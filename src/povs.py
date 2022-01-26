@@ -1,9 +1,13 @@
+from location_handler import get_fov
+
+
 def primary_pov(
     dem_file,
     raster_data,
     texture_path="",
     tex_bounds=None,
     mode="height",
+    fov=None,
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
@@ -24,6 +28,12 @@ def primary_pov(
         texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
 
+    if fov:
+        fov = get_fov(fov)
+        print("FOV:", fov)
+    else:
+        fov = 360
+
     pov_text = """
     #version 3.8;
     #include "colors.inc"
@@ -42,6 +52,7 @@ def primary_pov(
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
+    #declare FOV = %f;
 
     #declare HEIGHT = CAMERAHEIGHT;
 
@@ -95,9 +106,9 @@ def primary_pov(
 
     camera {
         cylinder 1
+        angle FOV
         location CAMERAPOS
         look_at CAMERALOOKAT
-        angle 360
     }
 
     light_source { CAMERAPOS color White }
@@ -199,6 +210,7 @@ def primary_pov(
         y_l,
         x_l,
         mode,
+        fov,
     )
     return pov_text
 

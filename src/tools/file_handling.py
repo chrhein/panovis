@@ -3,12 +3,11 @@ from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
 import tkinter as tk
-import json
 import os
 import gpxpy
 import gpxpy.gpx
 import rasterio
-from image_handling import get_exif_data
+import image_handling
 from location_handler import displace_camera, find_maximums, find_minimums
 from tools.converters import cor_to_crs
 from tools.debug import p_i, p_line
@@ -16,44 +15,40 @@ from tools.types import Location, Mountain, MountainBounds
 from osgeo import gdal
 
 
-def get_mountain_data(json_path, panorama_path):
-    with open(json_path) as json_file:
-        data = json.load(json_file)
-        dem_file = data["dem-path"]
-        camera_mountain = data["panoramas"][
-            "%s_camera" % panorama_path.split("/")[-1].split(".")[0]
-        ]
-        image_location = get_exif_data(panorama_path)
-        if image_location:
-            camera_lat, camera_lon = image_location.latitude, image_location.longitude
-        else:
-            try:
-                camera_lat, camera_lon = camera_mountain["latlon"]
-            except KeyError:
-                camera_lat, camera_lon = input_latlon()
+def get_mountain_data(dem_file, panorama_path, gradient=False):
+    image_location = image_handling.get_exif_gps_latlon(panorama_path)
+    if image_location:
+        camera_lat, camera_lon = image_location.latitude, image_location.longitude
+    else:
+        p_e("No location data found in image. Exiting program.")
+        return
+    exif_view_direction = image_handling.get_exif_gsp_img_direction(panorama_path)
+    if exif_view_direction and gradient:
+        viewing_direction = exif_view_direction
+    else:
         viewing_direction = 0.0
-        look_ats = displace_camera(camera_lat, camera_lon, degrees=viewing_direction)
+    look_ats = displace_camera(camera_lat, camera_lon, deg=viewing_direction)
 
-        ds_raster = rasterio.open(dem_file)
-        crs = int(ds_raster.crs.to_authority()[1])
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
 
-        camera_placement_crs = cor_to_crs(crs, camera_lat, camera_lon)
+    camera_placement_crs = cor_to_crs(crs, camera_lat, camera_lon)
 
-        displacement_distance = 15000  # in meters from camera placement
+    displacement_distance = 15000  # in meters from camera placement
 
-        bbox = (
-            camera_placement_crs.GetX() - displacement_distance,
-            camera_placement_crs.GetY() + displacement_distance,
-            camera_placement_crs.GetX() + displacement_distance,
-            camera_placement_crs.GetY() - displacement_distance,
-        )
+    bbox = (
+        camera_placement_crs.GetX() - displacement_distance,
+        camera_placement_crs.GetY() + displacement_distance,
+        camera_placement_crs.GetX() + displacement_distance,
+        camera_placement_crs.GetY() - displacement_distance,
+    )
 
-        coordinates = [camera_lat, camera_lon, *look_ats]
+    coordinates = [camera_lat, camera_lon, *look_ats]
 
-        cropped_dem = "dev/cropped.png"
-        gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+    cropped_dem = "dev/cropped.png"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox)
 
-        return [cropped_dem, dem_file, coordinates]
+    return [cropped_dem, dem_file, coordinates, viewing_direction]
 
 
 def read_hike_gpx(gpx_path):
@@ -254,3 +249,10 @@ def file_chooser(title, multiple=False):
     except AttributeError:
         p_i("Exiting...")
         exit()
+
+
+def make_folder(folder):
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
