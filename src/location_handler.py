@@ -3,6 +3,7 @@ import numpy as np
 import rasterio
 from tools.converters import (
     convert_coordinates,
+    cor_to_crs,
     crs_to_cor,
     crs_to_wgs84,
     get_earth_radius,
@@ -121,7 +122,6 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
         p_e("No mountains in sight")
     else:
         p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
-        print(mountains_in_sight)
     return mountains_in_sight
 
 
@@ -230,25 +230,39 @@ def get_distance_between_locations(loc1, loc2):
 
 
 def find_angle_between_three_locations(loc1, loc2, loc3):
-    return get_bearing(
-        loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude
-    ) - get_bearing(loc1.latitude, loc1.longitude, loc3.latitude, loc3.longitude)
+    print(loc1, loc2, loc3)
+    a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
+    a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
+    return degrees(a1 - a2)
 
 
-def get_mountain_3d_location(camera_location, viewing_direction, mountains):
-    loc2 = camera_location
+def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains):
+    loc1 = cor_to_crs(
+        crs,
+        *displace_camera(
+            camera_location.latitude,
+            camera_location.longitude,
+            deg=viewing_direction,
+            distance=1.0,
+        ),
+    )
+    loc3 = cor_to_crs(crs, camera_location.latitude, camera_location.longitude)
+
     for mountain in mountains.values():
         d = get_distance_between_locations(camera_location, mountain.location)
         c_e = camera_location.elevation
         m_e = mountain.location.elevation
         diff = m_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
-        ang = degrees(asin(diff / h))
+        pitch = degrees(asin(diff / h))
+        m = mountain.location
+        loc2 = cor_to_crs(crs, m.latitude, m.longitude)
+        yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        print(f"Mountain: {mountain.name}")
+        print(f"Pitch: {pitch}")
+        print(f"Yaw: {yaw}")
+        # deg = get_bearing(loc3.latitude, loc3.longitude, loc2.latitude, loc2.longitude)
 
-        loc3 = mountain.location
-        # deg = find_angle_between_three_locations(loc1, loc2, loc3)
-        deg = get_bearing(loc3.latitude, loc3.longitude, loc2.latitude, loc2.longitude)
-
-        mountain.set_location_in_3d(Location3D(yaw=deg, pitch=ang, distance=d))
+        mountain.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
     return mountains

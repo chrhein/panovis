@@ -20,10 +20,37 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
+        <script src="jquery.js"></script>
+        <script>
+            $(function () {
+                $('#folium-map').load(
+                    "{{ url_for('static', filename='foliums/2021-04-17--pic03--Lyderhorn.html') }}"
+                )
+            })
+        </script>
         <title>E2 - View Mountains</title>
     </head>
     <body>
-        <div id="render-preview"></div>
+        <div class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">Mountain Overlay</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid d-sm-flex justify-content-sm-center">
+                    <div id="mountain-overlay"></div>
+                </div>
+            </div>
+        </div>
+        <div class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">Interactive Map</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid d-sm-flex justify-content-sm-center">
+                    <div id="folium-container">
+            <object
+                id="folium-map"
+                data="src/static/foliums/{{pano_filename}}.html"
+            ></object>
+                </div>
+            </div>
+        </div>
 
         <script>
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
@@ -36,7 +63,7 @@
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
                 span.style.marginLeft =
-                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 + 'px'
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 9.5 + 'px'
                 span.style.marginTop = -span.scrollHeight - 12 + 'px'
             }
 
@@ -46,8 +73,10 @@
                     const lat = value.latitude
                     const lon = value.longitude
                     const url = `https://www.google.com/maps/search/${lat},${lon}/`
+                    console.log(value.yaw)
+                    
                     return {
-                        yaw: 180 - (parseFloat(value.yaw) % 360),
+                        yaw: viewDirection + parseFloat(value.yaw),
                         pitch: value.pitch,
                         cssClass: 'custom-hotspot mountain-hotspot',
                         createTooltipArgs: key,
@@ -57,7 +86,7 @@
                 })
             )
 
-            viewer = pannellum.viewer('render-preview', {
+            viewer = pannellum.viewer('mountain-overlay', {
                 type: 'equirectangular',
                 panorama: '{{ render_path }}',
                 autoLoad: true,

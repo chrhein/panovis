@@ -30,7 +30,6 @@ def primary_pov(
 
     if fov:
         fov = get_fov(fov)
-        print("FOV:", fov)
     else:
         fov = 360
 
@@ -118,9 +117,9 @@ def primary_pov(
             pigment {
                 gradient y
                 color_map {
-                    [0.4 color rgb<1 1 1>]
-                    [0.8 color rgb<0.1,0.25,0.75>]
-                    [1 color rgb<0.1,0.25,0.75>]
+                    [0.25 color rgb<0.95, 0.98, 0.99>]
+                    [0.7 color rgb<0.54, 0.76, 0.85>]
+                    [1 color rgb<0.23,0.60,0.74>]
                 }
                 scale 2
                 translate -1
@@ -135,7 +134,15 @@ def primary_pov(
                 pigment {
                     gradient y
                     color_map {
-                        [0.0000000000000000000001 color BakersChoc]
+                        [0.0001 color rgb<0.63, 0.62, 0.46>]
+                        [0.0015 color rgb<0.47, 0.33, 0.23>]
+                        [0.0060 color rgb<0.70, 0.62, 0.57>]
+                        [0.0105 color rgb<0.58, 0.46, 0.38>]
+                        [0.0150 color rgb<0.70, 0.62, 0.57>]
+                        [0.0195 color rgb<0.58, 0.46, 0.38>]
+                        [0.0240 color rgb<0.70, 0.62, 0.57>]
+                        [0.0285 color rgb<0.58, 0.46, 0.38>]
+                        [0.0320 color rgb<0.70, 0.62, 0.57>]
                         [MAXMOUNTAIN color White]
                     }
                 }
@@ -185,7 +192,8 @@ def primary_pov(
                 DEPTHTEXTURE
                 translate CAMERAPOS
                 #else
-                pigment { color rgb<0.1,0.25,0.75> }
+                pigment { color rgb<0.16, 0.41, 0.52> }
+                
                 finish {
                     reflection 0 ambient 1 diffuse 0 specular 0
                 }
