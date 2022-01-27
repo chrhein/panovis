@@ -51,8 +51,8 @@ def get_image_description(file_path):
         im = exif.Image(image_file)
         image_file.close()
     try:
-        return im.image_description
-    except AttributeError:
+        return im.user_comment
+    except (UnicodeDecodeError, AttributeError):
         return None
 
 
@@ -64,17 +64,11 @@ def write_exif_to_pano(file_path, fov, imdims):
     im.gps_img_direction_ref = "M"
     imdata = {"fov": fov, "imdims": imdims}
     custom_exif = json.dumps(imdata, separators=(",", ":"))
-    im.image_description = custom_exif
+    im.user_comment = custom_exif
     with open("/tmp/exifed.jpg", "wb") as new_image_file:
         new_image_file.write(im.get_file())
         new_image_file.close()
     os.rename("/tmp/exifed.jpg", file_path)
-    """ with open(file_path, "rb") as image_file:
-        im = exif.Image(image_file)
-        image_file.close()
-    print(im.gps_img_direction)
-    print(im.gps_img_direction_ref) """
-    print(im.image_description)
 
 
 def vertical_stack_imshow_divider(im1, im2, title="Preview", div_thickness=3):
@@ -278,15 +272,13 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
     }
 
     pts_panorama = np.float32([[x, y] for x, y in pano_coords.values()])
-    # print(f"Pano coords: {pts_panorama}")
     panorama_image = cv2.imread(pano_path)
     pts_render = np.float32([[x, y] for x, y in render_coords.values()])
-    # print(f"Render coords: {pts_render}")
     render_image = cv2.imread(render_path)
     render_width = render_image.shape[1]
 
     if len(pano_coords) != len(render_coords):
-        return
+        return False, False
 
     prev_x_coord = 0
     shift_coords = False
@@ -296,8 +288,6 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
             pts_render[i][0] = x + render_width
             shift_coords = True
         prev_x_coord = x
-
-    # print(f"Render coords shifted: {pts_render}")
 
     render_image = cv2.hconcat([render_image, render_image])
 
@@ -341,31 +331,25 @@ def transform_panorama(pano_path, render_path, pano_coords, render_coords):
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    ub_l, ub_r, lb_r, lb_l = warped_bbox[0]
-
-    print(f"ub_l: {ub_l}, ub_r: {ub_r}, lb_r: {lb_r}, lb_l: {lb_l}")
+    ub_l, ub_r, _, _ = warped_bbox[0]
 
     minx = int(ub_l[0])
     maxx = int(ub_r[0])
 
-    render_image2 = cv2.rectangle(
+    """ render_image2 = cv2.rectangle(
         render_image.copy(),
         (minx, 0),
         (maxx, render_image.shape[0]),
         (0, 0, 255, 1),
         5,
     )
-    cv2.imwrite(f"testcrop.png", render_image2)
+    cv2.imwrite(f"testcrop.png", render_image2) """
 
     heading_bound_left, heading_bound_right = get_fov_bounds(render_width, minx, maxx)
 
-    print(f"Min heading: {heading_bound_left}")
-    print(f"Max heading: {heading_bound_right}")
-    print(f"FOV:         {(heading_bound_right-heading_bound_left) % 360}")
-
     pano_filename = pano_path.split("/")[-1].split(".")[0]
-    overlay_path = f"src/static/{pano_filename}-overlay.jpg"
-    ultrawide_render_path = f"src/static/{pano_filename}-ultrawide.jpg"
+    overlay_path = f"src/static/images/{pano_filename}-overlay.jpg"
+    ultrawide_render_path = f"src/static/images/{pano_filename}-ultrawide.jpg"
 
     overlay_crop = im_overlay[0 : im_overlay.shape[0], minx:maxx]
     ultrawide_render_crop = render_image[0 : im_overlay.shape[0], minx:maxx]

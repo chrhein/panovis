@@ -318,3 +318,4 @@ panorama*.html
 compared_ds/
 *.txt
 src/static/*.html
+src/static/foliums/*.html

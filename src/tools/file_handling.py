@@ -9,7 +9,7 @@ import gpxpy.gpx
 import rasterio
 import image_handling
 from location_handler import displace_camera, find_maximums, find_minimums
-from tools.converters import cor_to_crs
+from tools.converters import latlon_to_crs
 from tools.debug import p_i, p_line
 from tools.types import Location, Mountain, MountainBounds
 from osgeo import gdal
@@ -32,7 +32,7 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
 
-    camera_placement_crs = cor_to_crs(crs, camera_lat, camera_lon)
+    camera_placement_crs = latlon_to_crs(crs, camera_lat, camera_lon)
 
     displacement_distance = 15000  # in meters from camera placement
 

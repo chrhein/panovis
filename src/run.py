@@ -9,7 +9,7 @@ from image_handling import (
     reduce_filesize,
     transform_panorama,
 )
-from renderer import mountain_lookup, render_dem, render_height
+from renderer import mountain_lookup, render_height
 from tools.file_handling import make_folder
 from PIL import Image
 
@@ -17,9 +17,13 @@ from PIL import Image
 def create_app():
     app = Flask(__name__, static_url_path="/src/static")
     UPLOAD_FOLDER = "src/static/"
+    IMG_UPLOAD_FOLDER = f"{UPLOAD_FOLDER}images/"
+    GPX_UPLOAD_FOLDER = f"{UPLOAD_FOLDER}gpx/"
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+
+    DEBUG_HEIGHT = False
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
@@ -42,8 +46,12 @@ def create_app():
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
-            pano_path = f"{UPLOAD_FOLDER}{filename}"
+            pano_path = f"{IMG_UPLOAD_FOLDER}{filename}"
+            pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
+
             make_folder(UPLOAD_FOLDER)
+            make_folder(IMG_UPLOAD_FOLDER)
+
             if not os.path.exists(pano_path):
                 f.save(pano_path)
                 reduce_filesize(pano_path)
@@ -52,20 +60,36 @@ def create_app():
                 if width > 16384:
                     return "<h4>Image is too wide. Must be less than 16384px.</h4>"
                 img.close()
+
             im_location = get_exif_gps_latlon(pano_path)
+
             if not im_location:
                 return "<h4>Image does not have location data.</h4>"
+
             session["pano_path"] = pano_path
+
+            if DEBUG_HEIGHT:
+                render_path = f"{IMG_UPLOAD_FOLDER}{pano_filename}-render.png"
+                session["render_path"] = render_path
+                return redirect(
+                    url_for(
+                        "loading",
+                        redirect_url="srcoords",
+                        task="rendering",
+                        title="Rendering Height Image",
+                        text="Rendering Height Image ...",
+                    )
+                )
 
             im_view_direction = get_exif_gsp_img_direction(pano_path)
             im_description = get_image_description(pano_path)
 
             if im_location and im_view_direction and im_description:
-                pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
-                render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
+                render_path = f"{IMG_UPLOAD_FOLDER}{pano_filename}-render.png"
                 if os.path.exists(render_path):
                     session["render_path"] = render_path
                     return redirect(url_for("selectgpx"))
+
             return redirect(url_for("spcoords"))
 
     @app.route("/uploadmtns", methods=["POST", "GET"])
@@ -73,9 +97,10 @@ def create_app():
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
-            gpx_path = f"{UPLOAD_FOLDER}{filename}"
-            make_folder(UPLOAD_FOLDER)
+            gpx_path = f"{GPX_UPLOAD_FOLDER}{filename}"
+            make_folder(GPX_UPLOAD_FOLDER)
             f.save(gpx_path)
+            app.logger.info(f"Saved {filename}")
             session["gpx_path"] = gpx_path
             redir_url = "mountains"
             task = "findmtns"
@@ -106,7 +131,7 @@ def create_app():
     def spcoords():
         pano_path = session["pano_path"]
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
-        render_path = f"{UPLOAD_FOLDER}{pano_filename}-render.png"
+        render_path = f"{IMG_UPLOAD_FOLDER}{pano_filename}-render.png"
         session["render_path"] = render_path
         with Image.open(pano_path) as img:
             width, height = img.size
@@ -177,6 +202,8 @@ def create_app():
         transformed_im, ultrawide_render = transform_panorama(
             pano_path, render_path, pano_coords, render_coords
         )
+        if not transformed_im or not ultrawide_render:
+            return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
         return render_template(
             "preview_warped.html",
             warped=transformed_im,
@@ -188,7 +215,7 @@ def create_app():
         pano_path = session.get("pano_path", None)
         gpx_path = session.get("gpx_path", None)
         pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
-        render_filename = f"{UPLOAD_FOLDER}{pano_filename}-gradient.png"
+        render_filename = f"{IMG_UPLOAD_FOLDER}{pano_filename}-gradient.png"
         mountains_3d = mountain_lookup(pano_path, render_filename, gpx_path)
         hs = hotspots(mountains_3d)
         session["hotspots"] = hs
@@ -199,17 +226,15 @@ def create_app():
         hs = session.get("hotspots", None)
         render_path = session.get("render_path", None)
         pano_path = session.get("pano_path", None)
+        pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
         yaw = get_exif_gsp_img_direction(pano_path)
         return render_template(
-            "view_mountains.html", hs=hs, render_path=render_path, yaw=yaw
+            "view_mountains.html",
+            hs=hs,
+            render_path=render_path,
+            yaw=yaw,
+            pano_filename=pano_filename,
         )
-
-    """ @app.route("/testing")
-    def testing():
-        raw_coords = request.args.get("render_selected_coordinates")
-        render_selected_coordinates = json.loads(raw_coords)
-        app.logger.info(render_selected_coordinates)
-        return ("", 204) """
 
     return app
 
@@ -226,9 +251,6 @@ def hotspots(mountains_3d):
             "latitude": loc.latitude,
             "longitude": loc.longitude,
         }
-
-    print(hotspots)
-
     return hotspots
 
 
