@@ -106,6 +106,10 @@ div.mountain-tooltip:hover span:after {
     margin: 0 50%;
 }
 
+.fill-screen {
+    height: 80vh;
+}
+
 .loader {
     color: #000;
     font-size: 45px;

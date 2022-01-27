@@ -5,7 +5,7 @@ import pickle
 import rasterio
 import subprocess
 from osgeo import gdal
-from tools.converters import convert_single_coordinate_pair, cor_to_crs
+from tools.converters import convert_single_coordinate_pair, latlon_to_crs
 from tools.file_handling import read_hike_gpx
 from tools.types import TextureBounds
 from tools.debug import p_i
@@ -67,8 +67,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     mns, minimums, maximums = read_hike_gpx(gpx_path)
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
-    lower_left = cor_to_crs(crs, minimums[0].latitude, minimums[1].longitude)
-    upper_right = cor_to_crs(crs, maximums[0].latitude, maximums[1].longitude)
+    lower_left = latlon_to_crs(crs, minimums[0].latitude, minimums[1].longitude)
+    upper_right = latlon_to_crs(crs, maximums[0].latitude, maximums[1].longitude)
 
     bbox = (
         lower_left.GetX(),

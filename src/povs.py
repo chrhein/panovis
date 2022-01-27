@@ -134,15 +134,24 @@ def primary_pov(
                 pigment {
                     gradient y
                     color_map {
-                        [0.0001 color rgb<0.63, 0.62, 0.46>]
-                        [0.0015 color rgb<0.47, 0.33, 0.23>]
-                        [0.0060 color rgb<0.70, 0.62, 0.57>]
-                        [0.0105 color rgb<0.58, 0.46, 0.38>]
-                        [0.0150 color rgb<0.70, 0.62, 0.57>]
-                        [0.0195 color rgb<0.58, 0.46, 0.38>]
-                        [0.0240 color rgb<0.70, 0.62, 0.57>]
-                        [0.0285 color rgb<0.58, 0.46, 0.38>]
-                        [0.0320 color rgb<0.70, 0.62, 0.57>]
+                        // [0.00000000000001 color rgb<0.42, 0.56, 0.41>] // highland (green, more saturated)
+                        // [0.0002 color rgb<0.50, 0.57, 0.41>] // highland (green)
+                        // [0.0005 color rgb<0.57, 0.55, 0.41>] // avocado (green)
+                        // [0.0015 color rgb<0.58, 0.46, 0.38>] // domino (brown)
+                        // [0.0060 color rgb<0.47, 0.33, 0.23>] // shingle fawn (brown)
+                        // [0.0130 color rgb<0.57, 0.55, 0.41>] // avocado (green)
+                        // [0.0160 color rgb<0.47, 0.33, 0.23>] // shingle fawn (brown)
+                        // [0.0190 color rgb<0.50, 0.43, 0.36>] // donkey brown (brown)
+                        // [0.0220 color rgb<0.58, 0.46, 0.38>] // domino (brown)
+                        // [0.0250 color rgb<0.70, 0.62, 0.57>] // del rio (brown)
+                        [0.0001 color rgb<0.01, 0.40, 0.26>] // darthmouth green
+                        [0.0035 color rgb<0.89, 0.79, 0.45>] // chenin
+                        [0.0070 color rgb<0.78, 0.58, 0.27>] // tussock
+                        [0.0105 color rgb<0.62, 0.16, 0.00>] // totem pole
+                        [0.0140 color rgb<0.60, 0.60, 0.60>] // aluminum
+                        [0.0200 color rgb<0.78, 0.58, 0.27>] // tussock
+                        [0.0235 color rgb<0.62, 0.16, 0.00>] // totem pole
+                        [0.0270 color rgb<0.60, 0.60, 0.60>] // aluminum
                         [MAXMOUNTAIN color White]
                     }
                 }

@@ -17,7 +17,7 @@ def get_earth_radius():
 
 def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     min_x, min_y, max_x, max_y = bounds
-    coordinate_pair = cor_to_crs(to_espg, lat, lon)
+    coordinate_pair = latlon_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
@@ -28,7 +28,7 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
 def convert_coordinates(raster, to_espg, lat, lon, only_height=False):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
-    coordinate_pair = cor_to_crs(to_espg, lat, lon)
+    coordinate_pair = latlon_to_crs(to_espg, lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
 
@@ -64,36 +64,39 @@ def convert_coordinates(raster, to_espg, lat, lon, only_height=False):
 
 
 # lat/lon to coordinate reference system coordinates
-def cor_to_crs(to_espg, lat, lon):
+def latlon_to_crs(to_epsg, lat, lon):
+    latlon_epsg = 4326  # WGS84
+
     in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)
+    in_sr.ImportFromEPSG(latlon_epsg)
     out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_espg)
+    out_sr.ImportFromEPSG(to_epsg)
+
     coordinate_pair = ogr.Geometry(ogr.wkbPoint)
     coordinate_pair.AddPoint(lat, lon)
     coordinate_pair.AssignSpatialReference(in_sr)
     coordinate_pair.TransformTo(out_sr)
+
     return coordinate_pair
 
 
-def crs_to_cor(to_espg, lat, lon, ele):
+def crs_to_latlon(from_epsg, lat, lon, ele=0):
+    latlon_epsg = 4326  # WGS84
+
     in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(4326)
+    in_sr.ImportFromEPSG(from_epsg)
     out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_espg)
+    out_sr.ImportFromEPSG(latlon_epsg)
+
     coordinate_pair = ogr.Geometry(ogr.wkbPoint)
     coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(out_sr)
-    coordinate_pair.TransformTo(in_sr)
+    coordinate_pair.AssignSpatialReference(in_sr)
+    coordinate_pair.TransformTo(out_sr)
+
     lat = coordinate_pair.GetX()
     lon = coordinate_pair.GetY()
+
     return Location(latitude=float(lat), longitude=float(lon), elevation=ele)
-
-
-def crs_to_wgs84(dataset, x, y):
-    crs = rasterio.crs.CRS.from_epsg(4326)
-    lon, lat = transform(dataset.crs, crs, xs=[x], ys=[y])
-    return (lat, lon)
 
 
 def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
@@ -110,11 +113,6 @@ def look_at_location(in_lat, in_lon, dist_in_kms, true_course):
     )
     lat2, lon2 = degrees(lat2), degrees(lon2)
     return lat2, lon2
-
-
-def to_latlon(x, y, ds_raster):
-    latitude, longitude = crs_to_wgs84(ds_raster, x, y)
-    return (float(str(latitude).strip("[]")), float(str(longitude).strip("[]")))
 
 
 def dms_to_decimal_degrees(coordinate):

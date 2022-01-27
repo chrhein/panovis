@@ -23,6 +23,8 @@ def create_app():
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
 
+    DEBUG_HEIGHT = False
+
     @app.route("/", methods=["POST", "GET"])
     def homepage():
         session["pano_path"] = ""
@@ -45,36 +47,49 @@ def create_app():
             f = request.files["file"]
             filename = secure_filename(f.filename)
             pano_path = f"{IMG_UPLOAD_FOLDER}{filename}"
-            app.logger.info(f"Uploaded {filename}")
+            pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
+
             make_folder(UPLOAD_FOLDER)
             make_folder(IMG_UPLOAD_FOLDER)
+
             if not os.path.exists(pano_path):
                 f.save(pano_path)
-                app.logger.info(f"Saved {filename}")
                 reduce_filesize(pano_path)
             with Image.open(pano_path) as img:
                 width, _ = img.size
                 if width > 16384:
                     return "<h4>Image is too wide. Must be less than 16384px.</h4>"
                 img.close()
+
             im_location = get_exif_gps_latlon(pano_path)
-            app.logger.info(im_location)
+
             if not im_location:
                 return "<h4>Image does not have location data.</h4>"
+
             session["pano_path"] = pano_path
 
-            im_view_direction = get_exif_gsp_img_direction(pano_path)
-            app.logger.info(im_view_direction)
+            if DEBUG_HEIGHT:
+                render_path = f"{IMG_UPLOAD_FOLDER}{pano_filename}-render.png"
+                session["render_path"] = render_path
+                return redirect(
+                    url_for(
+                        "loading",
+                        redirect_url="srcoords",
+                        task="rendering",
+                        title="Rendering Height Image",
+                        text="Rendering Height Image ...",
+                    )
+                )
 
+            im_view_direction = get_exif_gsp_img_direction(pano_path)
             im_description = get_image_description(pano_path)
-            app.logger.info(im_description)
 
             if im_location and im_view_direction and im_description:
-                pano_filename = f"{pano_path.split('/')[-1].split('.')[0]}"
                 render_path = f"{IMG_UPLOAD_FOLDER}{pano_filename}-render.png"
                 if os.path.exists(render_path):
                     session["render_path"] = render_path
                     return redirect(url_for("selectgpx"))
+
             return redirect(url_for("spcoords"))
 
     @app.route("/uploadmtns", methods=["POST", "GET"])
@@ -104,9 +119,7 @@ def create_app():
     @app.route("/rendering")
     def rendering():
         pano_path = session.get("pano_path", None)
-        app.logger.info(f"Pano path: {pano_path}")
         render_path = session.get("render_path", None)
-        app.logger.info(f"Rendering {render_path}")
         render_complete = render_height(pano_path, render_path)
         if render_complete:
             return ("", 204)
@@ -222,13 +235,6 @@ def create_app():
             yaw=yaw,
             pano_filename=pano_filename,
         )
-
-    """ @app.route("/testing")
-    def testing():
-        raw_coords = request.args.get("render_selected_coordinates")
-        render_selected_coordinates = json.loads(raw_coords)
-        app.logger.info(render_selected_coordinates)
-        return ("", 204) """
 
     return app
 

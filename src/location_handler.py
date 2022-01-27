@@ -1,11 +1,10 @@
-from math import asin, cos, radians, sin, atan2, degrees, pi
+from math import asin, cos, sin, atan2, degrees, pi
 import numpy as np
 import rasterio
 from tools.converters import (
     convert_coordinates,
-    cor_to_crs,
-    crs_to_cor,
-    crs_to_wgs84,
+    latlon_to_crs,
+    crs_to_latlon,
     get_earth_radius,
 )
 from tools.debug import p_i, p_e, p_line, p_s
@@ -16,7 +15,7 @@ from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
 
-from tools.types import Location, Location3D
+from tools.types import Location3D
 
 
 def get_raster_data(dem_file, coordinates):
@@ -77,7 +76,7 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
         s_x, s_y = round(x * x_), round(y * y_)
         px, py = ds_raster.xy(s_x, s_y)
         height = ds_raster_height_band[s_x, s_y]
-        latlon_color_coordinates.append(crs_to_cor(crs, px, py, height))
+        latlon_color_coordinates.append(crs_to_latlon(crs, px, py, height))
     return latlon_color_coordinates
 
 
@@ -163,17 +162,17 @@ def get_min_max_coordinates(dem_file):
 def get_raster_bounds(dem_file, lat_lon=True):
     ds_raster = rasterio.open(dem_file)
     bounds = ds_raster.bounds
-
-    def format_coords(coords):
-        return [c[0] for c in coords]
+    crs = int(ds_raster.crs.to_authority()[1])
 
     if lat_lon:
-        lower_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.bottom))
-        upper_left = format_coords(crs_to_wgs84(ds_raster, bounds.left, bounds.top))
-        upper_right = format_coords(crs_to_wgs84(ds_raster, bounds.right, bounds.top))
-        lower_right = format_coords(
-            crs_to_wgs84(ds_raster, bounds.right, bounds.bottom)
-        )
+        ll = crs_to_latlon(crs, bounds.left, bounds.bottom)
+        lower_left = ll.latitude, ll.longitude
+        ul = crs_to_latlon(crs, bounds.left, bounds.top)
+        upper_left = ul.latitude, ul.longitude
+        ur = crs_to_latlon(crs, bounds.right, bounds.top)
+        upper_right = ur.latitude, ur.longitude
+        lr = crs_to_latlon(crs, bounds.right, bounds.bottom)
+        lower_right = lr.latitude, lr.longitude
     else:
         lower_left = (bounds.left, bounds.bottom)
         upper_left = (bounds.left, bounds.top)
@@ -230,14 +229,13 @@ def get_distance_between_locations(loc1, loc2):
 
 
 def find_angle_between_three_locations(loc1, loc2, loc3):
-    print(loc1, loc2, loc3)
     a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
     a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
     return degrees(a1 - a2)
 
 
 def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains):
-    loc1 = cor_to_crs(
+    loc1 = latlon_to_crs(
         crs,
         *displace_camera(
             camera_location.latitude,
@@ -246,7 +244,7 @@ def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains)
             distance=1.0,
         ),
     )
-    loc3 = cor_to_crs(crs, camera_location.latitude, camera_location.longitude)
+    loc3 = latlon_to_crs(crs, camera_location.latitude, camera_location.longitude)
 
     for mountain in mountains.values():
         d = get_distance_between_locations(camera_location, mountain.location)
@@ -256,12 +254,8 @@ def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains)
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
         m = mountain.location
-        loc2 = cor_to_crs(crs, m.latitude, m.longitude)
+        loc2 = latlon_to_crs(crs, m.latitude, m.longitude)
         yaw = find_angle_between_three_locations(loc1, loc2, loc3)
-        print(f"Mountain: {mountain.name}")
-        print(f"Pitch: {pitch}")
-        print(f"Yaw: {yaw}")
-        # deg = get_bearing(loc3.latitude, loc3.longitude, loc2.latitude, loc2.longitude)
 
         mountain.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
