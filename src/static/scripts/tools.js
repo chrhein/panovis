@@ -2,7 +2,7 @@ function addCoords(document, data, name) {
     var coordinates = document.createElement('input')
     coordinates.setAttribute('type', 'hidden')
     coordinates.setAttribute('name', name)
-    coordinates.setAttribute('value', JSON.stringify(Object.fromEntries(data)))
+    coordinates.setAttribute('value', JSON.stringify(data))
     return coordinates
 }
 
@@ -19,6 +19,6 @@ function updateFormText(document, size) {
 }
 
 function getSampleNumber() {
-    NUMBER_OF_SAMPLES = 3
+    NUMBER_OF_SAMPLES = 4
     return NUMBER_OF_SAMPLES
 }

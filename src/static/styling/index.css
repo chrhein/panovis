@@ -13,7 +13,7 @@
 }
 
 #mountain-overlay {
-    width: 80vw;
+    width: 90vw;
     height: 80vh;
 }
 
@@ -75,11 +75,26 @@
     height: 1rem;
     width: 1rem;
     background-color: rgba(255, 255, 255, 0.5);
+    border: 0.15rem solid #333;
+    padding: 0.15rem;
+}
+
+.mountain-hotspot:hover {
+    z-index: 10;
     border: 0.15rem solid #000;
 }
 
+div.mountain-tooltip:hover span {
+    border: #000 solid 1px;
+    padding: 4px 9px;
+}
+
+div.mountain-tooltip:hover span:after {
+    border-color: #000 transparent transparent transparent;
+}
+
 div.mountain-tooltip span {
-    visibility: hidden;
+    visibility: visible;
     position: absolute;
     border-radius: 3px;
     background-color: #fff;
@@ -90,10 +105,8 @@ div.mountain-tooltip span {
     margin-left: -220px;
     cursor: default;
 }
-div.mountain-tooltip:hover span {
-    visibility: visible;
-}
-div.mountain-tooltip:hover span:after {
+
+div.mountain-tooltip span:after {
     content: '';
     position: absolute;
     width: 0;
@@ -170,6 +183,6 @@ div.mountain-tooltip:hover span:after {
 }
 
 #folium-map {
-    width: 80vw;
+    width: 90vw;
     height: 80vh;
 }

@@ -20,14 +20,7 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
-        <script src="jquery.js"></script>
-        <script>
-            $(function () {
-                $('#folium-map').load(
-                    "{{ url_for('static', filename='foliums/2021-04-17--pic03--Lyderhorn.html') }}"
-                )
-            })
-        </script>
+
         <title>E2 - View Mountains</title>
     </head>
     <body>
@@ -56,6 +49,14 @@
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
             const viewDirection = parseFloat('{{ yaw }}')
 
+            const fp = '{{ pano_filename}}'
+            const fol = `{{ url_for('static', filename='foliums/${fp}.html') }}`
+            function addFolium() {
+                $('#folium-map').load(
+                    fol
+                )
+            };
+
             function hotspot(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
                 var span = document.createElement('span')
@@ -63,27 +64,30 @@
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
                 span.style.marginLeft =
-                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 9.5 + 'px'
-                span.style.marginTop = -span.scrollHeight - 12 + 'px'
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 12.5 + 'px'
+                span.style.marginTop = -span.scrollHeight + 4 + 'px'
             }
-
-            var mns = Object.values(
-                Object.entries(mountains).map(function (d) {
-                    const [key, value] = d
-                    const lat = value.latitude
-                    const lon = value.longitude
-                    const url = `https://www.google.com/maps/search/${lat},${lon}/`
-                    
-                    return {
-                        yaw: viewDirection + parseFloat(value.yaw),
-                        pitch: value.pitch,
-                        cssClass: 'custom-hotspot mountain-hotspot',
-                        createTooltipArgs: key,
-                        createTooltipFunc: hotspot,
-                        URL: url,
-                    }
-                })
-            )
+            let mns = []
+            if (mountains) {
+                mns = Object.values(
+                    Object.entries(mountains).map(function (d) {
+                        console.log(d)
+                        const [key, value] = d
+                        const lat = value.latitude
+                        const lon = value.longitude
+                        const url = `https://www.google.com/maps/search/${lat},${lon}/`
+                        
+                        return {
+                            yaw: viewDirection + parseFloat(value.yaw),
+                            pitch: value.pitch,
+                            cssClass: 'custom-hotspot mountain-hotspot',
+                            createTooltipArgs: key,
+                            createTooltipFunc: hotspot,
+                            URL: url,
+                        }
+                    })
+                )
+            }
 
             viewer = pannellum.viewer('mountain-overlay', {
                 type: 'equirectangular',
@@ -95,6 +99,7 @@
                 mouseZoom: false,
                 keyboardZoom: false,
                 hotSpots: mns,
+                hfov: 180
             })
         </script>
     </body>

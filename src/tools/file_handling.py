@@ -72,6 +72,7 @@ def read_mountain_gpx(gpx_path):
     except FileNotFoundError:
         return []
     gpx = gpxpy.parse(gpx_file)
+    print(gpx)
     mountains = [
         Mountain(
             i.name,

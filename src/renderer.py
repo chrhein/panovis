@@ -150,10 +150,15 @@ def render_dem(panorama_path, mode, mountains, render_filename):
     return True
 
 
-def render_height(panorama_path, render_filename):
+def render_height(IMAGE_DATA):
     start_time = time.time()
-    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
+
+    panorama_path = IMAGE_DATA.path
+    render_filename = IMAGE_DATA.render_path
     pov_filename = "/tmp/pov_file.pov"
+
+    print(f"Rendering {panorama_path}")
+    print(f"Saving to {render_filename}")
 
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
@@ -180,7 +185,7 @@ def render_height(panorama_path, render_filename):
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
-        f"File:      {panorama_filename}",
+        f"File:      {IMAGE_DATA.filename}",
         f"Mode:      {pov_mode}",
         f"Duration:  {time.time() - start_time} seconds",
     ]
@@ -257,6 +262,8 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         dem_path, locs, mountains, radius=radius
     )
 
+    print(mountains_in_sight)
+
     ds_raster = raster_data[1][0]
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
@@ -266,17 +273,20 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
     mountains_3d = get_mountain_3d_location(
         camera_location, viewing_direction, crs, mountains_in_sight
     )
+
+    print(mountains_3d)
+
     FOLIUMS_PATH = "src/static/foliums/"
     make_folder(FOLIUMS_PATH)
     plot_filename = f"{FOLIUMS_PATH}{panorama_filename}.html"
     plot_to_map(
-        mountains_in_sight,
+        mountains_3d,
         coordinates,
         plot_filename,
         dem_path,
+        mountain_radius=radius,
         locs=locs,
         mountains=mountains,
-        mountain_radius=radius,
     )
     stats = [
         "Information about completed task: \n",

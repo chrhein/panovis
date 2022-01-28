@@ -72,11 +72,14 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
     x_ = dims[0] / (2 ** 8)
     y_ = dims[1] / (2 ** 8)
 
+    height_threshold = 15  # meters
+
     for x, y in color_coordinates:
         s_x, s_y = round(x * x_), round(y * y_)
         px, py = ds_raster.xy(s_x, s_y)
         height = ds_raster_height_band[s_x, s_y]
-        latlon_color_coordinates.append(crs_to_latlon(crs, px, py, height))
+        if height > height_threshold:
+            latlon_color_coordinates.append(crs_to_latlon(crs, px, py, height))
     return latlon_color_coordinates
 
 
@@ -97,23 +100,20 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
             filtered_mountains.append(m)
 
     mountains_in_sight = {}
-    min_mountain_height = min([i.location.elevation for i in filtered_mountains])
 
-    copied_locs = [i for i in locs if i.elevation >= min_mountain_height]
     p_line(
         [
             f"Total number of locations:     {len(locs)}",
             f"Total number of mountains:     {len(mountains)}",
-            f"Number of locations in search: {len(copied_locs)}",
             f"Number of mountains in search: {len(filtered_mountains)}",
         ]
     )
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
-            for loc in copied_locs:
+            for loc in locs:
                 if loc_close_to_mountain(loc, mountain.location, radius):
                     mountains_in_sight[mountain.name] = mountain
-                    copied_locs.remove(loc)
+                    locs.remove(loc)
                     break
             bar()
 

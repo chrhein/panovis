@@ -319,3 +319,4 @@ compared_ds/
 *.txt
 src/static/*.html
 src/static/foliums/*.html
+src/static/styling/assets/*.svg

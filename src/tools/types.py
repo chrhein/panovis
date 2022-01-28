@@ -102,3 +102,58 @@ class Texture:
     angle: int
     scale: float
     bounds: TextureBounds
+
+
+@dataclass
+class ImageData:
+    filename: str
+    folder: str
+    path: str
+    render_path: str
+    gradient_path: str
+    overlay_path: str
+    ultrawide_path: str
+    view_direction: int = None
+    fov_l: float = None
+    fov_r: float = None
+    im_dimensions: list = None
+    coordinates: list = None
+
+    def __init__(self, path):
+        self.path = path
+        self.filename = path.split("/")[-1].split(".")[0]
+        self.folder = "/".join(path.split("/")[:-1])
+        self.render_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-render.png"
+        )
+        self.gradient_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-gradient.png"
+        )
+        self.overlay_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-overlay.jpg"
+        )
+        self.ultrawide_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
+        )
+
+    def to_JSON(self):
+        c = (
+            [(x.latitude, x.longitude, x.elevation) for x in self.coordinates]
+            if self.coordinates
+            else None
+        )
+
+        return {
+            "filename": self.filename,
+            "path": self.path,
+            "folder": self.folder,
+            "render_path": self.render_path,
+            "gradient_path": self.gradient_path,
+            "overlay_path": self.overlay_path,
+            "ultrawide_path": self.ultrawide_path,
+            "view_direction": self.view_direction,
+            "fov_l": self.fov_l,
+            "fov_r": self.fov_r,
+            "im_dimensions": self.im_dimensions,
+            "coordinates": c,
+        }

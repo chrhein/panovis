@@ -12,9 +12,9 @@ def plot_to_map(
     coordinates,
     filename,
     dem_file,
+    mountain_radius,
     locs=[],
     mountains=[],
-    mountain_radius=150,
 ):
     p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
