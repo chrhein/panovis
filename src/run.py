@@ -213,16 +213,22 @@ def create_app():
     @app.route("/transform", methods=["POST", "GET"])
     def transform():
         IMAGE_DATA = load_image_data(session.get("filename", None))
-        pano_coords = strip_array(request.args.get("pano_coords"), True)
-        render_coords = strip_array(request.args.get("render_coords"), True)
 
-        IMAGE_DATA = transform_panorama(IMAGE_DATA, pano_coords, render_coords)
-        if not IMAGE_DATA:
-            return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
+        im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
 
-        save_image_data(IMAGE_DATA)
-        add_hash(IMAGE_DATA.hash)
-        session["filename"] = IMAGE_DATA.filename
+        app.logger.info(im_view_direction)
+
+        if im_view_direction is None:
+            pano_coords = strip_array(request.args.get("pano_coords"), True)
+            render_coords = strip_array(request.args.get("render_coords"), True)
+
+            IMAGE_DATA = transform_panorama(IMAGE_DATA, pano_coords, render_coords)
+            if not IMAGE_DATA:
+                return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
+
+            save_image_data(IMAGE_DATA)
+            add_hash(IMAGE_DATA.hash)
+            session["filename"] = IMAGE_DATA.filename
 
         return render_template(
             "preview_warped.html",
