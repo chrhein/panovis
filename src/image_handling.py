@@ -269,7 +269,7 @@ def transform_panorama(
     render_width = render_image.shape[1]
 
     if len(pano_coords) != len(render_coords):
-        return False, False
+        return False
 
     prev_x_coord = 0
     shift_coords = False

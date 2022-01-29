@@ -107,6 +107,7 @@ class Texture:
 @dataclass(init=False)
 class ImageData:
     filename: str
+    hash: str = None
     folder: str
     path: str
     render_path: str
@@ -135,21 +136,6 @@ class ImageData:
             f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
         )
         self.hotspots = {}
-
-    def to_JSON(self):
-        return {
-            "filename": self.filename,
-            "path": self.path,
-            "folder": self.folder,
-            "render_path": self.render_path,
-            "gradient_path": self.gradient_path,
-            "overlay_path": self.overlay_path,
-            "ultrawide_path": self.ultrawide_path,
-            "hotspots": self.hotspots,
-            "view_direction": self.view_direction,
-            "fov_l": self.fov_l,
-            "fov_r": self.fov_r,
-        }
 
     def add_hotspots(this, hotspots):
         key, value = hotspots

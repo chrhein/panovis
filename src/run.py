@@ -1,3 +1,4 @@
+import hashlib
 import os
 import pickle
 from flask import Flask, render_template, request, redirect, session, url_for
@@ -17,14 +18,8 @@ from tools.types import ImageData
 global UPLOAD_FOLDER
 UPLOAD_FOLDER = "src/static/"
 
-global HASH_LIST
-HASH_LIST = f"{UPLOAD_FOLDER}hash_list.txt"
-
 global DEBUG_HEIGHT
 DEBUG_HEIGHT = False
-
-global BLOCKSIZE
-BLOCKSIZE = 65536
 
 
 def create_app():
@@ -53,6 +48,7 @@ def create_app():
         if request.method == "POST":
 
             f = request.files["file"]
+
             filename = secure_filename(f.filename)
             fp = f"{UPLOAD_FOLDER}images/"
             make_folder(fp)
@@ -66,7 +62,10 @@ def create_app():
             IMAGE_DATA = load_image_data(filename.split(".")[0])
             if IMAGE_DATA is None:
                 IMAGE_DATA = ImageData(pano_path)
+                img_key = hashlib.md5(filename.encode("utf-8")).hexdigest()
+                IMAGE_DATA.hash = img_key
                 save_image_data(IMAGE_DATA)
+
             session["filename"] = IMAGE_DATA.filename
 
             if not os.path.exists(IMAGE_DATA.path):
@@ -220,7 +219,9 @@ def create_app():
         IMAGE_DATA = transform_panorama(IMAGE_DATA, pano_coords, render_coords)
         if not IMAGE_DATA:
             return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
+
         save_image_data(IMAGE_DATA)
+        add_hash(IMAGE_DATA.hash)
         session["filename"] = IMAGE_DATA.filename
 
         return render_template(
@@ -259,6 +260,26 @@ def create_app():
         )
 
     return app
+
+
+def add_hash(img_hash):
+    make_folder(f"{UPLOAD_FOLDER}dev/")
+    hash_file = f"{UPLOAD_FOLDER}dev/hashes.txt"
+    try:
+        h = open(hash_file, "r")
+        hashes = h.readlines()
+        h.close()
+        print(hashes)
+        if img_hash in hashes:
+            return
+        else:
+            h = open(hash_file, "a")
+            h.write(f"{img_hash}\n")
+            h.close()
+    except FileNotFoundError:
+        h = open(hash_file, "w")
+        h.write(f"{img_hash}\n")
+        h.close()
 
 
 def save_image_data(img_data):
