@@ -104,7 +104,7 @@ class Texture:
     bounds: TextureBounds
 
 
-@dataclass
+@dataclass(init=False)
 class ImageData:
     filename: str
     folder: str
@@ -113,11 +113,10 @@ class ImageData:
     gradient_path: str
     overlay_path: str
     ultrawide_path: str
+    hotspots: dict = None
     view_direction: int = None
     fov_l: float = None
     fov_r: float = None
-    im_dimensions: list = None
-    coordinates: list = None
 
     def __init__(self, path):
         self.path = path
@@ -135,14 +134,9 @@ class ImageData:
         self.ultrawide_path = self.path.replace(
             f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
         )
+        self.hotspots = {}
 
     def to_JSON(self):
-        c = (
-            [(x.latitude, x.longitude, x.elevation) for x in self.coordinates]
-            if self.coordinates
-            else None
-        )
-
         return {
             "filename": self.filename,
             "path": self.path,
@@ -151,9 +145,12 @@ class ImageData:
             "gradient_path": self.gradient_path,
             "overlay_path": self.overlay_path,
             "ultrawide_path": self.ultrawide_path,
+            "hotspots": self.hotspots,
             "view_direction": self.view_direction,
             "fov_l": self.fov_l,
             "fov_r": self.fov_r,
-            "im_dimensions": self.im_dimensions,
-            "coordinates": c,
         }
+
+    def add_hotspots(this, hotspots):
+        key, value = hotspots
+        this.hotspots.update({f"{this.filename}-{key}": value})

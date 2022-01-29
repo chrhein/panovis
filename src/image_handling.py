@@ -324,9 +324,12 @@ def transform_panorama(
     cv2.imwrite(IMAGE_DATA.ultrawide_path, ultrawide_render_crop)
 
     fov = heading_bound_left, heading_bound_right
+    IMAGE_DATA.fov_l = heading_bound_left
+    IMAGE_DATA.fov_r = heading_bound_right
+    IMAGE_DATA.view_directions = get_view_direction(fov)
     write_exif_to_pano(IMAGE_DATA.path, fov, ultrawide_render_crop.shape[:2])
 
-    return True
+    return IMAGE_DATA
 
 
 def image_array_to_flask(im):
