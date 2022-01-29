@@ -317,6 +317,5 @@ hed_model
 panorama*.html
 compared_ds/
 *.txt
-src/static/*.html
-src/static/foliums/*.html
-src/static/styling/assets/*.svg
+src/static/images/
+src/static/gpx/

@@ -266,9 +266,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         camera_location, viewing_direction, crs, mountains_in_sight
     )
 
-    FOLIUMS_PATH = "src/static/foliums/"
-    make_folder(FOLIUMS_PATH)
-    plot_filename = f"{FOLIUMS_PATH}{IMAGE_DATA.filename}.html"
+    plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
     plot_to_map(
         mountains_3d,
         coordinates,

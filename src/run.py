@@ -109,7 +109,9 @@ def create_app():
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
-            gpx_path = f"{IMAGE_DATA.folder}/{filename}"
+            fp = f"{UPLOAD_FOLDER}gpx/"
+            make_folder(fp)
+            gpx_path = f"{fp}{filename}"
             session["gpx_path"] = gpx_path
             f.save(gpx_path)
 
@@ -247,12 +249,13 @@ def create_app():
         hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
         hs = IMAGE_DATA.hotspots[hs_name]
         yaw = get_exif_gsp_img_direction(IMAGE_DATA.path)
+        folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
         return render_template(
             "view_mountains.html",
             hs=hs,
             render_path=IMAGE_DATA.render_path,
             yaw=yaw,
-            pano_filename=IMAGE_DATA.filename,
+            folium_path=folium_path,
         )
 
     return app
