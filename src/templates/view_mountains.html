@@ -47,6 +47,7 @@
 
         <script>
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
+            const images = JSON.parse('{{ im_hs | tojson | safe }}')
             const viewDirection = parseFloat('{{ yaw }}')
 
             const fp = '{{ pano_filename}}'
@@ -88,6 +89,34 @@
                 )
             }
 
+            let ims = []
+            if (images) {
+                ims = Object.values(
+                    Object.entries(images).map(function (d) {
+                        const [key, value] = d
+                        const lat = value.latitude
+                        const lon = value.longitude
+                        const url = `https://www.google.com/maps/search/${lat},${lon}/`
+                        return {
+                            yaw: viewDirection + parseFloat(value.yaw),
+                            pitch: value.pitch,
+                            cssClass: 'custom-hotspot image-hotspot',
+                            createTooltipArgs: key,
+                            createTooltipFunc: hotspot,
+                            URL: url,
+                        }
+                    })
+                )
+            }
+
+            all_hotspots = mns.concat(ims)
+            console.log(all_hotspots)
+
+            for (let i = 0; i < all_hotspots.length; i++) {
+                const element = all_hotspots[i];
+                console.log(element)
+            }
+
             viewer = pannellum.viewer('mountain-overlay', {
                 "default": {
                     "firstScene": "panorama", // change this
@@ -103,7 +132,7 @@
                             doubleClickZoom: false,
                             mouseZoom: false,
                             keyboardZoom: false,
-                            hotSpots: mns,
+                            hotSpots: all_hotspots,
                             hfov: 180
                         }
                     }

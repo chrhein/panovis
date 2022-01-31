@@ -314,11 +314,13 @@ def get_mountain_3d_location(
         d = get_distance_between_locations(camera_location, image.location)
         c_e = camera_location.elevation
         i_e = image.location.elevation
-        diff = i_e - c_e
+        diff = int(i_e) - int(c_e)
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
         i = image.location
         loc2 = latlon_to_crs(crs, i.latitude, i.longitude)
         yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+
+        image.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
     return mountains, images

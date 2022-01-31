@@ -133,7 +133,7 @@ class ImageData:
     overlay_path: str
     ultrawide_path: str
     hotspots: dict = None
-    visible_images: set = None
+    visible_images: dict = None
     view_direction: int = None
     fov_l: float = None
     fov_r: float = None
@@ -155,7 +155,7 @@ class ImageData:
             f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
         )
         self.hotspots = {}
-        self.visible_images = set()
+        self.visible_images = {}
 
     def add_hotspots(this, hotspots):
         key, value = hotspots

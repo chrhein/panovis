@@ -295,7 +295,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
 
     hotspots = [gpx_file.split("/")[-1].split(".")[0], mountains_3d]
 
-    return hotspots
+    return hotspots, images_3d
 
 
 def execute_pov(params):

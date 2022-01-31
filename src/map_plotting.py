@@ -55,9 +55,7 @@ def plot_to_map(
             for i in mountains
         ]
     if mountains_in_sight:
-        mountains_in_sight_fg = folium.FeatureGroup(
-            name="Mountains In-Sight", show=True
-        )
+        mountains_in_sight_fg = folium.FeatureGroup(name="Visible Mountains", show=True)
         m.add_child(mountains_in_sight_fg)
         [
             (
@@ -74,6 +72,20 @@ def plot_to_map(
                 ).add_to(mountains_in_sight_fg)
             )
             for i in mountains_in_sight.values()
+        ]
+
+    if images:
+        images_fg = folium.FeatureGroup(name="Visible Images", show=True)
+        m.add_child(images_fg)
+        [
+            (
+                folium.Marker(
+                    location=(i.location.latitude, i.location.longitude),
+                    popup=f"{i.name}",
+                    icon=folium.Icon(color="beige", icon="camera"),
+                ).add_to(images_fg)
+            )
+            for i in images
         ]
 
     folium.Marker(
@@ -97,20 +109,6 @@ def plot_to_map(
                 ).add_to(locs_fg)
             )
             for i in locs
-        ]
-
-    if images:
-        images_fg = folium.FeatureGroup(name="Images", show=True)
-        m.add_child(images_fg)
-        [
-            (
-                folium.Marker(
-                    location=(i.location.latitude, i.location.longitude),
-                    popup=f"{i.name}",
-                    icon=folium.Icon(color="beige", icon="camera"),
-                ).add_to(images_fg)
-            )
-            for i in images
         ]
 
     raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)

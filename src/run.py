@@ -243,9 +243,11 @@ def create_app():
         IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_path = session.get("gpx_path", None)
 
-        mountains_3d = mountain_lookup(IMAGE_DATA, gpx_path)
+        mountains_3d, images_3d = mountain_lookup(IMAGE_DATA, gpx_path)
         hs = hotspots(mountains_3d)
+        im_hs = im_hotspots(images_3d)
         IMAGE_DATA.add_hotspots(hs)
+        IMAGE_DATA.visible_images = im_hs
         save_image_data(IMAGE_DATA)
 
         return redirect(url_for("mountains"))
@@ -257,12 +259,14 @@ def create_app():
         gpx_filename = gpx_path.split("/")[-1].split(".")[0]
         hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
         hs = IMAGE_DATA.hotspots[hs_name]
+        im_hs = IMAGE_DATA.visible_images
         yaw = get_exif_gsp_img_direction(IMAGE_DATA.path)
         folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
 
         return render_template(
             "view_mountains.html",
             hs=hs,
+            im_hs=im_hs,
             render_path=IMAGE_DATA.render_path,
             yaw=yaw,
             folium_path=folium_path,
@@ -288,6 +292,21 @@ def mark_file_as_seen(pano_filename):
         h = open(SEEN_IMAGES_PATH, "w")
         h.write(f"{pano_filename}\n")
         h.close()
+
+
+def im_hotspots(images_3d):
+    hotspots = {}
+    for im in images_3d:
+        loc_3d = im.location_in_3d
+        loc = im.location
+        hotspots[im.name] = {
+            "yaw": loc_3d.yaw,
+            "pitch": loc_3d.pitch,
+            "distance": loc_3d.distance,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
+        }
+    return hotspots
 
 
 def hotspots(mountains_3d):
