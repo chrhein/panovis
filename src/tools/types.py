@@ -82,6 +82,25 @@ class Mountain:
 
 
 @dataclass
+class ImageInSight:
+    name: str
+    location: Location
+    location_in_3d: Location3D = None
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(str(self.name))
+
+    def __cmp__(self, other):
+        return operator.eq((str(self), str(other)))
+
+    def set_location_in_3d(self, location_in_3d):
+        self.location_in_3d = location_in_3d
+
+
+@dataclass
 class TextureBounds:
     min_lat: float
     min_lon: float
@@ -107,7 +126,6 @@ class Texture:
 @dataclass(init=False)
 class ImageData:
     filename: str
-    hash: str = None
     folder: str
     path: str
     render_path: str
@@ -115,6 +133,7 @@ class ImageData:
     overlay_path: str
     ultrawide_path: str
     hotspots: dict = None
+    visible_images: set = None
     view_direction: int = None
     fov_l: float = None
     fov_r: float = None
@@ -136,6 +155,7 @@ class ImageData:
             f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
         )
         self.hotspots = {}
+        self.visible_images = set()
 
     def add_hotspots(this, hotspots):
         key, value = hotspots

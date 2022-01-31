@@ -13,9 +13,10 @@ from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
+import image_handling
 from operator import attrgetter
-
-from tools.types import Location3D
+from tools.file_handling import load_image_data, save_image_data
+from tools.types import ImageInSight, Location3D
 
 
 def get_raster_data(dem_file, coordinates):
@@ -83,6 +84,54 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
     return latlon_color_coordinates
 
 
+def get_height_from_raster(dem_file, location):
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
+    h = convert_coordinates(
+        ds_raster, crs, location.latitude, location.longitude, only_height=True
+    )
+    return h
+
+
+def get_images_in_sight(dem_file, IMAGE_DATA, locs, radius=150):
+    p_i("Looking for images in sight:")
+    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    b = (
+        LatLon(*lower_left),
+        LatLon(*upper_left),
+        LatLon(*upper_right),
+        LatLon(*lower_right),
+    )
+
+    ims = open("src/static/dev/seen_images.txt", "r")
+    seen_images = [i.strip("\n") for i in ims.readlines()]
+    visible_images = {}
+    for im in seen_images:
+        if IMAGE_DATA.filename == im:
+            continue
+        im_path = f"src/static/images/{im}/{im}.jpg"
+        im_latlon = image_handling.get_exif_gps_latlon(im_path)
+        p = LatLon(im_latlon.latitude, im_latlon.longitude)
+        if p.isenclosedBy(b):
+            visible_images.update({im: im_latlon})
+
+    images_in_sight = set()
+
+    for key, val in visible_images.items():
+        for loc in locs:
+            if coord_inside_radius(loc, val, radius):
+                val.elevation = get_height_from_raster(dem_file, val)
+                im = ImageInSight(key, val)
+                images_in_sight.add(im)
+
+    if len(images_in_sight) == 0:
+        p_e("No images in sight")
+    else:
+        p_s(f"Found a total of {len(images_in_sight)} images in sight")
+
+    return images_in_sight
+
+
 def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     p_i("Looking for mountains in sight:")
     lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
@@ -111,9 +160,9 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     with alive_bar(len(filtered_mountains)) as bar:
         for mountain in filtered_mountains:
             for loc in locs:
-                if loc_close_to_mountain(loc, mountain.location, radius):
+                if coord_inside_radius(loc, mountain.location, radius):
                     mountains_in_sight[mountain.name] = mountain
-                    locs.remove(loc)
+                    # locs.remove(loc)
                     break
             bar()
 
@@ -124,10 +173,10 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
     return mountains_in_sight
 
 
-def loc_close_to_mountain(loc, m, radius):
-    mountain_pos = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
+def coord_inside_radius(loc, m, radius):
+    coord = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
     test_loc = tuple([{"lat": loc.latitude, "lng": loc.longitude}][0].values())
-    return distance.distance(mountain_pos, test_loc).m <= radius
+    return distance.distance(coord, test_loc).m <= radius
 
 
 def displace_camera(camera_lat, camera_lon, deg=0.0, distance=0.1):
@@ -234,7 +283,9 @@ def find_angle_between_three_locations(loc1, loc2, loc3):
     return degrees(a1 - a2)
 
 
-def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains):
+def get_mountain_3d_location(
+    camera_location, viewing_direction, crs, mountains, images
+):
     loc1 = latlon_to_crs(
         crs,
         *displace_camera(
@@ -259,4 +310,15 @@ def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains)
 
         mountain.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
-    return mountains
+    for image in images:
+        d = get_distance_between_locations(camera_location, image.location)
+        c_e = camera_location.elevation
+        i_e = image.location.elevation
+        diff = i_e - c_e
+        h = (d ** 2 + diff ** 2) ** 0.5
+        pitch = degrees(asin(diff / h))
+        i = image.location
+        loc2 = latlon_to_crs(crs, i.latitude, i.longitude)
+        yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+
+    return mountains, images

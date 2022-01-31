@@ -1,4 +1,3 @@
-import ast
 from base64 import b64encode
 import io
 import json
@@ -11,6 +10,7 @@ from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
 from tkinter.filedialog import askdirectory
+from tools.file_handling import load_image_data
 from tools.types import Location
 from piexif import transplant
 import exif
@@ -310,15 +310,17 @@ def transform_panorama(
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    ub_l, ub_r, _, _ = warped_bbox[0]
+    ub_l, ub_r, lb_r, lb_l = warped_bbox[0]
 
     minx = int(ub_l[0])
     maxx = int(ub_r[0])
+    miny = min(int(ub_l[1]), int(ub_r[1]))
+    maxy = max(int(lb_l[1]), int(lb_r[1]))
 
     heading_bound_left, heading_bound_right = get_fov_bounds(render_width, minx, maxx)
 
-    overlay_crop = im_overlay[0 : im_overlay.shape[0], minx:maxx]
-    ultrawide_render_crop = render_image[0 : im_overlay.shape[0], minx:maxx]
+    overlay_crop = im_overlay[miny:maxy, minx:maxx]
+    ultrawide_render_crop = render_image[miny:maxy, minx:maxx]
 
     cv2.imwrite(IMAGE_DATA.overlay_path, overlay_crop)
     cv2.imwrite(IMAGE_DATA.ultrawide_path, ultrawide_render_crop)
@@ -340,3 +342,17 @@ def image_array_to_flask(im):
         "ascii"
     )
     return base64img
+
+
+def get_seen_images(path, gpx):
+    ims = open(path, "r")
+    seen_images = [i.strip("\n") for i in ims.readlines()]
+    a = {}
+    for im in seen_images:
+        IMAGE_DATA = load_image_data(im)
+        gpx_filename = gpx.split("/")[-1].split(".")[0]
+        hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
+        print(IMAGE_DATA.hotspots[hs_name])
+    ims.close()
+
+    print(seen_images)

@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
 import cv2
-from location_handler import get_raster_bounds
+import location_handler
 from tools.debug import p_i
 
 
@@ -15,14 +15,20 @@ def plot_to_map(
     mountain_radius,
     locs=[],
     mountains=[],
+    images=[],
 ):
     p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
-    ll, ul, ur, lr = get_raster_bounds(dem_file)
+    ll, ul, ur, lr = location_handler.get_raster_bounds(dem_file)
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
-    m = folium.Map([c_lat, c_lon], tiles=None, zoom_start=12)
+    m = folium.Map(
+        [c_lat, c_lon],
+        tiles=None,
+        zoom_start=12,
+        scrollWheelZoom=False,
+    )
     folium.TileLayer(
         location=[c_lat, c_lon],
         tiles=MAPBOX_STYLE_URL,
@@ -93,13 +99,32 @@ def plot_to_map(
             for i in locs
         ]
 
+    if images:
+        images_fg = folium.FeatureGroup(name="Images", show=True)
+        m.add_child(images_fg)
+        [
+            (
+                folium.Marker(
+                    location=(i.location.latitude, i.location.longitude),
+                    popup=f"{i.name}",
+                    icon=folium.Icon(color="beige", icon="camera"),
+                ).add_to(images_fg)
+            )
+            for i in images
+        ]
+
     raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
     m.add_child(raster_bounds)
     folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#ed6952").add_to(
         raster_bounds
     )
 
-    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    (
+        lower_left,
+        upper_left,
+        upper_right,
+        lower_right,
+    ) = location_handler.get_raster_bounds(dem_file)
 
     ll1, _ = lower_left
     _, ul2 = upper_left

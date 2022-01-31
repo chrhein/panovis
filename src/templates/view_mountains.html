@@ -89,17 +89,25 @@
             }
 
             viewer = pannellum.viewer('mountain-overlay', {
-                type: 'equirectangular',
-                panorama: '{{ render_path }}',
-                autoLoad: true,
-                yaw: parseFloat(viewDirection),
-                compass: true,
-                doubleClickZoom: false,
-                mouseZoom: false,
-                keyboardZoom: false,
-                hotSpots: mns,
-                hfov: 180
-            })
+                "default": {
+                    "firstScene": "panorama", // change this
+                    "sceneFadeDuration": 1000
+                },
+                "scenes": {
+                    "panorama": {
+                            type: 'equirectangular',
+                            panorama: '{{ render_path }}',
+                            autoLoad: true,
+                            yaw: parseFloat(viewDirection),
+                            compass: true,
+                            doubleClickZoom: false,
+                            mouseZoom: false,
+                            keyboardZoom: false,
+                            hotSpots: mns,
+                            hfov: 180
+                        }
+                    }
+                })
         </script>
     </body>
 </html>

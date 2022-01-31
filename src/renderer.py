@@ -10,6 +10,7 @@ from tools.converters import convert_coordinates
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
+    get_images_in_sight,
     get_mountain_3d_location,
     get_mountains_in_sight,
     get_raster_data,
@@ -20,7 +21,7 @@ from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
 )
-from tools.file_handling import get_mountain_data, make_folder, read_mountain_gpx
+from tools.file_handling import get_mountain_data, read_mountain_gpx
 from tools.types import Location
 
 
@@ -251,6 +252,9 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
             locs = pickle.load(f)
 
     radius = 150  # in meters
+
+    visible_images = get_images_in_sight(dem_path, IMAGE_DATA, locs, radius=radius)
+
     mountains = read_mountain_gpx(gpx_file)
     mountains_in_sight = get_mountains_in_sight(
         dem_path, locs, mountains, radius=radius
@@ -262,8 +266,12 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
 
     camera_location = Location(lat, lon, camera_height)
-    mountains_3d = get_mountain_3d_location(
-        camera_location, viewing_direction, crs, mountains_in_sight
+    mountains_3d, images_3d = get_mountain_3d_location(
+        camera_location,
+        viewing_direction,
+        crs,
+        mountains_in_sight,
+        visible_images,
     )
 
     plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
@@ -275,6 +283,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         mountain_radius=radius,
         locs=locs,
         mountains=mountains,
+        images=visible_images,
     )
     stats = [
         "Information about completed task: \n",

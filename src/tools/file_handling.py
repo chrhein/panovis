@@ -1,4 +1,5 @@
 import os
+import pickle
 from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
@@ -8,7 +9,7 @@ import gpxpy
 import gpxpy.gpx
 import rasterio
 import image_handling
-from location_handler import displace_camera, find_maximums, find_minimums
+import location_handler
 from tools.converters import latlon_to_crs
 from tools.debug import p_i, p_line
 from tools.types import Location, Mountain, MountainBounds
@@ -27,7 +28,9 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
         viewing_direction = exif_view_direction
     else:
         viewing_direction = 0.0
-    look_ats = displace_camera(camera_lat, camera_lon, deg=viewing_direction)
+    look_ats = location_handler.displace_camera(
+        camera_lat, camera_lon, deg=viewing_direction
+    )
 
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
@@ -63,7 +66,11 @@ def read_hike_gpx(gpx_path):
         for j in i.segments
         for k in j.points
     ]
-    return [locations, find_minimums(locations), find_maximums(locations)]
+    return [
+        locations,
+        location_handler.find_minimums(locations),
+        location_handler.find_maximums(locations),
+    ]
 
 
 def read_mountain_gpx(gpx_path):
@@ -256,3 +263,21 @@ def make_folder(folder):
         os.mkdir(folder)
     except FileExistsError:
         pass
+
+
+def load_image_data(filename):
+    fp = f"src/static/images/"
+    IMG_UPLOAD_FOLDER = f"{fp}{filename.split('.')[0]}/"
+    try:
+        with open(f"{IMG_UPLOAD_FOLDER}/{filename}-img-data.pkl", "rb") as f:
+            img_data = pickle.load(f)
+            f.close()
+    except FileNotFoundError:
+        return None
+    return img_data
+
+
+def save_image_data(img_data):
+    with open(f"{img_data.folder}/{img_data.filename}-img-data.pkl", "wb") as f:
+        pickle.dump(img_data, f)
+    f.close()

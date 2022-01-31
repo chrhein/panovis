@@ -1,6 +1,5 @@
 import hashlib
 import os
-import pickle
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
@@ -10,7 +9,7 @@ from image_handling import (
     transform_panorama,
 )
 from renderer import mountain_lookup, render_height
-from tools.file_handling import make_folder
+from tools.file_handling import load_image_data, make_folder, save_image_data
 from PIL import Image
 
 from tools.types import ImageData
@@ -20,6 +19,8 @@ UPLOAD_FOLDER = "src/static/"
 
 global DEBUG_HEIGHT
 DEBUG_HEIGHT = False
+
+SEEN_IMAGES_PATH = f"{UPLOAD_FOLDER}dev/seen_images.txt"
 
 
 def create_app():
@@ -50,21 +51,24 @@ def create_app():
             f = request.files["file"]
 
             filename = secure_filename(f.filename)
+            f_hash = hashlib.md5(filename.encode("utf-8")).hexdigest()[-8:]
+            fn, ft = filename.split(".")
+            filename_h = f"{fn}-{f_hash}.{ft}"
             fp = f"{UPLOAD_FOLDER}images/"
             make_folder(fp)
-            IMG_UPLOAD_FOLDER = f"{fp}{filename.split('.')[0]}/"
+            IMG_UPLOAD_FOLDER = f"{fp}{filename_h.split('.')[0]}/"
             session["img_folder"] = IMG_UPLOAD_FOLDER
-            pano_path = f"{IMG_UPLOAD_FOLDER}{filename}"
+            pano_path = f"{IMG_UPLOAD_FOLDER}{filename_h}"
 
             make_folder(UPLOAD_FOLDER)
             make_folder(IMG_UPLOAD_FOLDER)
 
-            IMAGE_DATA = load_image_data(filename.split(".")[0])
+            IMAGE_DATA = load_image_data(filename_h.split(".")[0])
             if IMAGE_DATA is None:
                 IMAGE_DATA = ImageData(pano_path)
-                img_key = hashlib.md5(filename.encode("utf-8")).hexdigest()
-                IMAGE_DATA.hash = img_key
                 save_image_data(IMAGE_DATA)
+
+            app.logger.info(IMAGE_DATA)
 
             session["filename"] = IMAGE_DATA.filename
 
@@ -216,8 +220,6 @@ def create_app():
 
         im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
 
-        app.logger.info(im_view_direction)
-
         if im_view_direction is None:
             pano_coords = strip_array(request.args.get("pano_coords"), True)
             render_coords = strip_array(request.args.get("render_coords"), True)
@@ -227,7 +229,7 @@ def create_app():
                 return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
 
             save_image_data(IMAGE_DATA)
-            add_hash(IMAGE_DATA.hash)
+            mark_file_as_seen(IMAGE_DATA.filename)
             session["filename"] = IMAGE_DATA.filename
 
         return render_template(
@@ -257,6 +259,7 @@ def create_app():
         hs = IMAGE_DATA.hotspots[hs_name]
         yaw = get_exif_gsp_img_direction(IMAGE_DATA.path)
         folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
+
         return render_template(
             "view_mountains.html",
             hs=hs,
@@ -268,41 +271,23 @@ def create_app():
     return app
 
 
-def add_hash(img_hash):
+def mark_file_as_seen(pano_filename):
     make_folder(f"{UPLOAD_FOLDER}dev/")
-    hash_file = f"{UPLOAD_FOLDER}dev/hashes.txt"
     try:
-        h = open(hash_file, "r")
-        hashes = h.readlines()
+        h = open(SEEN_IMAGES_PATH, "r")
+        seen_images = h.readlines()
         h.close()
-        print(hashes)
-        if img_hash in hashes:
+        print(seen_images)
+        if pano_filename in seen_images:
             return
         else:
-            h = open(hash_file, "a")
-            h.write(f"{img_hash}\n")
+            h = open(SEEN_IMAGES_PATH, "a")
+            h.write(f"{pano_filename}\n")
             h.close()
     except FileNotFoundError:
-        h = open(hash_file, "w")
-        h.write(f"{img_hash}\n")
+        h = open(SEEN_IMAGES_PATH, "w")
+        h.write(f"{pano_filename}\n")
         h.close()
-
-
-def save_image_data(img_data):
-    with open(f"{img_data.folder}/{img_data.filename}-img-data.pkl", "wb") as f:
-        pickle.dump(img_data, f)
-    f.close()
-
-
-def load_image_data(filename):
-    fp = f"{UPLOAD_FOLDER}images/"
-    IMG_UPLOAD_FOLDER = f"{fp}{filename.split('.')[0]}/"
-    try:
-        with open(f"{IMG_UPLOAD_FOLDER}/{filename}-img-data.pkl", "rb") as f:
-            img_data = pickle.load(f)
-    except FileNotFoundError:
-        return None
-    return img_data
 
 
 def hotspots(mountains_3d):
