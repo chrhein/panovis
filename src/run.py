@@ -20,6 +20,9 @@ UPLOAD_FOLDER = "src/static/"
 global DEBUG_HEIGHT
 DEBUG_HEIGHT = False
 
+global DEBUG_LOCATIONS
+DEBUG_LOCATIONS = True
+
 SEEN_IMAGES_PATH = f"{UPLOAD_FOLDER}dev/seen_images.txt"
 
 
@@ -31,6 +34,11 @@ def create_app():
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
+        if DEBUG_LOCATIONS:
+            IMAGE_DATA = load_image_data(session.get("filename", None))
+            IMAGE_DATA.hotspots = {}
+            IMAGE_DATA.visible_images = {}
+            save_image_data(IMAGE_DATA)
         return render_template("upload_pano.html")
 
     @app.route("/loading", methods=["POST", "GET"])
@@ -245,9 +253,8 @@ def create_app():
 
         mountains_3d, images_3d = mountain_lookup(IMAGE_DATA, gpx_path)
         hs = hotspots(mountains_3d)
-        im_hs = im_hotspots(images_3d)
         IMAGE_DATA.add_hotspots(hs)
-        IMAGE_DATA.visible_images = im_hs
+        IMAGE_DATA.visible_images = images_3d
         save_image_data(IMAGE_DATA)
 
         return redirect(url_for("mountains"))
@@ -259,14 +266,14 @@ def create_app():
         gpx_filename = gpx_path.split("/")[-1].split(".")[0]
         hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
         hs = IMAGE_DATA.hotspots[hs_name]
-        im_hs = IMAGE_DATA.visible_images
-        yaw = get_exif_gsp_img_direction(IMAGE_DATA.path)
+        im_scenes = make_scenes(IMAGE_DATA.visible_images)
+        yaw = IMAGE_DATA.view_direction
         folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
 
         return render_template(
             "view_mountains.html",
             hs=hs,
-            im_hs=im_hs,
+            im_scenes=im_scenes,
             render_path=IMAGE_DATA.render_path,
             yaw=yaw,
             folium_path=folium_path,
@@ -292,6 +299,25 @@ def mark_file_as_seen(pano_filename):
         h = open(SEEN_IMAGES_PATH, "w")
         h.write(f"{pano_filename}\n")
         h.close()
+
+
+def make_scenes(visible_images):
+    image_scenes = {}
+    for im in visible_images:
+        im_data = load_image_data(im.name)
+        image_scenes.update(
+            {
+                im.name: {
+                    "panorama": im_data.render_path,
+                    "yaw": im.location_in_3d.yaw,
+                    "pitch": im.location_in_3d.pitch,
+                    "type": "scene",
+                    "text": im.name,
+                    "sceneId": im.name,
+                }
+            }
+        )
+    return image_scenes
 
 
 def im_hotspots(images_3d):

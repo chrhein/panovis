@@ -47,7 +47,7 @@
 
         <script>
             const mountains = JSON.parse('{{ hs | tojson | safe }}')
-            const images = JSON.parse('{{ im_hs | tojson | safe }}')
+            const image_scenes = JSON.parse('{{ im_scenes | tojson | safe }}')
             const viewDirection = parseFloat('{{ yaw }}')
 
             const fp = '{{ pano_filename}}'
@@ -90,53 +90,60 @@
             }
 
             let ims = []
-            if (images) {
+            if (image_scenes) {
                 ims = Object.values(
-                    Object.entries(images).map(function (d) {
+                    Object.entries(image_scenes).map(function (d) {
                         const [key, value] = d
-                        const lat = value.latitude
-                        const lon = value.longitude
-                        const url = `https://www.google.com/maps/search/${lat},${lon}/`
+                        const s = key.substr(0,  key.lastIndexOf('-'))
                         return {
                             yaw: viewDirection + parseFloat(value.yaw),
                             pitch: value.pitch,
-                            cssClass: 'custom-hotspot image-hotspot',
-                            createTooltipArgs: key,
-                            createTooltipFunc: hotspot,
-                            URL: url,
+                            type: 'scene',
+                            text: s,
+                            sceneId: key,
                         }
                     })
                 )
             }
 
             all_hotspots = mns.concat(ims)
-            console.log(all_hotspots)
+            
+            const scenes = Object.entries(image_scenes).map(function (d) {
+                const [key, value] = d
+                const s = key.substr(0,  key.lastIndexOf('-'))
+                return {
+                    panorama: value.panorama,
+                    yaw: viewDirection + parseFloat(value.yaw),
+                }
+            })[0]
 
-            for (let i = 0; i < all_hotspots.length; i++) {
-                const element = all_hotspots[i];
-                console.log(element)
+            let s = {
+                "panorama": 
+                {
+                    panorama: '{{ render_path }}',
+                    yaw: parseFloat(viewDirection),
+                    hotSpots: all_hotspots,
+                },
+                "IMG_0452-db1790b3": scenes
             }
+
+            console.log(s)
+
 
             viewer = pannellum.viewer('mountain-overlay', {
                 "default": {
-                    "firstScene": "panorama", // change this
-                    "sceneFadeDuration": 1000
+                    firstScene: 'panorama', // change this
+                    sceneFadeDuration: 1000,
+                    compass: true,
+                    doubleClickZoom: false,
+                    mouseZoom: false,
+                    keyboardZoom: false,
+                    hfov: 180,
+                    type: 'equirectangular',
+                    autoLoad: true,
                 },
-                "scenes": {
-                    "panorama": {
-                            type: 'equirectangular',
-                            panorama: '{{ render_path }}',
-                            autoLoad: true,
-                            yaw: parseFloat(viewDirection),
-                            compass: true,
-                            doubleClickZoom: false,
-                            mouseZoom: false,
-                            keyboardZoom: false,
-                            hotSpots: all_hotspots,
-                            hfov: 180
-                        }
-                    }
-                })
+                "scenes": s
+            })
         </script>
     </body>
 </html>

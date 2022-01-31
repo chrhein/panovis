@@ -134,7 +134,7 @@ class ImageData:
     ultrawide_path: str
     hotspots: dict = None
     visible_images: dict = None
-    view_direction: int = None
+    view_direction: float = None
     fov_l: float = None
     fov_r: float = None
 

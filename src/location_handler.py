@@ -7,7 +7,7 @@ from tools.converters import (
     crs_to_latlon,
     get_earth_radius,
 )
-from tools.debug import p_i, p_e, p_line, p_s
+from tools.debug import p_a, p_i, p_e, p_line, p_s
 from geopy import distance
 from alive_progress import alive_bar
 from pygeodesy.sphericalNvector import LatLon
@@ -125,7 +125,7 @@ def get_images_in_sight(dem_file, IMAGE_DATA, locs, radius=150):
                 images_in_sight.add(im)
 
     if len(images_in_sight) == 0:
-        p_e("No images in sight")
+        p_a("No images in sight")
     else:
         p_s(f"Found a total of {len(images_in_sight)} images in sight")
 
@@ -167,7 +167,7 @@ def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
             bar()
 
     if len(mountains_in_sight) == 0:
-        p_e("No mountains in sight")
+        p_a("No mountains in sight")
     else:
         p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
     return mountains_in_sight
