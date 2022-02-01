@@ -5,15 +5,23 @@ import os
 import pickle
 import time
 import subprocess
-from image_handling import get_image_description
+
+import rasterio
+from image_handling import (
+    get_exif_gps_latlon,
+    get_exif_gsp_img_direction,
+    get_image_description,
+)
 from tools.converters import convert_coordinates
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
+    get_image_3d_location,
     get_images_in_sight,
     get_mountain_3d_location,
     get_mountains_in_sight,
     get_raster_data,
+    get_raster_path,
 )
 from map_plotting import plot_to_map
 from povs import primary_pov, debug_pov
@@ -21,7 +29,7 @@ from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
 )
-from tools.file_handling import get_mountain_data, read_mountain_gpx
+from tools.file_handling import get_mountain_data, get_seen_images, read_mountain_gpx
 from tools.types import Location
 
 
@@ -193,6 +201,7 @@ def render_height(IMAGE_DATA):
 
 def mountain_lookup(IMAGE_DATA, gpx_file):
     start_time = time.time()
+
     pov_filename = "/tmp/pov_file.pov"
 
     im_desc = get_image_description(IMAGE_DATA.path)
@@ -253,7 +262,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
 
     radius = 150  # in meters
 
-    visible_images = get_images_in_sight(dem_path, IMAGE_DATA, locs, radius=radius)
+    visible_images = get_images_in_sight(IMAGE_DATA, locs, radius=radius)
 
     mountains = read_mountain_gpx(gpx_file)
     mountains_in_sight = get_mountains_in_sight(
@@ -263,18 +272,32 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     ds_raster = raster_data[1][0]
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
-    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
 
+    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
     camera_location = Location(lat, lon, camera_height)
-    mountains_3d, images_3d = get_mountain_3d_location(
+
+    mns_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-mns.pkl"
+    if not os.path.exists(mns_path):
+        mountains_3d = get_mountain_3d_location(
+            camera_location,
+            viewing_direction,
+            crs,
+            mountains_in_sight,
+        )
+        with open(mns_path, "wb") as f:
+            pickle.dump(mountains_3d, f)
+    else:
+        with open(mns_path, "rb") as f:
+            mountains_3d = pickle.load(f)
+
+    images_3d = get_image_3d_location(
         camera_location,
         viewing_direction,
         crs,
-        mountains_in_sight,
         visible_images,
     )
 
-    """ plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
+    plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
     plot_to_map(
         mountains_3d,
         coordinates,
@@ -284,7 +307,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         locs=locs,
         mountains=mountains,
         images=visible_images,
-    ) """
+    )
     stats = [
         "Information about completed task: \n",
         f"File:      {IMAGE_DATA.filename}",
@@ -294,6 +317,32 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     p_line(stats)
 
     return mountains_3d, images_3d
+
+
+def update_visible_images(IMAGE_DATA, gpx_file):
+    locs_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-locs.pkl"
+    with open(locs_filename, "rb") as f:
+        locs = pickle.load(f)
+
+    radius = 150  # in meters
+
+    visible_images = get_images_in_sight(IMAGE_DATA, locs, radius=radius)
+
+    ds_raster = rasterio.open(get_raster_path())
+    crs = int(ds_raster.crs.to_authority()[1])
+
+    ll = get_exif_gps_latlon(IMAGE_DATA.path)
+    lat, lon = ll.latitude, ll.longitude
+    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
+    view_dir = get_exif_gsp_img_direction(IMAGE_DATA.path)
+    camera_location = Location(lat, lon, camera_height)
+    images_3d = get_image_3d_location(
+        camera_location,
+        view_dir,
+        crs,
+        visible_images,
+    )
+    return images_3d
 
 
 def execute_pov(params):

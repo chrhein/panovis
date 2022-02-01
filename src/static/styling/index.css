@@ -104,6 +104,7 @@ div.mountain-tooltip span {
     padding: 5px 10px;
     margin-left: -220px;
     cursor: default;
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.3);
 }
 
 div.mountain-tooltip span:after {
@@ -117,6 +118,62 @@ div.mountain-tooltip span:after {
     bottom: -20px;
     left: -10px;
     margin: 0 50%;
+}
+
+.scene-hotspot {
+    height: 1rem;
+    width: 2rem;
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 0.15rem solid #333;
+    padding: 0.15rem;
+    border-radius: 5%;
+}
+
+.scene-hotspot:hover {
+    z-index: 11;
+    border: 0.15rem solid #000;
+}
+
+div.panorama-image-tooltip:hover span {
+    border: #000 solid 1px;
+    padding: 4px 9px;
+    visibility: visible;
+}
+
+div.panorama-image-tooltip:hover span:after {
+    border-color: #000 transparent transparent transparent;
+}
+
+div.panorama-image-tooltip span {
+    visibility: hidden;
+    position: absolute;
+    border-radius: 3px;
+    background-color: #fff;
+    color: #000;
+    text-align: center;
+    padding: 5px 10px;
+    margin-left: -220px;
+    cursor: default;
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.3);
+}
+
+div.panorama-image-tooltip span:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-width: 10px;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
+    bottom: -20px;
+    left: -10px;
+    margin: 0 50%;
+}
+
+.panorama-image-div,
+.panorama-image {
+    width: 450px;
+    height: 150px;
 }
 
 .fill-screen {

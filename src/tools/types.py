@@ -128,6 +128,7 @@ class ImageData:
     filename: str
     folder: str
     path: str
+    thumbnail_path: str
     render_path: str
     gradient_path: str
     overlay_path: str
@@ -136,6 +137,7 @@ class ImageData:
     view_direction: float = None
     fov_l: float = None
     fov_r: float = None
+    all_images: set = None
 
     def __init__(self, path):
         self.path = path
@@ -153,7 +155,12 @@ class ImageData:
         self.ultrawide_path = self.path.replace(
             f"{self.filename}.jpg", f"{self.filename}-ultrawide.jpg"
         )
+        self.thumbnail_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-thumbnail.jpg"
+        )
+
         self.hotspots = {}
+        self.all_images = set()
 
     def add_hotspots(this, gpx, hotspots):
         print()

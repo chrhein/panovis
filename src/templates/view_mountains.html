@@ -48,7 +48,7 @@
         <script>
             const s = JSON.parse('{{ scenes | tojson | safe }}')
 
-            function hotspotTooltip(hotSpotDiv, args) {
+            function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
                 var span = document.createElement('span')
                 span.innerHTML = args
@@ -58,6 +58,19 @@
                     -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 12.5 + 'px'
                 span.style.marginTop = -span.scrollHeight + 4 + 'px'
             }
+
+            function imageHotspotTooltip(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('panorama-image-tooltip')
+                var span = document.createElement('span')
+                span.innerHTML = args
+                hotSpotDiv.appendChild(span)
+                span.style.width = span.scrollWidth - 20 + 'px'
+                span.style.marginLeft =
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 20 + 'px'
+                span.style.marginTop = -span.scrollHeight + 4 + 'px'
+            }
+
+
 
             const gen = (scene) => {
                 return Object.fromEntries(Object.entries(scene).map(([key, value]) => {
@@ -70,8 +83,10 @@
                                     yaw: image.yaw,
                                     pitch: image.pitch,
                                     type: 'scene',
-                                    text: name,
                                     sceneId: name,
+                                    cssClass: 'custom-hotspot scene-hotspot',
+                                    createTooltipArgs: image.imageTooltip,
+                                    createTooltipFunc: imageHotspotTooltip,
                                 }
                             }),
                             ...Object.entries(value.hotspots.mountains).map(([name, mountain]) => {
@@ -80,7 +95,7 @@
                                     pitch: mountain.pitch,
                                     cssClass: 'custom-hotspot mountain-hotspot',
                                     createTooltipArgs: name,
-                                    createTooltipFunc: hotspotTooltip,
+                                    createTooltipFunc: mountainHotspotTooltip,
                                     URL: mountain.url,
                                 }
                             }),
@@ -112,6 +127,7 @@
                     mouseZoom: false,
                     keyboardZoom: false,
                     hfov: 180,
+                    vaov: 120,
                     type: 'equirectangular',
                     autoLoad: true,
                 },

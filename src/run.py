@@ -254,16 +254,15 @@ def create_app():
 
     @app.route("/findmtns")
     def findmtns():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_path = session.get("gpx_path", None)
-
-        mountains_3d, images_3d = mountain_lookup(IMAGE_DATA, gpx_path)
-        app.logger.info(f"mountains_3d: {mountains_3d}")
-        app.logger.info(f"images_3d: {images_3d}")
-        gpx = gpx_path.split("/")[-1].split(".")[0]
-        hs = create_hotspots(IMAGE_DATA, mountains_3d, images_3d)
-        IMAGE_DATA.add_hotspots(gpx, hs)
-        save_image_data(IMAGE_DATA)
+        seen_images = get_seen_images()
+        for pano_filename in seen_images:
+            im_data = load_image_data(pano_filename)
+            mountains_3d, images_3d = mountain_lookup(im_data, gpx_path)
+            gpx = gpx_path.split("/")[-1].split(".")[0]
+            hs = create_hotspots(im_data, mountains_3d, images_3d)
+            im_data.add_hotspots(gpx, hs)
+            save_image_data(im_data)
 
         return redirect(url_for("mountains"))
 
@@ -272,6 +271,7 @@ def create_app():
         IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
         hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
+        app.logger.info(IMAGE_DATA.hotspots[hs_name]["images"])
         folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
         scenes = make_scenes(gpx_filename)
         return render_template(
@@ -299,6 +299,7 @@ def mark_file_as_seen(pano_filename):
             h = open(SEEN_IMAGES_PATH, "a")
             h.write(f"{pano_filename}\n")
             h.close()
+
     except FileNotFoundError:
         h = open(SEEN_IMAGES_PATH, "w")
         h.write(f"{pano_filename}\n")
@@ -311,7 +312,6 @@ def make_scenes(gpx_filename):
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
         hs_name = f"{im_data.filename}-{gpx_filename}"
-        print(f"Looking for {hs_name} in {im_data.hotspots}")
         scenes.update(
             {
                 pano_filename: {
@@ -322,28 +322,10 @@ def make_scenes(gpx_filename):
             }
         )
     return scenes
-    """ image_scenes = {}
-    for im in seen_images:
-        im_data = load_image_data(im.name)
-        image_scenes.update(
-            {
-                im.name: {
-                    "panorama": str(im_data.render_path),
-                    "yaw": float(im.location_in_3d.yaw),
-                    "pitch": float(im.location_in_3d.pitch),
-                    "type": "scene",
-                    "text": str(im.name),
-                    "sceneId": str(im.name),
-                    "view_direction": float(im_data.view_direction),
-                    "hotspots": im_data.hotspots,
-                }
-            }
-        ) """
 
 
 def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
     hotspots = {}
-
     mountain_hotpots = {}
     for mountain in mountains_3d.values():
         lat = float(mountain.location.latitude)
@@ -351,10 +333,6 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
         mountain_hotpots.update(
             {
                 str(mountain.name): {
-                    "latitude": lat,
-                    "longitude": lon,
-                    "elevation": float(mountain.location.elevation),
-                    "type": "mountain",
                     "yaw": float(IMAGE_DATA.view_direction)
                     + float(mountain.location_in_3d.yaw),
                     "pitch": float(mountain.location_in_3d.pitch),
@@ -363,19 +341,17 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
                 }
             }
         )
-    print(mountain_hotpots)
     image_hotpots = {}
     for image in images_3d:
         print(image)
+        im_data = load_image_data(image.name)
+
         image_hotpots.update(
             {
                 str(image.name): {
                     "text": str(image.name[0:-9]),
+                    "imageTooltip": f"<div class='panorama-image-div'><img class='panorama-image' src='{im_data.thumbnail_path}'></div>",
                     "sceneId": str(image.name),
-                    "latitude": float(image.location.latitude),
-                    "longitude": float(image.location.longitude),
-                    "elevation": float(image.location.elevation),
-                    "type": "scene",
                     "yaw": float(IMAGE_DATA.view_direction)
                     + float(image.location_in_3d.yaw),
                     "pitch": float(image.location_in_3d.pitch),
@@ -383,47 +359,13 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
                 }
             }
         )
-    print(image_hotpots)
-
     hotspots.update(
         {
             "mountains": mountain_hotpots,
             "images": image_hotpots,
         }
     )
-    print(hotspots)
     return hotspots
-
-
-def im_hotspots(images_3d):
-    hotspots = {}
-    for im in images_3d:
-        loc_3d = im.location_in_3d
-        loc = im.location
-        hotspots[im.name] = {
-            "yaw": loc_3d.yaw,
-            "pitch": loc_3d.pitch,
-            "distance": loc_3d.distance,
-            "latitude": loc.latitude,
-            "longitude": loc.longitude,
-        }
-    return hotspots
-
-
-def hotspots(mountains_3d):
-    key, value = mountains_3d
-    hotspots = {}
-    for mountain in value.values():
-        loc_3d = mountain.location_in_3d
-        loc = mountain.location
-        hotspots[mountain.name] = {
-            "yaw": loc_3d.yaw,
-            "pitch": loc_3d.pitch,
-            "distance": loc_3d.distance,
-            "latitude": loc.latitude,
-            "longitude": loc.longitude,
-        }
-    return [key, hotspots]
 
 
 def strip_array(arr, to_pythonic_list=False):

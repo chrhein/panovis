@@ -264,6 +264,8 @@ def transform_panorama(
 ):
     pts_panorama = np.float32([[x, y] for x, y in pano_coords])
     panorama_image = cv2.imread(IMAGE_DATA.path)
+    panorama_image[np.where((panorama_image == [0, 0, 0]).all(axis=2))] = [1, 1, 1]
+
     pts_render = np.float32([[x, y] for x, y in render_coords])
     render_image = cv2.imread(IMAGE_DATA.render_path)
     render_width = render_image.shape[1]
@@ -324,6 +326,7 @@ def transform_panorama(
 
     cv2.imwrite(IMAGE_DATA.overlay_path, overlay_crop)
     cv2.imwrite(IMAGE_DATA.ultrawide_path, ultrawide_render_crop)
+    cv2.imwrite(IMAGE_DATA.thumbnail_path, resizer(panorama_image, im_width=400))
 
     fov = heading_bound_left, heading_bound_right
     IMAGE_DATA.fov_l = heading_bound_left
