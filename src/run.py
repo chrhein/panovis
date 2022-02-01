@@ -112,6 +112,9 @@ def create_app():
             im_description = get_image_description(IMAGE_DATA.path)
 
             if im_view_direction is not None and im_description is not None:
+                IMAGE_DATA.view_direction = im_view_direction
+                save_image_data(IMAGE_DATA)
+
                 if os.path.exists(IMAGE_DATA.render_path):
                     return redirect(url_for("selectgpx"))
             try:
@@ -270,17 +273,12 @@ def create_app():
     def mountains():
         IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
-        hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
-        app.logger.info(IMAGE_DATA.hotspots[hs_name]["images"])
-        folium_path = f"{IMAGE_DATA.folder}/{hs_name}.html"
         scenes = make_scenes(gpx_filename)
         return render_template(
             "view_mountains.html",
             scenes=scenes,
-            render_path=IMAGE_DATA.render_path,
-            folium_path=folium_path,
-            yaw=IMAGE_DATA.view_direction,
             defaultScene=IMAGE_DATA.filename,
+            gpx=gpx_filename,
         )
 
     return app

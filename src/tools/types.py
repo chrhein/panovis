@@ -84,6 +84,7 @@ class Mountain:
 @dataclass
 class ImageInSight:
     name: str
+    thumbnail_path: str
     location: Location
     location_in_3d: Location3D = None
 
@@ -137,7 +138,6 @@ class ImageData:
     view_direction: float = None
     fov_l: float = None
     fov_r: float = None
-    all_images: set = None
 
     def __init__(self, path):
         self.path = path

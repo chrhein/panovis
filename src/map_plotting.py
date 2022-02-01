@@ -1,3 +1,4 @@
+import base64
 import image_handling
 from dotenv import load_dotenv
 import folium, folium.raster_layers
@@ -77,16 +78,19 @@ def plot_to_map(
     if images:
         images_fg = folium.FeatureGroup(name="Visible Images", show=True)
         m.add_child(images_fg)
-        [
-            (
-                folium.Marker(
-                    location=(i.location.latitude, i.location.longitude),
-                    popup=f"{i.name}",
-                    icon=folium.Icon(color="beige", icon="camera"),
-                ).add_to(images_fg)
+        for im in images:
+            encoded = base64.b64encode(open(im.thumbnail_path, "rb").read())
+            html = '<img src="data:image/JPG;base64,{}">'.format
+            iframe = folium.IFrame(
+                html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
             )
-            for i in images
-        ]
+            popup = folium.Popup(iframe, max_width=450)
+
+            folium.Marker(
+                location=(im.location.latitude, im.location.longitude),
+                popup=popup,
+                icon=folium.Icon(color="beige", icon="camera"),
+            ).add_to(images_fg)
 
     folium.Marker(
         location=[c_lat, c_lon],

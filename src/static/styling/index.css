@@ -77,6 +77,7 @@
     background-color: rgba(255, 255, 255, 0.5);
     border: 0.15rem solid #333;
     padding: 0.15rem;
+    z-index: 2;
 }
 
 .mountain-hotspot:hover {
@@ -87,6 +88,7 @@
 div.mountain-tooltip:hover span {
     border: #000 solid 1px;
     padding: 4px 9px;
+    visibility: visible;
 }
 
 div.mountain-tooltip:hover span:after {
@@ -94,7 +96,7 @@ div.mountain-tooltip:hover span:after {
 }
 
 div.mountain-tooltip span {
-    visibility: visible;
+    visibility: hidden;
     position: absolute;
     border-radius: 3px;
     background-color: #fff;
@@ -121,12 +123,13 @@ div.mountain-tooltip span:after {
 }
 
 .scene-hotspot {
-    height: 1rem;
-    width: 2rem;
-    background-color: rgba(255, 255, 255, 0.75);
+    height: 1.25rem;
+    width: 3.5rem;
+    background-color: rgba(200, 200, 200, 0.75);
     border: 0.15rem solid #333;
     padding: 0.15rem;
     border-radius: 5%;
+    z-index: 1;
 }
 
 .scene-hotspot:hover {

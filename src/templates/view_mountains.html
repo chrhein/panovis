@@ -44,7 +44,6 @@
                 </div>
             </div>
         </div>
-
         <script>
             const s = JSON.parse('{{ scenes | tojson | safe }}')
 
@@ -66,11 +65,9 @@
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
                 span.style.marginLeft =
-                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 20 + 'px'
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 32 + 'px'
                 span.style.marginTop = -span.scrollHeight + 4 + 'px'
             }
-
-
 
             const gen = (scene) => {
                 return Object.fromEntries(Object.entries(scene).map(([key, value]) => {
@@ -103,35 +100,38 @@
                     }]
                 }))
             }
-
-            console.log(gen(s))
-
-            const viewDirection = parseFloat('{{ yaw }}')
-
-            const fp = '{{ pano_filename}}'
-            const fol = `{{ url_for('static', filename='foliums/${fp}.html') }}`
-            function addFolium() {
-                $('#folium-map').load(
-                    fol
-                )
-            };
-
             
+            const gpx = '{{ gpx }}'
+            function loadFolium(sceneId) {
+                const updatedFolium = `src/static/images/${sceneId}/${sceneId}-${gpx}.html`
+                let object = document.getElementById('folium-map');
+                object.setAttribute('data', updatedFolium);
+                let clone = object.cloneNode(true);
+                let parent = object.parentNode;
+                parent.removeChild(object);
+                parent.appendChild(clone);
+                console.log("Loaded new Folium map from image: " + sceneId);
+            }
 
+            loadFolium('{{ defaultScene }}')
             viewer = pannellum.viewer('mountain-overlay', {
                 "default": {
                     firstScene: '{{ defaultScene }}', // change this
-                    sceneFadeDuration: 1000,
+                    sceneFadeDuration: 1200,
                     compass: true,
                     doubleClickZoom: false,
                     mouseZoom: false,
                     keyboardZoom: false,
                     hfov: 180,
-                    vaov: 120,
+                    vaov: 125,
                     type: 'equirectangular',
                     autoLoad: true,
                 },
                 "scenes": gen(s)
+            })
+
+            viewer.on('scenechange', function (event) {
+                loadFolium(event)
             })
         </script>
     </body>

@@ -1,5 +1,6 @@
 from json import load
 from math import asin, cos, sin, atan2, degrees, pi
+from matplotlib.image import thumbnail
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -131,7 +132,8 @@ def get_images_in_sight(IMAGE_DATA, locs, radius=150):
         for loc in locs:
             if coord_inside_radius(loc, val, radius):
                 val.elevation = get_height_from_raster(val)
-                im = ImageInSight(key, val)
+                im_path = f"src/static/images/{key}/{key}-thumbnail.jpg"
+                im = ImageInSight(key, im_path, val)
                 images_in_sight.add(im)
 
     if len(images_in_sight) == 0:

@@ -326,7 +326,7 @@ def transform_panorama(
 
     cv2.imwrite(IMAGE_DATA.overlay_path, overlay_crop)
     cv2.imwrite(IMAGE_DATA.ultrawide_path, ultrawide_render_crop)
-    cv2.imwrite(IMAGE_DATA.thumbnail_path, resizer(panorama_image, im_width=400))
+    cv2.imwrite(IMAGE_DATA.thumbnail_path, resizer(panorama_image, im_width=450))
 
     fov = heading_bound_left, heading_bound_right
     IMAGE_DATA.fov_l = heading_bound_left
