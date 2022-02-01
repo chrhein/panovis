@@ -281,3 +281,9 @@ def save_image_data(img_data):
     with open(f"{img_data.folder}/{img_data.filename}-img-data.pkl", "wb") as f:
         pickle.dump(img_data, f)
     f.close()
+
+def get_seen_images():
+    ims = open("src/static/dev/seen_images.txt", "r")
+    seen_images = [i.strip("\n") for i in ims.readlines()]
+    ims.close()
+    return seen_images

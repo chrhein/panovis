@@ -342,17 +342,3 @@ def image_array_to_flask(im):
         "ascii"
     )
     return base64img
-
-
-def get_seen_images(path, gpx):
-    ims = open(path, "r")
-    seen_images = [i.strip("\n") for i in ims.readlines()]
-    a = {}
-    for im in seen_images:
-        IMAGE_DATA = load_image_data(im)
-        gpx_filename = gpx.split("/")[-1].split(".")[0]
-        hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
-        print(IMAGE_DATA.hotspots[hs_name])
-    ims.close()
-
-    print(seen_images)

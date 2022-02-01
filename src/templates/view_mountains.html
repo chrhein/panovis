@@ -46,8 +46,51 @@
         </div>
 
         <script>
-            const mountains = JSON.parse('{{ hs | tojson | safe }}')
-            const image_scenes = JSON.parse('{{ im_scenes | tojson | safe }}')
+            const s = JSON.parse('{{ scenes | tojson | safe }}')
+
+            function hotspotTooltip(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('mountain-tooltip')
+                var span = document.createElement('span')
+                span.innerHTML = args
+                hotSpotDiv.appendChild(span)
+                span.style.width = span.scrollWidth - 20 + 'px'
+                span.style.marginLeft =
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 12.5 + 'px'
+                span.style.marginTop = -span.scrollHeight + 4 + 'px'
+            }
+
+            const gen = (scene) => {
+                return Object.fromEntries(Object.entries(scene).map(([key, value]) => {
+                    return [key, {
+                        panorama: value.render_path,
+                        yaw: value.view_direction,
+                        hotSpots: [
+                            ...Object.entries(value.hotspots.images).map(([name, image]) => {
+                                return {
+                                    yaw: image.yaw,
+                                    pitch: image.pitch,
+                                    type: 'scene',
+                                    text: name,
+                                    sceneId: name,
+                                }
+                            }),
+                            ...Object.entries(value.hotspots.mountains).map(([name, mountain]) => {
+                                return {
+                                    yaw: parseFloat(mountain.yaw),
+                                    pitch: mountain.pitch,
+                                    cssClass: 'custom-hotspot mountain-hotspot',
+                                    createTooltipArgs: name,
+                                    createTooltipFunc: hotspotTooltip,
+                                    URL: mountain.url,
+                                }
+                            }),
+                        ],
+                    }]
+                }))
+            }
+
+            console.log(gen(s))
+
             const viewDirection = parseFloat('{{ yaw }}')
 
             const fp = '{{ pano_filename}}'
@@ -58,81 +101,11 @@
                 )
             };
 
-            function hotspot(hotSpotDiv, args) {
-                hotSpotDiv.classList.add('mountain-tooltip')
-                var span = document.createElement('span')
-                span.innerHTML = args
-                hotSpotDiv.appendChild(span)
-                span.style.width = span.scrollWidth - 20 + 'px'
-                span.style.marginLeft =
-                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 12.5 + 'px'
-                span.style.marginTop = -span.scrollHeight + 4 + 'px'
-            }
-            let mns = []
-            if (mountains) {
-                mns = Object.values(
-                    Object.entries(mountains).map(function (d) {
-                        const [key, value] = d
-                        const lat = value.latitude
-                        const lon = value.longitude
-                        const url = `https://www.google.com/maps/search/${lat},${lon}/`
-                        
-                        return {
-                            yaw: viewDirection + parseFloat(value.yaw),
-                            pitch: value.pitch,
-                            cssClass: 'custom-hotspot mountain-hotspot',
-                            createTooltipArgs: key,
-                            createTooltipFunc: hotspot,
-                            URL: url,
-                        }
-                    })
-                )
-            }
-
-            let ims = []
-            if (image_scenes) {
-                ims = Object.values(
-                    Object.entries(image_scenes).map(function (d) {
-                        const [key, value] = d
-                        const s = key.substr(0,  key.lastIndexOf('-'))
-                        return {
-                            yaw: viewDirection + parseFloat(value.yaw),
-                            pitch: value.pitch,
-                            type: 'scene',
-                            text: s,
-                            sceneId: key,
-                        }
-                    })
-                )
-            }
-
-            all_hotspots = mns.concat(ims)
             
-            const scenes = Object.entries(image_scenes).map(function (d) {
-                const [key, value] = d
-                const s = key.substr(0,  key.lastIndexOf('-'))
-                return {
-                    panorama: value.panorama,
-                    yaw: viewDirection + parseFloat(value.yaw),
-                }
-            })[0]
-
-            let s = {
-                "panorama": 
-                {
-                    panorama: '{{ render_path }}',
-                    yaw: parseFloat(viewDirection),
-                    hotSpots: all_hotspots,
-                },
-                "IMG_0452-db1790b3": scenes
-            }
-
-            console.log(s)
-
 
             viewer = pannellum.viewer('mountain-overlay', {
                 "default": {
-                    firstScene: 'panorama', // change this
+                    firstScene: '{{ defaultScene }}', // change this
                     sceneFadeDuration: 1000,
                     compass: true,
                     doubleClickZoom: false,
@@ -142,7 +115,7 @@
                     type: 'equirectangular',
                     autoLoad: true,
                 },
-                "scenes": s
+                "scenes": gen(s)
             })
         </script>
     </body>

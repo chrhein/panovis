@@ -274,7 +274,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         visible_images,
     )
 
-    plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
+    """ plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
     plot_to_map(
         mountains_3d,
         coordinates,
@@ -284,7 +284,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         locs=locs,
         mountains=mountains,
         images=visible_images,
-    )
+    ) """
     stats = [
         "Information about completed task: \n",
         f"File:      {IMAGE_DATA.filename}",
@@ -293,9 +293,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     ]
     p_line(stats)
 
-    hotspots = [gpx_file.split("/")[-1].split(".")[0], mountains_3d]
-
-    return hotspots, images_3d
+    return mountains_3d, images_3d
 
 
 def execute_pov(params):
