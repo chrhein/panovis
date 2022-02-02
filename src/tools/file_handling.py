@@ -284,7 +284,10 @@ def save_image_data(img_data):
 
 
 def get_seen_images():
-    ims = open("src/static/dev/seen_images.txt", "r")
-    seen_images = [i.strip("\n") for i in ims.readlines()]
-    ims.close()
-    return seen_images
+    try:
+        ims = open("src/static/dev/seen_images.txt", "r")
+        seen_images = [i.strip("\n") for i in ims.readlines()]
+        ims.close()
+        return seen_images
+    except FileNotFoundError:
+        return []

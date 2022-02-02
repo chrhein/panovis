@@ -11,25 +11,135 @@
         <title>E2 - Choose Panorama</title>
     </head>
     <body>
-        <div class="px-4 py-4 my-4 text-center">
-            <h3 class="fw-bold text-start">Select panorama</h3>
-            <div class="p-3 border bg-light">
-                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
-                    <form
-                        action="/upload"
-                        method="POST"
-                        enctype="multipart/form-data"
+        <div class="p-3 border bg-secondary text-light">
+            <div class="justify-content-between my-auto">
+                <div class="my-auto d-flex">
+                    <div class="my-auto fw-bold h6 text-start me-3">
+                        GPX in use:
+                    </div>
+
+                    <div
+                        class="my-auto h6 d-grid d-sm-flex gap-3"
+                        id="selected-gpx"
                     >
-                        <input type="file" name="file" accept="image/jpeg" />
+                        <div class="my-auto">{{ gpx }}</div>
                         <button
-                            type="submit"
-                            class="btn btn-primary btn-md px-4 gap-3"
+                            id="change-gpx"
+                            class="btn btn-outline-light btn-sm px-4"
+                            onclick="changeGPX();"
                         >
-                            Select
+                            Change
                         </button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="w-75 mx-auto align-middle p-5">
+            <div class="px-4 py-4 my-4 text-center">
+                <h3 class="fw-bold text-start">View panoramas</h3>
+                <div class="p-3 border bg-light">
+                    <div
+                        id="uploaded-panoramas"
+                        class="d-grid d-sm-flex justify-content-sm"
+                    >
+                        <ul class="list-unstyled list-group">
+                            {% for pano in ims %}
+                            <li class="media">
+                                <img
+                                    class="mr-3"
+                                    src="{{ pano[1] }}"
+                                    alt="{{ pano[0] }}"
+                                />
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-5">{{ pano[0] }}</h6>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div
+                        id="uploaded-panoramas-button"
+                        class="d-grid d-sm-flex justify-content-sm-right"
+                    >
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
+                            onclick="navigate();"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 py-4 my-4 text-center">
+                <h3 class="fw-bold text-start">Upload new panorama</h3>
+                <div class="p-3 border bg-light">
+                    <div
+                        class="d-grid py-5 d-sm-flex justify-content-sm-center"
+                    >
+                        <form
+                            action="/upload"
+                            method="POST"
+                            enctype="multipart/form-data"
+                        >
+                            <input
+                                type="file"
+                                name="file"
+                                accept="image/jpeg"
+                            />
+                            <button
+                                type="submit"
+                                class="btn btn-primary btn-md px-4 gap-3"
+                            >
+                                Select
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            function navigate() {
+                redir_url = 'mountains'
+                task = 'findmtns'
+                title = 'Locating Mountains'
+                text = 'Finding mountains in panorama...'
+                window.location.href = `/loading?redirect_url=${redir_url}&task=${task}&title=${title}&text=${text}`
+            }
+            function changeGPX() {
+                let gpx = document.getElementById('selected-gpx')
+                let form = document.createElement('form')
+                form.setAttribute('action', '/uploadmtns')
+                form.setAttribute('method', 'POST')
+                form.setAttribute('enctype', 'multipart/form-data')
+                let input = document.createElement('input')
+                input.setAttribute('id', 'gpx-file-input')
+                input.setAttribute('type', 'file')
+                input.setAttribute('name', 'file')
+                input.setAttribute('accept', '.gpx')
+                input.setAttribute('required', 'required')
+                input.setAttribute('class', 'h5 small my-auto me-3')
+                input.setAttribute('onchange', 'form.submit()')
+                let button = document.createElement('button')
+                button.setAttribute('type', 'submit')
+                button.setAttribute(
+                    'class',
+                    'btn btn-outline-light btn-sm px-4'
+                )
+                button.innerHTML = 'Select'
+                form.appendChild(input)
+                form.appendChild(button)
+                gpx.parentNode.replaceChild(form, gpx)
+                document.getElementById('gpx-file-input').click()
+            }
+
+            if ('{{ ims }}'.length <= 2) {
+                document.getElementById('uploaded-panoramas').innerHTML =
+                    '<h6 class="mt-0 mb-3">No panoramas found</h6>'
+                document.getElementById(
+                    'uploaded-panoramas-button'
+                ).style.visibility = 'hidden'
+            }
+        </script>
     </body>
 </html>

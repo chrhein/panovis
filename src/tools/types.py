@@ -167,11 +167,9 @@ class ImageData:
         self.all_images = set()
 
     def add_hotspots(this, gpx, hotspots):
-        print()
-        print("Adding hotspots to image data")
-        print(f"gpx-file: {gpx}")
-        print(hotspots)
-        this.hotspots.update({f"{this.filename}-{gpx}": hotspots})
+        fn = f"{this.filename}-{gpx}"
+        if this.hotspots.get(fn) is None:
+            this.hotspots[fn] = hotspots
 
 
 @dataclass(init=False)

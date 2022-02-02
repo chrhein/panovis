@@ -20,11 +20,23 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
+        <script>
+            function navigate() {
+                window.location.href = "/"
+            }
+        </script>
 
         <title>E2 - View Mountains</title>
     </head>
     <body>
-        <div class="px-4 py-4 my-4 text-center">
+        <button
+            id="nav-home"
+            class="btn btn-secondary btn-md my-2 mx-4"
+            onclick="navigate();"
+        >
+            Home
+        </button>
+        <div class="px-4  my-4 text-center">
             <h3 class="fw-bold text-start">Mountain Overlay</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
@@ -46,6 +58,7 @@
         </div>
         <script>
             const s = JSON.parse('{{ scenes | tojson | safe }}')
+            console.log(s)
 
             function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')

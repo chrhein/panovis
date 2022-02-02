@@ -40,12 +40,16 @@ def create_app():
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
-        if DEBUG_LOCATIONS:
-            IMAGE_DATA = load_image_data(session.get("filename", None))
-            IMAGE_DATA.hotspots = {}
-            IMAGE_DATA.visible_images = {}
-            save_image_data(IMAGE_DATA)
-        return render_template("upload_pano.html")
+        ims = get_seen_images()
+        i = []
+        for im in ims:
+            im_data = load_image_data(im)
+            if im_data:
+                i.append([im_data.filename[0:-9], im_data.thumbnail_path])
+        gpx = session.get("gpx_path", "None selected")
+        if gpx != "None selected":
+            gpx = gpx.split("/")[-1]
+        return render_template("upload_pano.html", ims=i, gpx=gpx)
 
     @app.route("/loading", methods=["POST", "GET"])
     def loading():
@@ -116,7 +120,7 @@ def create_app():
                 save_image_data(IMAGE_DATA)
 
                 if os.path.exists(IMAGE_DATA.render_path):
-                    return redirect(url_for("selectgpx"))
+                    return redirect(url_for("findmtns"))
             try:
                 return redirect(url_for("spcoords"))
             except Exception as e:
@@ -125,7 +129,6 @@ def create_app():
 
     @app.route("/uploadmtns", methods=["POST", "GET"])
     def uploadmtns():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
@@ -134,21 +137,7 @@ def create_app():
             gpx_path = f"{fp}{filename}"
             session["gpx_path"] = gpx_path
             f.save(gpx_path)
-
-            gpx_filename = gpx_path.split("/")[-1].split(".")[0]
-            hs_name = f"{IMAGE_DATA.filename}-{gpx_filename}"
-            if hs_name in IMAGE_DATA.hotspots:
-                return redirect(url_for("mountains"))
-
-            redir_url = "mountains"
-            task = "findmtns"
-            title = "Locating Mountains"
-            text = "Finding mountains in panorama..."
-            return redirect(
-                url_for(
-                    "loading", redirect_url=redir_url, task=task, title=title, text=text
-                )
-            )
+            return redirect(url_for("homepage"))
 
     @app.route("/selectgpx", methods=["POST", "GET"])
     def selectgpx():
@@ -258,7 +247,10 @@ def create_app():
     @app.route("/findmtns")
     def findmtns():
         gpx_path = session.get("gpx_path", None)
+        app.logger.info(f"gpx_path: {gpx_path}")
         seen_images = get_seen_images()
+        fn = session.get("filename", seen_images[-1])
+        session["filename"] = fn
         for pano_filename in seen_images:
             im_data = load_image_data(pano_filename)
             mountains_3d, images_3d = mountain_lookup(im_data, gpx_path)
@@ -267,13 +259,15 @@ def create_app():
             im_data.add_hotspots(gpx, hs)
             save_image_data(im_data)
 
-        return redirect(url_for("mountains"))
+        return ("", 204)
 
     @app.route("/mountains")
     def mountains():
         IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
+        app.logger.info(f"Creating scenes for {gpx_filename}")
         scenes = make_scenes(gpx_filename)
+        app.logger.info(f"Scenes created: {scenes}")
         return render_template(
             "view_mountains.html",
             scenes=scenes,
@@ -306,19 +300,23 @@ def mark_file_as_seen(pano_filename):
 
 def make_scenes(gpx_filename):
     seen_images = get_seen_images()
+    print(f"seen_images: {seen_images}")
     scenes = {}
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
         hs_name = f"{im_data.filename}-{gpx_filename}"
-        scenes.update(
-            {
-                pano_filename: {
-                    "hotspots": im_data.hotspots[hs_name],
-                    "render_path": im_data.render_path,
-                    "view_direction": im_data.view_direction,
-                }
-            }
-        )
+        print(f"hs_name: {hs_name}")
+        print(f"im_data.hotspots: {im_data.hotspots}")
+        im_hs = im_data.hotspots[hs_name]
+        print(f"im_hs: {im_hs}")
+        scenes[pano_filename] = {
+            "hotspots": im_hs,
+            "render_path": im_data.render_path,
+            "view_direction": im_data.view_direction,
+            "gpx-filename": gpx_filename,
+        }
+
+    print(f"scenes: {scenes}")
     return scenes
 
 
