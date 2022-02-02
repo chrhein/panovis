@@ -10,9 +10,8 @@ import gpxpy.gpx
 import rasterio
 import image_handling
 import location_handler
-from tools.converters import latlon_to_crs
 from tools.debug import p_i, p_line
-from tools.types import Location, Mountain, MountainBounds
+from tools.types import LatLngToCrs, Location, Mountain, MountainBounds
 from osgeo import gdal
 
 
@@ -35,7 +34,8 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
 
-    camera_placement_crs = latlon_to_crs(crs, camera_lat, camera_lon)
+    converter = LatLngToCrs(crs)
+    camera_placement_crs = converter.convert(camera_lat, camera_lon)
 
     displacement_distance = 15000  # in meters from camera placement
 
@@ -281,6 +281,7 @@ def save_image_data(img_data):
     with open(f"{img_data.folder}/{img_data.filename}-img-data.pkl", "wb") as f:
         pickle.dump(img_data, f)
     f.close()
+
 
 def get_seen_images():
     ims = open("src/static/dev/seen_images.txt", "r")

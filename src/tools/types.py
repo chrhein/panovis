@@ -1,8 +1,12 @@
 import operator
 from dataclasses import dataclass
 
+from numpy import number
+
 import location_handler
 from pygeodesy.sphericalNvector import LatLon
+from osgeo import ogr, osr
+from geopy import distance
 
 
 @dataclass
@@ -22,7 +26,7 @@ class MountainBounds:
 
     def __init__(self, lat, lon):
         displaced_coordinates = [
-            location_handler.displace_camera(lat, lon, deg=i, distance=0.15)
+            location_handler.displace_camera(lat, lon, deg=i, dist=0.15)
             for i in range(0, 360 + 1, 45)
         ]
         self.bounds = (
@@ -168,3 +172,64 @@ class ImageData:
         print(f"gpx-file: {gpx}")
         print(hotspots)
         this.hotspots.update({f"{this.filename}-{gpx}": hotspots})
+
+
+@dataclass(init=False)
+class CrsToLatLng:
+    crs: number
+    in_sr: any
+    out_sr: any
+    transform: any
+    latlng_epsg: number = 4326  # WGS84
+
+    def __init__(self, crs):
+        self.crs = crs
+        self.in_sr = osr.SpatialReference()
+        self.out_sr = osr.SpatialReference()
+        self.in_sr.ImportFromEPSG(crs)
+        self.out_sr.ImportFromEPSG(self.latlng_epsg)
+        self.transform = osr.CoordinateTransformation(self.in_sr, self.out_sr)
+
+    def convert(self, lat, lon, ele=0):
+        point = ogr.CreateGeometryFromWkt(f"POINT ({lat} {lon})")
+        point.Transform(self.transform)
+        return Location(
+            latitude=float(point.GetX()), longitude=float(point.GetY()), elevation=ele
+        )
+
+
+@dataclass(init=False)
+class LatLngToCrs:
+    crs: number
+    in_sr: any
+    out_sr: any
+    transform: any
+    latlng_epsg: number = 4326  # WGS84
+
+    def __init__(self, crs):
+        self.crs = crs
+        self.in_sr = osr.SpatialReference()
+        self.out_sr = osr.SpatialReference()
+        self.in_sr.ImportFromEPSG(self.latlng_epsg)
+        self.out_sr.ImportFromEPSG(crs)
+        self.transform = osr.CoordinateTransformation(self.in_sr, self.out_sr)
+
+    def convert(self, lat, lon, ele=0):
+        point = ogr.CreateGeometryFromWkt(f"POINT ({lat} {lon})")
+        point.Transform(self.transform)
+        return point
+
+
+@dataclass
+class Distance:
+    generator: any = distance
+
+    def coord_inside_radius(self, loc, m, radius):
+        coord = [m.latitude, m.longitude]
+        test_coord = [loc.latitude, loc.longitude]
+        return self.generator.great_circle(coord, test_coord).m <= radius
+
+    def get_distance_between_locations(self, loc1, loc2):
+        return self.generator.great_circle(
+            (loc1.latitude, loc1.longitude), (loc2.latitude, loc2.longitude)
+        ).m

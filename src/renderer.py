@@ -30,7 +30,7 @@ from tools.texture import (
     create_color_gradient_image,
 )
 from tools.file_handling import get_mountain_data, get_seen_images, read_mountain_gpx
-from tools.types import Location
+from tools.types import LatLngToCrs, Location
 
 
 def render_dem(panorama_path, mode, mountains, render_filename):
@@ -273,7 +273,10 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
 
-    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
+    converter = LatLngToCrs(crs)
+    camera_height = convert_coordinates(
+        ds_raster, converter, lat, lon, only_height=True
+    )
     camera_location = Location(lat, lon, camera_height)
 
     mns_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-mns.pkl"
@@ -281,7 +284,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         mountains_3d = get_mountain_3d_location(
             camera_location,
             viewing_direction,
-            crs,
+            converter,
             mountains_in_sight,
         )
         with open(mns_path, "wb") as f:
@@ -293,7 +296,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     images_3d = get_image_3d_location(
         camera_location,
         viewing_direction,
-        crs,
+        converter,
         visible_images,
     )
 
@@ -317,32 +320,6 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     p_line(stats)
 
     return mountains_3d, images_3d
-
-
-def update_visible_images(IMAGE_DATA, gpx_file):
-    locs_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-locs.pkl"
-    with open(locs_filename, "rb") as f:
-        locs = pickle.load(f)
-
-    radius = 150  # in meters
-
-    visible_images = get_images_in_sight(IMAGE_DATA, locs, radius=radius)
-
-    ds_raster = rasterio.open(get_raster_path())
-    crs = int(ds_raster.crs.to_authority()[1])
-
-    ll = get_exif_gps_latlon(IMAGE_DATA.path)
-    lat, lon = ll.latitude, ll.longitude
-    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
-    view_dir = get_exif_gsp_img_direction(IMAGE_DATA.path)
-    camera_location = Location(lat, lon, camera_height)
-    images_3d = get_image_3d_location(
-        camera_location,
-        view_dir,
-        crs,
-        visible_images,
-    )
-    return images_3d
 
 
 def execute_pov(params):

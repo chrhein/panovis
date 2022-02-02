@@ -10,7 +10,6 @@ from tools.converters import dms_to_decimal_degrees
 from tools.debug import custom_imshow, p_i, p_in
 from datetime import datetime
 from tkinter.filedialog import askdirectory
-from tools.file_handling import load_image_data
 from tools.types import Location
 from piexif import transplant
 import exif
