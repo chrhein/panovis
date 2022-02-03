@@ -279,19 +279,12 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     )
     camera_location = Location(lat, lon, camera_height)
 
-    mns_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-mns.pkl"
-    if not os.path.exists(mns_path):
-        mountains_3d = get_mountain_3d_location(
-            camera_location,
-            viewing_direction,
-            converter,
-            mountains_in_sight,
-        )
-        with open(mns_path, "wb") as f:
-            pickle.dump(mountains_3d, f)
-    else:
-        with open(mns_path, "rb") as f:
-            mountains_3d = pickle.load(f)
+    mountains_3d = get_mountain_3d_location(
+        camera_location,
+        viewing_direction,
+        converter,
+        mountains_in_sight,
+    )
 
     images_3d = get_image_3d_location(
         camera_location,

@@ -305,8 +305,9 @@ def make_scenes(gpx_filename):
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
         hs_name = f"{im_data.filename}-{gpx_filename}"
-        print(f"hs_name: {hs_name}")
-        print(f"im_data.hotspots: {im_data.hotspots}")
+        print(f"{hs_name=}")
+        hs = json.dumps(im_data.hotspots, indent=4)
+        print(f"{hs}")
         im_hs = im_data.hotspots[hs_name]
         print(f"im_hs: {im_hs}")
         scenes[pano_filename] = {
