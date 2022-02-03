@@ -246,3 +246,24 @@ div.panorama-image-tooltip span:after {
     width: 90vw;
     height: 80vh;
 }
+
+.parent-wrapper {
+    height: 100%;
+    width: 100%;
+    max-height: 70vh;
+    overflow-y: scroll;
+}
+.parent {
+    display: grid;
+    font-size: 0;
+    grid-template-columns: 50% 50%;
+}
+.child {
+    flex-grow: 1;
+    margin: 10px;
+    margin-bottom: 0;
+}
+
+.child:last-child {
+    margin-bottom: 10px;
+}

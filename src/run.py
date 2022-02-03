@@ -111,7 +111,7 @@ def create_app():
                 save_image_data(IMAGE_DATA)
 
                 if os.path.exists(IMAGE_DATA.render_path):
-                    return redirect(url_for("findmtns"))
+                    return redirect(url_for("homepage"))
             try:
                 return redirect(url_for("spcoords"))
             except Exception as e:
@@ -243,11 +243,12 @@ def create_app():
         session["filename"] = fn
         for pano_filename in seen_images:
             im_data = load_image_data(pano_filename)
-            mountains_3d, images_3d = mountain_lookup(im_data, gpx_path)
-            gpx = gpx_path.split("/")[-1].split(".")[0]
-            hs = create_hotspots(im_data, mountains_3d, images_3d)
-            im_data.add_hotspots(gpx, hs)
-            save_image_data(im_data)
+            if im_data is not None:
+                mountains_3d, images_3d = mountain_lookup(im_data, gpx_path)
+                gpx = gpx_path.split("/")[-1].split(".")[0]
+                hs = create_hotspots(im_data, mountains_3d, images_3d)
+                im_data.add_hotspots(gpx, hs)
+                save_image_data(im_data)
 
         return ("", 204)
 
@@ -290,30 +291,31 @@ def make_scenes(gpx_filename):
     scenes = {}
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
-        hs_name = f"{im_data.filename}-{gpx_filename}"
-        im_hs = im_data.hotspots[hs_name]
-        scenes[pano_filename] = {
-            "hotspots": im_hs,
-            "render_path": im_data.render_path,
-            "view_direction": im_data.view_direction,
-            "gpx-filename": gpx_filename,
-        }
+        if im_data is not None:
+            hs_name = f"{im_data.filename}-{gpx_filename}"
+            im_hs = im_data.hotspots.get(hs_name, None)
+            if im_hs is not None:
+                scenes[pano_filename] = {
+                    "hotspots": im_hs,
+                    "render_path": im_data.render_path,
+                    "view_direction": im_data.view_direction,
+                }
     return scenes
 
 
 def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
     hotspots = {}
     mountain_hotpots = {}
-    for mountain in mountains_3d.values():
-        lat = float(mountain.location.latitude)
-        lon = float(mountain.location.longitude)
+    for mountain in mountains_3d:
+        lat = mountain.location.latitude
+        lon = mountain.location.longitude
         mountain_hotpots.update(
             {
                 str(mountain.name): {
-                    "yaw": float(IMAGE_DATA.view_direction)
+                    "yaw": IMAGE_DATA.view_direction
                     + float(mountain.location_in_3d.yaw),
-                    "pitch": float(mountain.location_in_3d.pitch),
-                    "distance": float(mountain.location_in_3d.distance),
+                    "pitch": mountain.location_in_3d.pitch,
+                    "distance": mountain.location_in_3d.distance,
                     "url": f"https://www.google.com/maps/search/{lat},{lon}/",
                 }
             }
@@ -321,19 +323,20 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
     image_hotpots = {}
     for image in images_3d:
         im_data = load_image_data(image.name)
-        image_hotpots.update(
-            {
-                str(image.name): {
-                    "text": str(image.name[0:-9]),
-                    "imageTooltip": f"<div class='panorama-image-div'><img class='panorama-image' src='{im_data.thumbnail_path}'></div>",
-                    "sceneId": str(image.name),
-                    "yaw": float(IMAGE_DATA.view_direction)
-                    + float(image.location_in_3d.yaw),
-                    "pitch": float(image.location_in_3d.pitch),
-                    "distance": float(image.location_in_3d.distance),
+        if im_data is not None:
+            image_hotpots.update(
+                {
+                    str(image.name): {
+                        "text": image.name[0:-9],
+                        "imageTooltip": f"<div class='panorama-image-div'><img class='panorama-image' src='{im_data.thumbnail_path}'></div>",
+                        "sceneId": image.name,
+                        "yaw": IMAGE_DATA.view_direction
+                        + float(image.location_in_3d.yaw),
+                        "pitch": image.location_in_3d.pitch,
+                        "distance": image.location_in_3d.distance,
+                    }
                 }
-            }
-        )
+            )
     hotspots.update(
         {
             "mountains": mountain_hotpots,

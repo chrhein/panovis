@@ -5,23 +5,16 @@ import os
 import pickle
 import time
 import subprocess
-
-import rasterio
 from image_handling import (
-    get_exif_gps_latlon,
-    get_exif_gsp_img_direction,
     get_image_description,
 )
 from tools.converters import convert_coordinates
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
-    get_image_3d_location,
-    get_images_in_sight,
-    get_mountain_3d_location,
-    get_mountains_in_sight,
+    get_3d_location,
+    find_visible_items_in_ds,
     get_raster_data,
-    get_raster_path,
 )
 from map_plotting import plot_to_map
 from povs import primary_pov, debug_pov
@@ -29,7 +22,11 @@ from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
 )
-from tools.file_handling import get_mountain_data, get_seen_images, read_mountain_gpx
+from tools.file_handling import (
+    get_mountain_data,
+    read_image_locations,
+    read_mountain_gpx,
+)
 from tools.types import LatLngToCrs, Location
 
 
@@ -133,7 +130,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
             locs = find_visible_coordinates_in_render(ds_name, gradient_path, dem_path)
 
             radius = 150  # in meters
-            mountains_in_sight = get_mountains_in_sight(
+            mountains_in_sight = find_visible_items_in_ds(
                 dem_path, locs, mountains, radius=radius
             )
             plot_filename = f"src/templates/{panorama_filename}.html"
@@ -260,15 +257,6 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         with open(locs_filename, "rb") as f:
             locs = pickle.load(f)
 
-    radius = 150  # in meters
-
-    visible_images = get_images_in_sight(IMAGE_DATA, locs, radius=radius)
-
-    mountains = read_mountain_gpx(gpx_file)
-    mountains_in_sight = get_mountains_in_sight(
-        dem_path, locs, mountains, radius=radius
-    )
-
     ds_raster = raster_data[1][0]
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
@@ -279,18 +267,27 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
     )
     camera_location = Location(lat, lon, camera_height)
 
-    mountains_3d = get_mountain_3d_location(
+    radius = 150  # in meters
+
+    images = read_image_locations(
+        IMAGE_DATA.filename, "src/static/images", ds_raster, converter
+    )
+    images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
+    mountains = read_mountain_gpx(gpx_file)
+    mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
+
+    mountains_3d = get_3d_location(
         camera_location,
         viewing_direction,
         converter,
         mountains_in_sight,
     )
 
-    images_3d = get_image_3d_location(
+    images_3d = get_3d_location(
         camera_location,
         viewing_direction,
         converter,
-        visible_images,
+        images_in_sight,
     )
 
     plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
@@ -302,8 +299,9 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         mountain_radius=radius,
         locs=locs,
         mountains=mountains,
-        images=visible_images,
+        images=images,
     )
+
     stats = [
         "Information about completed task: \n",
         f"File:      {IMAGE_DATA.filename}",

@@ -72,7 +72,7 @@ def plot_to_map(
                     icon=folium.Icon(color="pink", icon="mountain"),
                 ).add_to(mountains_in_sight_fg)
             )
-            for i in mountains_in_sight.values()
+            for i in mountains_in_sight
         ]
 
     if images:

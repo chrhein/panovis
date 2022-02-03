@@ -34,36 +34,39 @@
                 </div>
             </div>
         </div>
-        <div class="w-75 mx-auto align-middle p-5">
-            <div class="px-4 py-4 my-4 text-center">
-                <h3 class="fw-bold text-start">View panoramas</h3>
-                <div class="p-3 border bg-light">
-                    <div
-                        id="uploaded-panoramas"
-                        class="d-grid d-sm-flex justify-content-sm"
-                    >
-                        <ul class="list-unstyled list-group">
-                            {% for pano in ims %}
-                            <li class="media">
+
+        <div class="w-75 mx-auto align-middle p-5 pt-4">
+            <h3 class="fw-bold text-start">View panoramas</h3>
+            <div class="border bg-light">
+                <div id="uploaded-panoramas" class="parent-wrapper">
+                    <div class="parent">
+                        {% for pano in ims %}
+                        <div class="child">
+                            <div class="text-center">
                                 <img
-                                    class="mr-3"
+                                    class="mt-2 img-fluid"
                                     src="{{ pano[1] }}"
                                     alt="{{ pano[0] }}"
                                 />
-                                <div class="media-body">
-                                    <h6 class="mt-0 mb-5">{{ pano[0] }}</h6>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
+                            </div>
+
+                            <div class="media-body text-center">
+                                <h6 class="mt-2 mb-1">{{ pano[0] }}</h6>
+                            </div>
+                        </div>
+
+                        {% endfor %}
                     </div>
-                    <div
-                        id="uploaded-panoramas-button"
-                        class="d-grid d-sm-flex justify-content-sm-right"
-                    >
+                </div>
+                <div class="row m-3">
+                    <div class="col-6 d-flex align-items-center">
+                        Number of uploaded panoramas:
+                        <div class="mx-1">{{ ims|length }}</div>
+                    </div>
+                    <div id="uploaded-panoramas-button" class="col-6 text-end">
                         <button
                             type="submit"
-                            class="btn btn-primary btn-md px-4 gap-3"
+                            class="btn btn-primary btn-md"
                             onclick="navigate();"
                         >
                             Continue
@@ -71,33 +74,29 @@
                     </div>
                 </div>
             </div>
-            <div class="px-4 py-4 my-4 text-center">
-                <h3 class="fw-bold text-start">Upload new panorama</h3>
-                <div class="p-3 border bg-light">
-                    <div
-                        class="d-grid py-5 d-sm-flex justify-content-sm-center"
+        </div>
+
+        <div class="w-75 mx-auto align-middle p-5 pt-4">
+            <h3 class="fw-bold text-start">Upload new panorama</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
+                    <form
+                        action="/upload"
+                        method="POST"
+                        enctype="multipart/form-data"
                     >
-                        <form
-                            action="/upload"
-                            method="POST"
-                            enctype="multipart/form-data"
+                        <input type="file" name="file" accept="image/jpeg" />
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md px-4 gap-3"
                         >
-                            <input
-                                type="file"
-                                name="file"
-                                accept="image/jpeg"
-                            />
-                            <button
-                                type="submit"
-                                class="btn btn-primary btn-md px-4 gap-3"
-                            >
-                                Select
-                            </button>
-                        </form>
-                    </div>
+                            Select
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
+
         <script>
             function navigate() {
                 redir_url = 'mountains'

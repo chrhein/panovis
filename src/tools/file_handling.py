@@ -11,7 +11,7 @@ import rasterio
 import image_handling
 import location_handler
 from tools.debug import p_i, p_line
-from tools.types import LatLngToCrs, Location, Mountain, MountainBounds
+from tools.types import ImageInSight, LatLngToCrs, Location, Mountain
 from osgeo import gdal
 
 
@@ -83,11 +83,31 @@ def read_mountain_gpx(gpx_path):
         Mountain(
             i.name,
             Location(i.latitude, i.longitude, i.elevation),
-            MountainBounds(i.latitude, i.longitude),
         )
         for i in gpx.waypoints
     ]
     return mountains
+
+
+def read_image_locations(filename, image_folder, ds_raster, converter):
+    locs = []
+    seen_images = get_seen_images()
+    for image in seen_images:
+        if image == filename:
+            continue
+        im_path = f"{image_folder}/{image}/{image}.jpg"
+        t_im_path = f"{image_folder}/{image}/{image}-thumbnail.jpg"
+        loc = image_handling.get_exif_gps_latlon(im_path)
+        height = location_handler.get_height_from_raster(loc, ds_raster, converter)
+
+        locs.append(
+            ImageInSight(
+                image,
+                t_im_path,
+                Location(loc.latitude, loc.longitude, height),
+            )
+        )
+    return locs
 
 
 def get_mountains(folder):
