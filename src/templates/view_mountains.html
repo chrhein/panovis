@@ -40,7 +40,12 @@
             <h3 class="fw-bold text-start">Mountain Overlay</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
-                    <div id="mountain-overlay"></div>
+                    <div id="mountain-overlay">
+                        <div id="controls">
+                            <div class="ctrl" id="pan-left">&#8678;</div>
+                            <div class="ctrl" id="pan-right">&#8680;</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,7 +63,8 @@
         </div>
         <script>
             const s = JSON.parse('{{ scenes | tojson | safe }}')
-            console.log(s)
+            const sceneIds = Object.keys(s)
+            let sceneIndex = sceneIds.indexOf('{{ defaultScene }}')
 
             function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
@@ -130,7 +136,7 @@
             viewer = pannellum.viewer('mountain-overlay', {
                 "default": {
                     firstScene: '{{ defaultScene }}', // change this
-                    sceneFadeDuration: 1200,
+                    sceneFadeDuration: 750,
                     compass: true,
                     doubleClickZoom: false,
                     mouseZoom: false,
@@ -146,6 +152,16 @@
             viewer.on('scenechange', function (event) {
                 loadFolium(event)
             })
+
+            document.getElementById('pan-left').addEventListener('click', function(e) {
+                sceneIndex = (sceneIndex - 1 + sceneIds.length) % sceneIds.length
+                viewer.loadScene(sceneIds[sceneIndex])
+            })
+            document.getElementById('pan-right').addEventListener('click', function(e) {
+                sceneIndex = (sceneIndex + 1) % sceneIds.length
+                viewer.loadScene(sceneIds[sceneIndex])
+            })
+            
         </script>
     </body>
 </html>

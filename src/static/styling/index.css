@@ -267,3 +267,25 @@ div.panorama-image-tooltip span:after {
 .child:last-child {
     margin-bottom: 10px;
 }
+
+#controls {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    padding: 0.25rem;
+}
+
+.ctrl {
+    font-size: x-large;
+    padding: 8px 10px;
+    width: 30px;
+    text-align: center;
+    background: rgba(200, 200, 200, 0.6);
+    display: inline-block;
+    cursor: pointer;
+}
+
+.ctrl:hover {
+    background: rgba(200, 200, 200, 1);
+}
