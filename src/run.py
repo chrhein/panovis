@@ -86,20 +86,11 @@ def create_app():
                 IMAGE_DATA = ImageData(pano_path)
                 save_image_data(IMAGE_DATA)
 
-            app.logger.info(IMAGE_DATA)
-
             session["filename"] = IMAGE_DATA.filename
 
             if not os.path.exists(IMAGE_DATA.path):
                 f.save(IMAGE_DATA.path)
                 reduce_filesize(IMAGE_DATA.path)
-                """ hasher = hashlib.sha1()
-                with open(IMAGE_DATA.path, "rb") as afile:
-                    buf = afile.read(BLOCKSIZE)
-                    while len(buf) > 0:
-                        hasher.update(buf)
-                        buf = afile.read(BLOCKSIZE)
-                app.logger.info(hasher.hexdigest()) """
 
             if DEBUG_HEIGHT:
                 return redirect(
@@ -247,7 +238,6 @@ def create_app():
     @app.route("/findmtns")
     def findmtns():
         gpx_path = session.get("gpx_path", None)
-        app.logger.info(f"gpx_path: {gpx_path}")
         seen_images = get_seen_images()
         fn = session.get("filename", seen_images[-1])
         session["filename"] = fn
@@ -265,9 +255,7 @@ def create_app():
     def mountains():
         IMAGE_DATA = load_image_data(session.get("filename", None))
         gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
-        app.logger.info(f"Creating scenes for {gpx_filename}")
         scenes = make_scenes(gpx_filename)
-        app.logger.info(f"Scenes created: {scenes}")
         return render_template(
             "view_mountains.html",
             scenes=scenes,
@@ -284,7 +272,6 @@ def mark_file_as_seen(pano_filename):
         h = open(SEEN_IMAGES_PATH, "r")
         seen_images = h.readlines()
         h.close()
-        print(seen_images)
         if pano_filename in seen_images:
             return
         else:
@@ -300,24 +287,17 @@ def mark_file_as_seen(pano_filename):
 
 def make_scenes(gpx_filename):
     seen_images = get_seen_images()
-    print(f"seen_images: {seen_images}")
     scenes = {}
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
         hs_name = f"{im_data.filename}-{gpx_filename}"
-        print(f"{hs_name=}")
-        hs = json.dumps(im_data.hotspots, indent=4)
-        print(f"{hs}")
         im_hs = im_data.hotspots[hs_name]
-        print(f"im_hs: {im_hs}")
         scenes[pano_filename] = {
             "hotspots": im_hs,
             "render_path": im_data.render_path,
             "view_direction": im_data.view_direction,
             "gpx-filename": gpx_filename,
         }
-
-    print(f"scenes: {scenes}")
     return scenes
 
 
@@ -340,9 +320,7 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
         )
     image_hotpots = {}
     for image in images_3d:
-        print(image)
         im_data = load_image_data(image.name)
-
         image_hotpots.update(
             {
                 str(image.name): {
