@@ -41,19 +41,19 @@
                 <div id="uploaded-panoramas" class="parent-wrapper">
                     <div class="parent">
                         {% for pano in ims %}
-                        <div class="child">
-                            <div class="text-center">
-                                <img
-                                    class="mt-2 img-fluid"
-                                    src="{{ pano[1] }}"
-                                    alt="{{ pano[0] }}"
-                                />
-                            </div>
 
-                            <div class="media-body text-center">
-                                <h6 class="mt-2 mb-1">{{ pano[0] }}</h6>
+                        <a href='javascript:removeImage("{{ pano[0] }}")'>
+                            <div class="child">
+                                <div class="hover-effect">
+                                    <img
+                                        class="img-fluid"
+                                        src="{{ pano[1] }}"
+                                        alt="{{ pano[0] }}"
+                                    />
+                                    <div class="hover-text"></div>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                         {% endfor %}
                     </div>
                 </div>
@@ -104,6 +104,11 @@
                 text = 'Finding mountains in panorama...'
                 window.location.href = `/loading?redirect_url=${redir_url}&task=${task}&title=${title}&text=${text}`
             }
+
+            function removeImage(imageId) {
+                window.location.href = `/rmvimg?image_id=${imageId}`
+            }
+
             function changeGPX() {
                 let gpx = document.getElementById('selected-gpx')
                 let form = document.createElement('form')

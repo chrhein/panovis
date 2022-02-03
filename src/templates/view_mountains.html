@@ -41,9 +41,16 @@
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
                     <div id="mountain-overlay">
-                        <div id="controls">
-                            <div class="ctrl" id="pan-left">&#8678;</div>
-                            <div class="ctrl" id="pan-right">&#8680;</div>
+                        <div class="controls">
+                            <div id="left">
+                                <div class="ctrl" id="zoom-in">&plus;</div>
+                                <div class="ctrl" id="zoom-out">&minus;</div>
+                                <div class="ctrl" id="fullscreen">&#x2922;</div>
+                            </div>
+                            <div id="right">
+                                <div class="ctrl" id="pan-left">&#8678;</div>
+                                <div class="ctrl" id="pan-right">&#8680;</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -65,6 +72,10 @@
             const s = JSON.parse('{{ scenes | tojson | safe }}')
             const sceneIds = Object.keys(s)
             let sceneIndex = sceneIds.indexOf('{{ defaultScene }}')
+
+            if (sceneIds.length == 1) {
+                document.getElementById('right').style.display = 'none'
+            }
 
             function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
@@ -145,6 +156,7 @@
                     vaov: 125,
                     type: 'equirectangular',
                     autoLoad: true,
+                    showControls: false
                 },
                 "scenes": gen(s)
             })
@@ -160,6 +172,15 @@
             document.getElementById('pan-right').addEventListener('click', function(e) {
                 sceneIndex = (sceneIndex + 1) % sceneIds.length
                 viewer.loadScene(sceneIds[sceneIndex])
+            })
+            document.getElementById('zoom-in').addEventListener('click', function(e) {
+                viewer.setHfov(viewer.getHfov() - 10, animated=false)
+            })
+            document.getElementById('zoom-out').addEventListener('click', function(e) {
+                viewer.setHfov(viewer.getHfov() + 10, animated=false)
+            })
+            document.getElementById('fullscreen').addEventListener('click', function(e) {
+                viewer.toggleFullscreen()
             })
             
         </script>

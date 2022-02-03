@@ -45,7 +45,7 @@ def create_app():
         for im in ims:
             im_data = load_image_data(im)
             if im_data:
-                i.append([im_data.filename[0:-9], im_data.thumbnail_path])
+                i.append([im_data.filename, im_data.thumbnail_path])
         gpx = session.get("gpx_path", "None selected")
         if gpx != "None selected":
             gpx = gpx.split("/")[-1]
@@ -65,9 +65,7 @@ def create_app():
     def upload():
 
         if request.method == "POST":
-
             f = request.files["file"]
-
             filename = secure_filename(f.filename)
             f_hash = hashlib.md5(filename.encode("utf-8")).hexdigest()[-8:]
             fn, ft = filename.split(".")
@@ -87,21 +85,11 @@ def create_app():
                 save_image_data(IMAGE_DATA)
 
             session["filename"] = IMAGE_DATA.filename
+            mark_file_as_seen(IMAGE_DATA)
 
             if not os.path.exists(IMAGE_DATA.path):
                 f.save(IMAGE_DATA.path)
                 reduce_filesize(IMAGE_DATA.path)
-
-            if DEBUG_HEIGHT:
-                return redirect(
-                    url_for(
-                        "loading",
-                        redirect_url="srcoords",
-                        task="rendering",
-                        title="Rendering Height Image",
-                        text="Rendering Height Image ...",
-                    )
-                )
 
             im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
             im_description = get_image_description(IMAGE_DATA.path)
@@ -112,11 +100,7 @@ def create_app():
 
                 if os.path.exists(IMAGE_DATA.render_path):
                     return redirect(url_for("homepage"))
-            try:
-                return redirect(url_for("spcoords"))
-            except Exception as e:
-                app.logger.error(e)
-                return redirect(url_for("/"))
+            return redirect(url_for("spcoords"))
 
     @app.route("/uploadmtns", methods=["POST", "GET"])
     def uploadmtns():
@@ -129,6 +113,12 @@ def create_app():
             session["gpx_path"] = gpx_path
             f.save(gpx_path)
             return redirect(url_for("homepage"))
+
+    @app.route("/rmvimg", methods=["GET"])
+    def rmvimg():
+        file_to_remove = request.args.get("image_id")
+        session["filename"] = remove_file_as_seen(file_to_remove)
+        return redirect(url_for("homepage"))
 
     @app.route("/selectgpx", methods=["POST", "GET"])
     def selectgpx():
@@ -226,7 +216,6 @@ def create_app():
                 return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
 
             save_image_data(IMAGE_DATA)
-            mark_file_as_seen(IMAGE_DATA.filename)
             session["filename"] = IMAGE_DATA.filename
 
         return render_template(
@@ -267,23 +256,46 @@ def create_app():
     return app
 
 
-def mark_file_as_seen(pano_filename):
+def mark_file_as_seen(img_data):
+    if img_data.view_direction is None or img_data.hotspots is None:
+        return
     make_folder(f"{UPLOAD_FOLDER}dev/")
     try:
         h = open(SEEN_IMAGES_PATH, "r")
         seen_images = h.readlines()
         h.close()
-        if pano_filename in seen_images:
+        if img_data.filename in seen_images:
             return
         else:
             h = open(SEEN_IMAGES_PATH, "a")
-            h.write(f"{pano_filename}\n")
+            h.write(f"{img_data.filename}\n")
             h.close()
 
     except FileNotFoundError:
         h = open(SEEN_IMAGES_PATH, "w")
-        h.write(f"{pano_filename}\n")
+        h.write(f"{img_data.filename}\n")
         h.close()
+
+
+def remove_file_as_seen(image_filename):
+    try:
+        h = open(SEEN_IMAGES_PATH, "r")
+        seen_images = h.readlines()
+        if len(seen_images) == 1:
+            h.close()
+            os.remove(SEEN_IMAGES_PATH)
+            return
+        h.close()
+        try:
+            seen_images.remove(f"{image_filename}\n")
+            w = open(SEEN_IMAGES_PATH, "w")
+            w.writelines(seen_images)
+            w.close()
+        except ValueError:
+            pass
+        return seen_images[-1].strip("\n")
+    except FileNotFoundError:
+        pass
 
 
 def make_scenes(gpx_filename):
