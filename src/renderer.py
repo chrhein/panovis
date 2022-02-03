@@ -5,13 +5,15 @@ import os
 import pickle
 import time
 import subprocess
-from image_handling import get_image_description
+from image_handling import (
+    get_image_description,
+)
 from tools.converters import convert_coordinates
 from tools.debug import check_file_type, p_e, p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
-    get_mountain_3d_location,
-    get_mountains_in_sight,
+    get_3d_location,
+    find_visible_items_in_ds,
     get_raster_data,
 )
 from map_plotting import plot_to_map
@@ -20,8 +22,12 @@ from tools.texture import (
     create_route_texture,
     create_color_gradient_image,
 )
-from tools.file_handling import get_mountain_data, make_folder, read_mountain_gpx
-from tools.types import Location
+from tools.file_handling import (
+    get_mountain_data,
+    read_image_locations,
+    read_mountain_gpx,
+)
+from tools.types import LatLngToCrs, Location
 
 
 def render_dem(panorama_path, mode, mountains, render_filename):
@@ -124,7 +130,7 @@ def render_dem(panorama_path, mode, mountains, render_filename):
             locs = find_visible_coordinates_in_render(ds_name, gradient_path, dem_path)
 
             radius = 150  # in meters
-            mountains_in_sight = get_mountains_in_sight(
+            mountains_in_sight = find_visible_items_in_ds(
                 dem_path, locs, mountains, radius=radius
             )
             plot_filename = f"src/templates/{panorama_filename}.html"
@@ -150,9 +156,11 @@ def render_dem(panorama_path, mode, mountains, render_filename):
     return True
 
 
-def render_height(panorama_path, render_filename):
+def render_height(IMAGE_DATA):
     start_time = time.time()
-    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
+
+    panorama_path = IMAGE_DATA.path
+    render_filename = IMAGE_DATA.render_path
     pov_filename = "/tmp/pov_file.pov"
 
     render_settings_path = "render_settings.json"
@@ -180,7 +188,7 @@ def render_height(panorama_path, render_filename):
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
-        f"File:      {panorama_filename}",
+        f"File:      {IMAGE_DATA.filename}",
         f"Mode:      {pov_mode}",
         f"Duration:  {time.time() - start_time} seconds",
     ]
@@ -188,12 +196,12 @@ def render_height(panorama_path, render_filename):
     return True
 
 
-def mountain_lookup(panorama_path, render_filename, gpx_file):
+def mountain_lookup(IMAGE_DATA, gpx_file):
     start_time = time.time()
-    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
+
     pov_filename = "/tmp/pov_file.pov"
 
-    im_desc = get_image_description(panorama_path)
+    im_desc = get_image_description(IMAGE_DATA.path)
     custom_tags = ast.literal_eval(im_desc)
     fov = custom_tags["fov"]
     imdims = custom_tags["imdims"]
@@ -214,21 +222,19 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         json_file.close()
 
     dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
-        dem_path, panorama_path, True
+        dem_path, IMAGE_DATA.path, True
     )
 
     raster_data = get_raster_data(dem_path, coordinates)
     if not raster_data:
         return
 
-    LOCS_PATH = f"src/static/locs/"
-    make_folder(LOCS_PATH)
-    locs_filename = f"{LOCS_PATH}{panorama_filename}.pkl"
+    locs_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-locs.pkl"
     if not os.path.exists(locs_filename):
 
         pov_mode = "gradient"
         gradient_path, _ = create_color_gradient_image()
-        if not os.path.exists(render_filename):
+        if not os.path.exists(IMAGE_DATA.gradient_path):
             pov = primary_pov(
                 dem_path,
                 raster_data,
@@ -236,14 +242,14 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
                 mode=pov_mode,
                 fov=fov,
             )
-            params = [pov_filename, render_filename, render_shape, pov_mode]
+            params = [pov_filename, IMAGE_DATA.gradient_path, render_shape, pov_mode]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
             execute_pov(params)
 
         ds_name = original_dem.split("/")[-1].split(".")[0]
         locs = find_visible_coordinates_in_render(
-            ds_name, gradient_path, render_filename, dem_path
+            ds_name, gradient_path, IMAGE_DATA.gradient_path, dem_path
         )
         with open(locs_filename, "wb") as f:
             pickle.dump(locs, f)
@@ -251,41 +257,60 @@ def mountain_lookup(panorama_path, render_filename, gpx_file):
         with open(locs_filename, "rb") as f:
             locs = pickle.load(f)
 
-    radius = 150  # in meters
-    mountains = read_mountain_gpx(gpx_file)
-    mountains_in_sight = get_mountains_in_sight(
-        dem_path, locs, mountains, radius=radius
-    )
-
     ds_raster = raster_data[1][0]
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
-    camera_height = convert_coordinates(ds_raster, crs, lat, lon, only_height=True)
 
-    camera_location = Location(lat, lon, camera_height)
-    mountains_3d = get_mountain_3d_location(
-        camera_location, viewing_direction, crs, mountains_in_sight
+    converter = LatLngToCrs(crs)
+    camera_height = convert_coordinates(
+        ds_raster, converter, lat, lon, only_height=True
     )
-    FOLIUMS_PATH = "src/static/foliums/"
-    make_folder(FOLIUMS_PATH)
-    plot_filename = f"{FOLIUMS_PATH}{panorama_filename}.html"
-    plot_to_map(
+    camera_location = Location(lat, lon, camera_height)
+
+    radius = 150  # in meters
+
+    images = read_image_locations(
+        IMAGE_DATA.filename, "src/static/images", ds_raster, converter
+    )
+    images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
+    mountains = read_mountain_gpx(gpx_file)
+    mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
+
+    mountains_3d = get_3d_location(
+        camera_location,
+        viewing_direction,
+        converter,
         mountains_in_sight,
+    )
+
+    images_3d = get_3d_location(
+        camera_location,
+        viewing_direction,
+        converter,
+        images_in_sight,
+    )
+
+    plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
+    plot_to_map(
+        mountains_3d,
         coordinates,
         plot_filename,
         dem_path,
+        mountain_radius=radius,
         locs=locs,
         mountains=mountains,
-        mountain_radius=radius,
+        images=images,
     )
+
     stats = [
         "Information about completed task: \n",
-        f"File:      {panorama_filename}",
+        f"File:      {IMAGE_DATA.filename}",
         f"Mode:      gradient",
         f"Duration:  {time.time() - start_time} seconds",
     ]
     p_line(stats)
-    return mountains_3d
+
+    return mountains_3d, images_3d
 
 
 def execute_pov(params):

@@ -1,4 +1,5 @@
 import os
+import pickle
 from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
@@ -8,10 +9,9 @@ import gpxpy
 import gpxpy.gpx
 import rasterio
 import image_handling
-from location_handler import displace_camera, find_maximums, find_minimums
-from tools.converters import latlon_to_crs
+import location_handler
 from tools.debug import p_i, p_line
-from tools.types import Location, Mountain, MountainBounds
+from tools.types import ImageInSight, LatLngToCrs, Location, Mountain
 from osgeo import gdal
 
 
@@ -27,12 +27,15 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
         viewing_direction = exif_view_direction
     else:
         viewing_direction = 0.0
-    look_ats = displace_camera(camera_lat, camera_lon, deg=viewing_direction)
+    look_ats = location_handler.displace_camera(
+        camera_lat, camera_lon, deg=viewing_direction
+    )
 
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
 
-    camera_placement_crs = latlon_to_crs(crs, camera_lat, camera_lon)
+    converter = LatLngToCrs(crs)
+    camera_placement_crs = converter.convert(camera_lat, camera_lon)
 
     displacement_distance = 15000  # in meters from camera placement
 
@@ -63,7 +66,11 @@ def read_hike_gpx(gpx_path):
         for j in i.segments
         for k in j.points
     ]
-    return [locations, find_minimums(locations), find_maximums(locations)]
+    return [
+        locations,
+        location_handler.find_minimums(locations),
+        location_handler.find_maximums(locations),
+    ]
 
 
 def read_mountain_gpx(gpx_path):
@@ -76,11 +83,31 @@ def read_mountain_gpx(gpx_path):
         Mountain(
             i.name,
             Location(i.latitude, i.longitude, i.elevation),
-            MountainBounds(i.latitude, i.longitude),
         )
         for i in gpx.waypoints
     ]
     return mountains
+
+
+def read_image_locations(filename, image_folder, ds_raster, converter):
+    locs = []
+    seen_images = get_seen_images()
+    for image in seen_images:
+        if image == filename:
+            continue
+        im_path = f"{image_folder}/{image}/{image}.jpg"
+        t_im_path = f"{image_folder}/{image}/{image}-thumbnail.jpg"
+        loc = image_handling.get_exif_gps_latlon(im_path)
+        height = location_handler.get_height_from_raster(loc, ds_raster, converter)
+
+        locs.append(
+            ImageInSight(
+                image,
+                t_im_path,
+                Location(loc.latitude, loc.longitude, height),
+            )
+        )
+    return locs
 
 
 def get_mountains(folder):
@@ -256,3 +283,31 @@ def make_folder(folder):
         os.mkdir(folder)
     except FileExistsError:
         pass
+
+
+def load_image_data(filename):
+    fp = f"src/static/images/"
+    IMG_UPLOAD_FOLDER = f"{fp}{filename.split('.')[0]}/"
+    try:
+        with open(f"{IMG_UPLOAD_FOLDER}/{filename}-img-data.pkl", "rb") as f:
+            img_data = pickle.load(f)
+            f.close()
+    except FileNotFoundError:
+        return None
+    return img_data
+
+
+def save_image_data(img_data):
+    with open(f"{img_data.folder}/{img_data.filename}-img-data.pkl", "wb") as f:
+        pickle.dump(img_data, f)
+    f.close()
+
+
+def get_seen_images():
+    try:
+        ims = open("src/static/dev/seen_images.txt", "r")
+        seen_images = [i.strip("\n") for i in ims.readlines()]
+        ims.close()
+        return seen_images
+    except FileNotFoundError:
+        return []

@@ -15,9 +15,9 @@ def get_earth_radius():
     return EARTH_RADIUS
 
 
-def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
+def convert_single_coordinate_pair(bounds, converter, lat, lon):
     min_x, min_y, max_x, max_y = bounds
-    coordinate_pair = latlon_to_crs(to_espg, lat, lon)
+    coordinate_pair = converter.convert(lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
@@ -25,10 +25,10 @@ def convert_single_coordinate_pair(bounds, to_espg, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(raster, to_espg, lat, lon, only_height=False):
+def convert_coordinates(raster, converter, lat, lon, only_height=False):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
-    coordinate_pair = latlon_to_crs(to_espg, lat, lon)
+    coordinate_pair = converter.convert(lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
 
@@ -61,42 +61,6 @@ def convert_coordinates(raster, to_espg, lat, lon, only_height=False):
         lon_scaled,
         height_max_mountain_scaled,
     ]
-
-
-# lat/lon to coordinate reference system coordinates
-def latlon_to_crs(to_epsg, lat, lon):
-    latlon_epsg = 4326  # WGS84
-
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(latlon_epsg)
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(to_epsg)
-
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(in_sr)
-    coordinate_pair.TransformTo(out_sr)
-
-    return coordinate_pair
-
-
-def crs_to_latlon(from_epsg, lat, lon, ele=0):
-    latlon_epsg = 4326  # WGS84
-
-    in_sr = osr.SpatialReference()
-    in_sr.ImportFromEPSG(from_epsg)
-    out_sr = osr.SpatialReference()
-    out_sr.ImportFromEPSG(latlon_epsg)
-
-    coordinate_pair = ogr.Geometry(ogr.wkbPoint)
-    coordinate_pair.AddPoint(lat, lon)
-    coordinate_pair.AssignSpatialReference(in_sr)
-    coordinate_pair.TransformTo(out_sr)
-
-    lat = coordinate_pair.GetX()
-    lon = coordinate_pair.GetY()
-
-    return Location(latitude=float(lat), longitude=float(lon), elevation=ele)
 
 
 def look_at_location(in_lat, in_lon, dist_in_kms, true_course):

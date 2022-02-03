@@ -16,15 +16,6 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
 
-        <!-- <script>
-            function showContinueButton() {
-                document.getElementById('submit-coordinates').style.visibility =
-                    'visible'
-            }
-            fetch(
-                '/rendering?pano_path={{pano_path}}&render_path={{render_path}}'
-            ).then(showContinueButton)
-        </script> -->
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
         <title>E2 - DEM Rendering</title>
     </head>
@@ -57,14 +48,14 @@
             </form>
         </div>
         <script>
-            var clickedCoords = new Map()
+            var clickedCoords = []
             var shiftPressed = false
             const minimum_samples = getSampleNumber()
             var renderComplete = false
 
             function onRenderComplete() {
                 renderComplete = true
-                if (clickedCoords.size >= minimum_samples) {
+                if (clickedCoords.length >= minimum_samples) {
                     var submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-primary')
                     submitButton.innerText = 'Submit'
@@ -79,8 +70,7 @@
             function submitCoords() {
                 var form = document.getElementById('submit-coordinates')
                 form.appendChild(
-                    addCoords(document, clickedCoords, 'pano-coords'),
-                    clickedCoords.clear()
+                    addCoords(document, clickedCoords, 'pano-coords')
                 )
                 form.submit()
             }
@@ -114,22 +104,22 @@
                         return
                     }
 
-                    const itemNum = clickedCoords.size + 1
-                    clickedCoords.set(itemNum, [x, y])
+                    const itemNum = clickedCoords.length + 1
+                    clickedCoords.push([x, y])
                     console.log(clickedCoords)
-                    updateFormText(document, clickedCoords.size)
+                    updateFormText(document, clickedCoords.length)
                     viewer.addHotSpot({
-                        id: 'selected-location-' + clickedCoords.size,
+                        id: 'selected-location-' + clickedCoords.length,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.size == 1) {
+                    if (clickedCoords.length == 1) {
                         document
                             .getElementById('submit-button')
                             .removeAttribute('hidden')
                     }
-                    if (clickedCoords.size >= minimum_samples) {
+                    if (clickedCoords.length >= minimum_samples) {
                         var submitButton =
                             document.getElementById('submit-button')
                         if (renderComplete) {
@@ -156,14 +146,14 @@
             })
             document.addEventListener('keydown', function (event) {
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoords.size; i++) {
+                    for (var i = 1; i <= clickedCoords.length; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
-                    clickedCoords.clear()
+                    clickedCoords = []
                     var submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-secondary')
                     submitButton.innerText = 'Submit'
-                    updateFormText(document, clickedCoords.size)
+                    updateFormText(document, clickedCoords.length)
                 }
             })
         </script>

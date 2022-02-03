@@ -5,9 +5,9 @@ import pickle
 import rasterio
 import subprocess
 from osgeo import gdal
-from tools.converters import convert_single_coordinate_pair, latlon_to_crs
+from tools.converters import convert_single_coordinate_pair
 from tools.file_handling import read_hike_gpx
-from tools.types import TextureBounds
+from tools.types import LatLngToCrs, TextureBounds
 from tools.debug import p_i
 
 
@@ -67,8 +67,9 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     mns, minimums, maximums = read_hike_gpx(gpx_path)
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
-    lower_left = latlon_to_crs(crs, minimums[0].latitude, minimums[1].longitude)
-    upper_right = latlon_to_crs(crs, maximums[0].latitude, maximums[1].longitude)
+    converter = LatLngToCrs(crs)
+    lower_left = converter.convert(minimums[0].latitude, minimums[1].longitude)
+    upper_right = converter.convert(maximums[0].latitude, maximums[1].longitude)
 
     bbox = (
         lower_left.GetX(),
@@ -98,8 +99,9 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     crs = int(ds_raster.crs.to_authority()[1])
     b = ds_raster.bounds
     bounds = [b.left, b.bottom, b.right, b.top]
+    converter = LatLngToCrs(crs)
     locs = [
-        convert_single_coordinate_pair(bounds, crs, i.latitude, i.longitude)
+        convert_single_coordinate_pair(bounds, converter, i.latitude, i.longitude)
         for i in mns
     ]
     prev_lat = abs(int(((100.0 * locs[0][0]) / 100) * w))
@@ -115,16 +117,16 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     max_lat_p = maximums[0]
     max_lon_p = maximums[1]
     min_x = convert_single_coordinate_pair(
-        bounds, crs, min_lat_p.latitude, min_lat_p.longitude
+        bounds, converter, min_lat_p.latitude, min_lat_p.longitude
     )
     min_y = convert_single_coordinate_pair(
-        bounds, crs, min_lon_p.latitude, min_lon_p.longitude
+        bounds, converter, min_lon_p.latitude, min_lon_p.longitude
     )
     max_x = convert_single_coordinate_pair(
-        bounds, crs, max_lat_p.latitude, max_lat_p.longitude
+        bounds, converter, max_lat_p.latitude, max_lat_p.longitude
     )
     max_y = convert_single_coordinate_pair(
-        bounds, crs, max_lon_p.latitude, max_lon_p.longitude
+        bounds, converter, max_lon_p.latitude, max_lon_p.longitude
     )
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)

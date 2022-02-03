@@ -20,22 +20,39 @@
             href="{{ url_for('static', filename='styling/index.css') }}"
         />
         <script src="{{ url_for('static', filename='scripts/tools.js') }}"></script>
-        <script src="jquery.js"></script>
         <script>
-            $(function () {
-                $('#folium-map').load(
-                    "{{ url_for('static', filename='foliums/2021-04-17--pic03--Lyderhorn.html') }}"
-                )
-            })
+            function navigate() {
+                window.location.href = "/"
+            }
         </script>
+
         <title>E2 - View Mountains</title>
     </head>
     <body>
-        <div class="px-4 py-4 my-4 text-center">
+        <button
+            id="nav-home"
+            class="btn btn-secondary btn-md my-2 mx-4"
+            onclick="navigate();"
+        >
+            Home
+        </button>
+        <div class="px-4  my-4 text-center">
             <h3 class="fw-bold text-start">Mountain Overlay</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
-                    <div id="mountain-overlay"></div>
+                    <div id="mountain-overlay">
+                        <div class="controls">
+                            <div id="left">
+                                <div class="ctrl" id="zoom-in">&plus;</div>
+                                <div class="ctrl" id="zoom-out">&minus;</div>
+                                <div class="ctrl" id="fullscreen">&#x2922;</div>
+                            </div>
+                            <div id="right">
+                                <div class="ctrl" id="pan-left">&#8678;</div>
+                                <div class="ctrl" id="pan-right">&#8680;</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -46,56 +63,126 @@
                     <div id="folium-container">
             <object
                 id="folium-map"
-                data="src/static/foliums/{{pano_filename}}.html"
+                data="{{folium_path}}"
             ></object>
                 </div>
             </div>
         </div>
-
         <script>
-            const mountains = JSON.parse('{{ hs | tojson | safe }}')
-            const viewDirection = parseFloat('{{ yaw }}')
+            const s = JSON.parse('{{ scenes | tojson | safe }}')
+            const sceneIds = Object.keys(s)
+            let sceneIndex = sceneIds.indexOf('{{ defaultScene }}')
 
-            function hotspot(hotSpotDiv, args) {
+            if (sceneIds.length == 1) {
+                document.getElementById('right').style.display = 'none'
+            }
+
+            function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
                 var span = document.createElement('span')
                 span.innerHTML = args
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
                 span.style.marginLeft =
-                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 9.5 + 'px'
-                span.style.marginTop = -span.scrollHeight - 12 + 'px'
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 12.5 + 'px'
+                span.style.marginTop = -span.scrollHeight + 4 + 'px'
             }
 
-            var mns = Object.values(
-                Object.entries(mountains).map(function (d) {
-                    const [key, value] = d
-                    const lat = value.latitude
-                    const lon = value.longitude
-                    const url = `https://www.google.com/maps/search/${lat},${lon}/`
-                    
-                    return {
-                        yaw: viewDirection + parseFloat(value.yaw),
-                        pitch: value.pitch,
-                        cssClass: 'custom-hotspot mountain-hotspot',
-                        createTooltipArgs: key,
-                        createTooltipFunc: hotspot,
-                        URL: url,
-                    }
-                })
-            )
+            function imageHotspotTooltip(hotSpotDiv, args) {
+                hotSpotDiv.classList.add('panorama-image-tooltip')
+                var span = document.createElement('span')
+                span.innerHTML = args
+                hotSpotDiv.appendChild(span)
+                span.style.width = span.scrollWidth - 20 + 'px'
+                span.style.marginLeft =
+                    -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 32 + 'px'
+                span.style.marginTop = -span.scrollHeight + 4 + 'px'
+            }
 
+            const gen = (scene) => {
+                return Object.fromEntries(Object.entries(scene).map(([key, value]) => {
+                    return [key, {
+                        panorama: value.render_path,
+                        yaw: value.view_direction,
+                        hotSpots: [
+                            ...Object.entries(value.hotspots.images).map(([name, image]) => {
+                                return {
+                                    yaw: image.yaw,
+                                    pitch: image.pitch,
+                                    type: 'scene',
+                                    sceneId: name,
+                                    cssClass: 'custom-hotspot scene-hotspot',
+                                    createTooltipArgs: image.imageTooltip,
+                                    createTooltipFunc: imageHotspotTooltip,
+                                }
+                            }),
+                            ...Object.entries(value.hotspots.mountains).map(([name, mountain]) => {
+                                return {
+                                    yaw: parseFloat(mountain.yaw),
+                                    pitch: mountain.pitch,
+                                    cssClass: 'custom-hotspot mountain-hotspot',
+                                    createTooltipArgs: name,
+                                    createTooltipFunc: mountainHotspotTooltip,
+                                    URL: mountain.url,
+                                }
+                            }),
+                        ],
+                    }]
+                }))
+            }
+            
+            const gpx = '{{ gpx }}'
+            function loadFolium(sceneId) {
+                const updatedFolium = `src/static/images/${sceneId}/${sceneId}-${gpx}.html`
+                let object = document.getElementById('folium-map');
+                object.setAttribute('data', updatedFolium);
+                let clone = object.cloneNode(true);
+                let parent = object.parentNode;
+                parent.removeChild(object);
+                parent.appendChild(clone);
+                console.log("Loaded new Folium map from image: " + sceneId);
+            }
+
+            loadFolium('{{ defaultScene }}')
             viewer = pannellum.viewer('mountain-overlay', {
-                type: 'equirectangular',
-                panorama: '{{ render_path }}',
-                autoLoad: true,
-                yaw: parseFloat(viewDirection),
-                compass: true,
-                doubleClickZoom: false,
-                mouseZoom: false,
-                keyboardZoom: false,
-                hotSpots: mns,
+                "default": {
+                    firstScene: '{{ defaultScene }}', // change this
+                    sceneFadeDuration: 750,
+                    compass: true,
+                    doubleClickZoom: false,
+                    mouseZoom: false,
+                    keyboardZoom: false,
+                    hfov: 180,
+                    vaov: 125,
+                    type: 'equirectangular',
+                    autoLoad: true,
+                    showControls: false
+                },
+                "scenes": gen(s)
             })
+
+            viewer.on('scenechange', function (event) {
+                loadFolium(event)
+            })
+
+            document.getElementById('pan-left').addEventListener('click', function(e) {
+                sceneIndex = (sceneIndex - 1 + sceneIds.length) % sceneIds.length
+                viewer.loadScene(sceneIds[sceneIndex])
+            })
+            document.getElementById('pan-right').addEventListener('click', function(e) {
+                sceneIndex = (sceneIndex + 1) % sceneIds.length
+                viewer.loadScene(sceneIds[sceneIndex])
+            })
+            document.getElementById('zoom-in').addEventListener('click', function(e) {
+                viewer.setHfov(viewer.getHfov() - 10, animated=false)
+            })
+            document.getElementById('zoom-out').addEventListener('click', function(e) {
+                viewer.setHfov(viewer.getHfov() + 10, animated=false)
+            })
+            document.getElementById('fullscreen').addEventListener('click', function(e) {
+                viewer.toggleFullscreen()
+            })
+            
         </script>
     </body>
 </html>

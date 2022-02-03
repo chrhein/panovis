@@ -1,34 +1,36 @@
+from json import load
 from math import asin, cos, sin, atan2, degrees, pi
+import os
+import pickle
 import numpy as np
 import rasterio
 from tools.converters import (
     convert_coordinates,
-    latlon_to_crs,
-    crs_to_latlon,
     get_earth_radius,
 )
-from tools.debug import p_i, p_e, p_line, p_s
-from geopy import distance
-from alive_progress import alive_bar
+from tools.debug import p_a, p_i, p_e, p_line, p_s
 from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
+import image_handling
 from operator import attrgetter
-
-from tools.types import Location3D
+from tools.types import CrsToLatLng, Distance, ImageInSight, LatLngToCrs, Location3D
 
 
 def get_raster_data(dem_file, coordinates):
     ds_raster = rasterio.open(dem_file)
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
+    converter = LatLngToCrs(crs)
     # convert lat_lon to grid coordinates in the interval [0, 1]
-    camera_lat_lon = convert_coordinates(ds_raster, crs, coordinates[0], coordinates[1])
+    camera_lat_lon = convert_coordinates(
+        ds_raster, converter, coordinates[0], coordinates[1]
+    )
     if not camera_lat_lon:
         p_e("Camera location is out of bounds")
         return
     look_at_lat_lon = convert_coordinates(
-        ds_raster, crs, coordinates[2], coordinates[3]
+        ds_raster, converter, coordinates[2], coordinates[3]
     )
     if not look_at_lat_lon:
         p_e("Viewpoint location is out of bounds")
@@ -41,6 +43,7 @@ def get_raster_data(dem_file, coordinates):
     try:
         max_height = camera_lat_lon[-1]
     except TypeError:
+        max_height = 10000
         pass
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
     raster_metadata = [ds_raster, distances, max_height]
@@ -59,79 +62,102 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
     unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
 
     p_i("Getting pixel coordinates for colors in render")
-    g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-    color_coordinates = [np.where(np.all(g == i, axis=-1)) for i in unique_colors]
-    color_coordinates = [(i[0][0], i[1][0]) for i in color_coordinates if len(i[0]) > 0]
+    color_coordinates_path = f"data/color_coords.pkl"
+    if not os.path.exists(color_coordinates_path):
+        g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
+        color_coords = {}
+        for y in range(g.shape[0]):
+            for x in range(g.shape[1]):
+                color_coords[tuple(g[x, y])] = (x, y)
+        with open(color_coordinates_path, "wb") as f:
+            pickle.dump(color_coords, f)
+    else:
+        with open(color_coordinates_path, "rb") as f:
+            color_coords = pickle.load(f)
 
-    latlon_color_coordinates = []
     ds_raster = rasterio.open(dem_file)
     ds_raster_height_band = ds_raster.read(1)
     crs = int(ds_raster.crs.to_authority()[1])
     dims = ds_raster_height_band.shape
 
-    x_ = dims[0] / (2 ** 8)
-    y_ = dims[1] / (2 ** 8)
+    x_ = dims[0] / (256)
+    y_ = dims[1] / (256)
 
-    for x, y in color_coordinates:
-        s_x, s_y = round(x * x_), round(y * y_)
-        px, py = ds_raster.xy(s_x, s_y)
-        height = ds_raster_height_band[s_x, s_y]
-        latlon_color_coordinates.append(crs_to_latlon(crs, px, py, height))
-    return latlon_color_coordinates
+    latlng_color_coordinates = []
+    height_threshold = 50
+
+    converter = CrsToLatLng(crs)
+
+    for color in unique_colors:
+        c = color_coords.get(tuple(color))
+        if c is not None:
+            x, y = c
+            s_x, s_y = round(x * x_), round(y * y_)
+            px, py = ds_raster.xy(s_x, s_y)
+            height = ds_raster_height_band[s_x, s_y]
+            if height > height_threshold:
+                latlng_color_coordinates.append(converter.convert(px, py, height))
+    return latlng_color_coordinates
 
 
-def get_mountains_in_sight(dem_file, locs, mountains, radius=150):
+def get_raster_path():
+    render_settings_path = "render_settings.json"
+    with open(render_settings_path) as json_file:
+        data = load(json_file)
+        dem_path = data["dem_path"]
+    return dem_path
+
+
+def get_height_from_raster(location, ds_raster, converter):
+    h = convert_coordinates(
+        ds_raster, converter, location.latitude, location.longitude, only_height=True
+    )
+    return h
+
+
+def find_visible_items_in_ds(locs, dataset, radius=150):
     p_i("Looking for mountains in sight:")
-    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(
+        get_raster_path()
+    )
     b = (
         LatLon(*lower_left),
         LatLon(*upper_left),
         LatLon(*upper_right),
         LatLon(*lower_right),
     )
-    filtered_mountains = []
-    for m in mountains:
-        loc = m.location
+    filtered_dataset = []
+    for i in dataset:
+        loc = i.location
         p = LatLon(loc.latitude, loc.longitude)
         if p.isenclosedBy(b):
-            filtered_mountains.append(m)
+            filtered_dataset.append(i)
 
-    mountains_in_sight = {}
-    min_mountain_height = min([i.location.elevation for i in filtered_mountains])
+    items_in_sight = []
 
-    copied_locs = [i for i in locs if i.elevation >= min_mountain_height]
     p_line(
         [
-            f"Total number of locations:     {len(locs)}",
-            f"Total number of mountains:     {len(mountains)}",
-            f"Number of locations in search: {len(copied_locs)}",
-            f"Number of mountains in search: {len(filtered_mountains)}",
+            f"Total number of locations:        {len(locs)}",
+            f"Total number of items in dataset: {len(dataset)}",
+            f"Number of items in search:        {len(filtered_dataset)}",
         ]
     )
-    with alive_bar(len(filtered_mountains)) as bar:
-        for mountain in filtered_mountains:
-            for loc in copied_locs:
-                if loc_close_to_mountain(loc, mountain.location, radius):
-                    mountains_in_sight[mountain.name] = mountain
-                    copied_locs.remove(loc)
-                    break
-            bar()
+    generator = Distance()
+    for i in filtered_dataset:
+        for loc in locs:
+            if generator.coord_inside_radius(loc, i.location, radius):
+                items_in_sight.append(i)
+                break
 
-    if len(mountains_in_sight) == 0:
-        p_e("No mountains in sight")
+    if len(items_in_sight) == 0:
+        p_a("No mountains in sight")
     else:
-        p_s(f"Found a total of {len(mountains_in_sight)} mountains in sight")
-    return mountains_in_sight
+        p_s(f"Found a total of {len(items_in_sight)} items in sight")
+    return items_in_sight
 
 
-def loc_close_to_mountain(loc, m, radius):
-    mountain_pos = tuple([{"lat": m.latitude, "lng": m.longitude}][0].values())
-    test_loc = tuple([{"lat": loc.latitude, "lng": loc.longitude}][0].values())
-    return distance.distance(mountain_pos, test_loc).m <= radius
-
-
-def displace_camera(camera_lat, camera_lon, deg=0.0, distance=0.1):
-    delta = distance / get_earth_radius()
+def displace_camera(camera_lat, camera_lon, deg=0.0, dist=0.1):
+    delta = dist / get_earth_radius()
 
     def to_radians(theta):
         return np.dot(theta, np.pi) / np.float32(180.0)
@@ -164,14 +190,16 @@ def get_raster_bounds(dem_file, lat_lon=True):
     bounds = ds_raster.bounds
     crs = int(ds_raster.crs.to_authority()[1])
 
+    converter = CrsToLatLng(crs)
+
     if lat_lon:
-        ll = crs_to_latlon(crs, bounds.left, bounds.bottom)
+        ll = converter.convert(bounds.left, bounds.bottom)
         lower_left = ll.latitude, ll.longitude
-        ul = crs_to_latlon(crs, bounds.left, bounds.top)
+        ul = converter.convert(bounds.left, bounds.top)
         upper_left = ul.latitude, ul.longitude
-        ur = crs_to_latlon(crs, bounds.right, bounds.top)
+        ur = converter.convert(bounds.right, bounds.top)
         upper_right = ur.latitude, ur.longitude
-        lr = crs_to_latlon(crs, bounds.right, bounds.bottom)
+        lr = converter.convert(bounds.right, bounds.bottom)
         lower_right = lr.latitude, lr.longitude
     else:
         lower_left = (bounds.left, bounds.bottom)
@@ -183,10 +211,10 @@ def get_raster_bounds(dem_file, lat_lon=True):
 
 
 def get_bearing(lat1, lon1, lat2, lon2):
-    dL = lon2 - lon1
-    X = cos(lat2) * sin(dL)
-    Y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dL)
-    bearing = arctan2(X, Y)
+    d_l = lon2 - lon1
+    x = cos(lat2) * sin(d_l)
+    y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(d_l)
+    bearing = arctan2(x, y)
     return degrees(bearing)
 
 
@@ -208,7 +236,7 @@ def get_fov_bounds(total_width, left_bound, right_bound):
 
     left_bound = convert_to_degrees(left_bound)
     right_bound = convert_to_degrees(right_bound)
-    return (left_bound, right_bound)
+    return left_bound, right_bound
 
 
 def get_fov(fov):
@@ -222,41 +250,39 @@ def get_view_direction(fov):
     return ((left_bound + (fov_deg / 2)) + 180) % 360
 
 
-def get_distance_between_locations(loc1, loc2):
-    return distance.distance(
-        (loc1.latitude, loc1.longitude), (loc2.latitude, loc2.longitude)
-    ).m
-
-
-def find_angle_between_three_locations(loc1, loc2, loc3):
-    a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
-    a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
-    return degrees(a1 - a2)
-
-
-def get_mountain_3d_location(camera_location, viewing_direction, crs, mountains):
-    loc1 = latlon_to_crs(
-        crs,
+def get_3d_location(camera_location, viewing_direction, converter, dataset):
+    loc1 = converter.convert(
         *displace_camera(
             camera_location.latitude,
             camera_location.longitude,
             deg=viewing_direction,
-            distance=1.0,
+            dist=1.0,
         ),
     )
-    loc3 = latlon_to_crs(crs, camera_location.latitude, camera_location.longitude)
+    loc3 = converter.convert(camera_location.latitude, camera_location.longitude)
 
-    for mountain in mountains.values():
-        d = get_distance_between_locations(camera_location, mountain.location)
+    def find_angle_between_three_locations(loc1, loc2, loc3):
+        a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
+        a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
+        return degrees(a1 - a2)
+
+    def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
+        d = generator.get_distance_between_locations(camera_location, item.location)
         c_e = camera_location.elevation
-        m_e = mountain.location.elevation
-        diff = m_e - c_e
+        i_e = item.location.elevation
+        diff = int(i_e) - int(c_e)
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
-        m = mountain.location
-        loc2 = latlon_to_crs(crs, m.latitude, m.longitude)
+        i = item.location
+        loc2 = converter.convert(i.latitude, i.longitude)
         yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        return yaw, pitch, d
 
-        mountain.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
+    generator = Distance()
+    for item in dataset:
+        yaw, pitch, d = get_3d_placement(
+            loc1, loc3, camera_location, item, generator, converter
+        )
+        item.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
-    return mountains
+    return dataset

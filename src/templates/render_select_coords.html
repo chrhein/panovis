@@ -51,15 +51,27 @@
             </form>
         </div>
         <script>
-            var clickedCoords = new Map()
-            var shiftPressed = false
+            let clickedCoords = []
+            let shiftPressed = false
             const minimum_samples = getSampleNumber()
+            let pc = eval(JSON.parse('{{ pano_coords | tojson }}'))
+            let panoCoords = []
+            for (let i = 0; i < pc.length; i++) {
+                let c = pc[i].split(':')
+                let x = parseFloat(c[0])
+                let y = parseFloat(c[1])
+                panoCoords.push([x, y])
+            }
 
             function submitCoords() {
-                var form = document.getElementById('submit-coordinates')
+                console.log(clickedCoords)
+                console.log(panoCoords)
+                let form = document.getElementById('submit-coordinates')
                 form.appendChild(
-                    addCoords(document, clickedCoords, 'render-coords'),
-                    clickedCoords.clear()
+                    addCoords(document, clickedCoords, 'render-coords')
+                )
+                form.appendChild(
+                    addCoords(document, panoCoords, 'panorama-coords')
                 )
                 form.submit()
             }
@@ -143,21 +155,21 @@
                         return
                     }
 
-                    var itemNum = clickedCoords.size + 1
-                    clickedCoords.set(itemNum, [x, y])
-                    updateFormText(document, clickedCoords.size)
+                    var itemNum = clickedCoords.length + 1
+                    clickedCoords.push([x, y])
+                    updateFormText(document, clickedCoords.length)
                     viewer.addHotSpot({
-                        id: 'selected-location-' + clickedCoords.size,
+                        id: 'selected-location-' + clickedCoords.length,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.size == 1) {
+                    if (clickedCoords.length == 1) {
                         document
                             .getElementById('submit-button')
                             .removeAttribute('hidden')
                     }
-                    if (clickedCoords.size >= minimum_samples) {
+                    if (clickedCoords.length >= minimum_samples) {
                         var submitButton =
                             document.getElementById('submit-button')
                         submitButton.setAttribute('class', 'btn btn-primary')
@@ -177,13 +189,13 @@
             })
             document.addEventListener('keydown', function (event) {
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoords.size; i++) {
+                    for (var i = 1; i <= clickedCoords.length; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
-                    clickedCoords.clear()
+                    clickedCoords = []
                     var submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-secondary')
-                    updateFormText(document, clickedCoords.size)
+                    updateFormText(document, clickedCoords.length)
                 }
             })
         </script>

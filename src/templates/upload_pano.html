@@ -11,8 +11,72 @@
         <title>E2 - Choose Panorama</title>
     </head>
     <body>
-        <div class="px-4 py-4 my-4 text-center">
-            <h3 class="fw-bold text-start">Select panorama</h3>
+        <div class="p-3 border bg-secondary text-light">
+            <div class="justify-content-between my-auto">
+                <div class="my-auto d-flex">
+                    <div class="my-auto fw-bold h6 text-start me-3">
+                        GPX in use:
+                    </div>
+
+                    <div
+                        class="my-auto h6 d-grid d-sm-flex gap-3"
+                        id="selected-gpx"
+                    >
+                        <div class="my-auto">{{ gpx }}</div>
+                        <button
+                            id="change-gpx"
+                            class="btn btn-outline-light btn-sm px-4"
+                            onclick="changeGPX();"
+                        >
+                            Change
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-75 mx-auto align-middle p-5 pt-4">
+            <h3 class="fw-bold text-start">View panoramas</h3>
+            <div class="border bg-light">
+                <div id="uploaded-panoramas" class="parent-wrapper">
+                    <div class="parent">
+                        {% for pano in ims %}
+
+                        <a href='javascript:removeImage("{{ pano[0] }}")'>
+                            <div class="child">
+                                <div class="hover-effect">
+                                    <img
+                                        class="img-fluid"
+                                        src="{{ pano[1] }}"
+                                        alt="{{ pano[0] }}"
+                                    />
+                                    <div class="hover-text"></div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="row m-3">
+                    <div class="col-6 d-flex align-items-center">
+                        Number of uploaded panoramas:
+                        <div class="mx-1">{{ ims|length }}</div>
+                    </div>
+                    <div id="uploaded-panoramas-button" class="col-6 text-end">
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-md"
+                            onclick="navigate();"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-75 mx-auto align-middle p-5 pt-4">
+            <h3 class="fw-bold text-start">Upload new panorama</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
                     <form
@@ -20,7 +84,7 @@
                         method="POST"
                         enctype="multipart/form-data"
                     >
-                        <input type="file" name="file" />
+                        <input type="file" name="file" accept="image/jpeg" />
                         <button
                             type="submit"
                             class="btn btn-primary btn-md px-4 gap-3"
@@ -31,5 +95,54 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            function navigate() {
+                redir_url = 'mountains'
+                task = 'findmtns'
+                title = 'Locating Mountains'
+                text = 'Finding mountains in panorama...'
+                window.location.href = `/loading?redirect_url=${redir_url}&task=${task}&title=${title}&text=${text}`
+            }
+
+            function removeImage(imageId) {
+                window.location.href = `/rmvimg?image_id=${imageId}`
+            }
+
+            function changeGPX() {
+                let gpx = document.getElementById('selected-gpx')
+                let form = document.createElement('form')
+                form.setAttribute('action', '/uploadmtns')
+                form.setAttribute('method', 'POST')
+                form.setAttribute('enctype', 'multipart/form-data')
+                let input = document.createElement('input')
+                input.setAttribute('id', 'gpx-file-input')
+                input.setAttribute('type', 'file')
+                input.setAttribute('name', 'file')
+                input.setAttribute('accept', '.gpx')
+                input.setAttribute('required', 'required')
+                input.setAttribute('class', 'h5 small my-auto me-3')
+                input.setAttribute('onchange', 'form.submit()')
+                let button = document.createElement('button')
+                button.setAttribute('type', 'submit')
+                button.setAttribute(
+                    'class',
+                    'btn btn-outline-light btn-sm px-4'
+                )
+                button.innerHTML = 'Select'
+                form.appendChild(input)
+                form.appendChild(button)
+                gpx.parentNode.replaceChild(form, gpx)
+                document.getElementById('gpx-file-input').click()
+            }
+
+            if ('{{ ims }}'.length <= 2) {
+                document.getElementById('uploaded-panoramas').innerHTML =
+                    '<h6 class="mt-0 mb-3">No panoramas found</h6>'
+                document.getElementById(
+                    'uploaded-panoramas-button'
+                ).style.visibility = 'hidden'
+            }
+        </script>
     </body>
 </html>

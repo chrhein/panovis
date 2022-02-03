@@ -1,9 +1,10 @@
+import base64
 import image_handling
 from dotenv import load_dotenv
 import folium, folium.raster_layers
 import os
 import cv2
-from location_handler import get_raster_bounds
+import location_handler
 from tools.debug import p_i
 
 
@@ -12,17 +13,23 @@ def plot_to_map(
     coordinates,
     filename,
     dem_file,
+    mountain_radius,
     locs=[],
     mountains=[],
-    mountain_radius=150,
+    images=[],
 ):
     p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
-    ll, ul, ur, lr = get_raster_bounds(dem_file)
+    ll, ul, ur, lr = location_handler.get_raster_bounds(dem_file)
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
-    m = folium.Map([c_lat, c_lon], tiles=None, zoom_start=12)
+    m = folium.Map(
+        [c_lat, c_lon],
+        tiles=None,
+        zoom_start=12,
+        scrollWheelZoom=False,
+    )
     folium.TileLayer(
         location=[c_lat, c_lon],
         tiles=MAPBOX_STYLE_URL,
@@ -49,9 +56,7 @@ def plot_to_map(
             for i in mountains
         ]
     if mountains_in_sight:
-        mountains_in_sight_fg = folium.FeatureGroup(
-            name="Mountains In-Sight", show=True
-        )
+        mountains_in_sight_fg = folium.FeatureGroup(name="Visible Mountains", show=True)
         m.add_child(mountains_in_sight_fg)
         [
             (
@@ -67,8 +72,25 @@ def plot_to_map(
                     icon=folium.Icon(color="pink", icon="mountain"),
                 ).add_to(mountains_in_sight_fg)
             )
-            for i in mountains_in_sight.values()
+            for i in mountains_in_sight
         ]
+
+    if images:
+        images_fg = folium.FeatureGroup(name="Visible Images", show=True)
+        m.add_child(images_fg)
+        for im in images:
+            encoded = base64.b64encode(open(im.thumbnail_path, "rb").read())
+            html = '<img src="data:image/JPG;base64,{}">'.format
+            iframe = folium.IFrame(
+                html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
+            )
+            popup = folium.Popup(iframe, max_width=450)
+
+            folium.Marker(
+                location=(im.location.latitude, im.location.longitude),
+                popup=popup,
+                icon=folium.Icon(color="beige", icon="camera"),
+            ).add_to(images_fg)
 
     folium.Marker(
         location=[c_lat, c_lon],
@@ -99,7 +121,12 @@ def plot_to_map(
         raster_bounds
     )
 
-    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(dem_file)
+    (
+        lower_left,
+        upper_left,
+        upper_right,
+        lower_right,
+    ) = location_handler.get_raster_bounds(dem_file)
 
     ll1, _ = lower_left
     _, ul2 = upper_left
