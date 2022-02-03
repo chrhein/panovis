@@ -12,38 +12,37 @@
     </head>
     <body>
         <div class="p-3 border bg-secondary text-light">
-            <div class="justify-content-between my-auto">
-                <div class="my-auto d-flex">
-                    <div class="my-auto fw-bold h6 text-start me-3">
-                        GPX in use:
-                    </div>
+            <div class="d-flex">
+                <div class="my-auto fw-bold h6 text-start me-3">
+                    GPX in use:
+                </div>
 
-                    <div
-                        class="my-auto h6 d-grid d-sm-flex gap-3"
-                        id="selected-gpx"
+                <div
+                    class="my-auto h6 d-grid d-sm-flex gap-3"
+                    id="selected-gpx"
+                >
+                    <div class="my-auto">{{ gpx }}</div>
+                    <button
+                        id="change-gpx"
+                        class="btn btn-outline-light btn-sm px-4"
+                        onclick="changeGPX();"
                     >
-                        <div class="my-auto">{{ gpx }}</div>
-                        <button
-                            id="change-gpx"
-                            class="btn btn-outline-light btn-sm px-4"
-                            onclick="changeGPX();"
-                        >
-                            Change
-                        </button>
-                    </div>
+                        Change
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="w-75 mx-auto align-middle p-5 pt-4">
+        <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-5">
             <h3 class="fw-bold text-start">View panoramas</h3>
             <div class="border bg-light">
                 <div id="uploaded-panoramas" class="parent-wrapper">
                     <div class="parent">
                         {% for pano in ims %}
-
                         <a href='javascript:removeImage("{{ pano[0] }}")'>
-                            <div class="child">
+                            <div
+                                class="child d-flex justify-content-center flex-nowrap"
+                            >
                                 <div class="hover-effect">
                                     <img
                                         class="img-fluid"
@@ -58,12 +57,12 @@
                     </div>
                 </div>
                 <div class="row m-3">
-                    <div class="col-6 d-flex align-items-center">
-                        Number of uploaded panoramas:
-                        <div class="mx-1">{{ ims|length }}</div>
+                    <div class="col-6 d-flex align-items-center fs-5">
+                        Number of uploaded panoramas: {{ ims|length }}
                     </div>
-                    <div id="uploaded-panoramas-button" class="col-6 text-end">
+                    <div class="col-6 text-end">
                         <button
+                            id="uploaded-panoramas-button"
                             type="submit"
                             class="btn btn-primary btn-md"
                             onclick="navigate();"
@@ -75,8 +74,8 @@
             </div>
         </div>
 
-        <div class="w-75 mx-auto align-middle p-5 pt-4">
-            <h3 class="fw-bold text-start">Upload new panorama</h3>
+        <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-4">
+            <h4 class="fw-bold text-start">Upload new panorama</h4>
             <div class="p-3 border bg-light">
                 <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
                     <form
@@ -84,13 +83,22 @@
                         method="POST"
                         enctype="multipart/form-data"
                     >
-                        <input type="file" name="file" accept="image/jpeg" />
-                        <button
-                            type="submit"
-                            class="btn btn-primary btn-md px-4 gap-3"
-                        >
-                            Select
-                        </button>
+                        <div class="input-group">
+                            <input
+                                class="form-control"
+                                type="file"
+                                name="file"
+                                accept="image/jpeg"
+                            />
+                            <span class="input-group-btn">
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-md px-4 gap-3 mx-1"
+                                >
+                                    Select
+                                </button>
+                            </span>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -121,7 +129,10 @@
                 input.setAttribute('name', 'file')
                 input.setAttribute('accept', '.gpx')
                 input.setAttribute('required', 'required')
-                input.setAttribute('class', 'h5 small my-auto me-3')
+                input.setAttribute(
+                    'class',
+                    'h5 small my-auto me-3 form-control form-control-sm'
+                )
                 input.setAttribute('onchange', 'form.submit()')
                 let button = document.createElement('button')
                 button.setAttribute('type', 'submit')
@@ -130,18 +141,25 @@
                     'btn btn-outline-light btn-sm px-4'
                 )
                 button.innerHTML = 'Select'
-                form.appendChild(input)
-                form.appendChild(button)
+
+                let inputGroup = document.createElement('div')
+                inputGroup.setAttribute('class', 'input-group')
+                let inputGroupBtn = document.createElement('span')
+                inputGroupBtn.setAttribute('class', 'input-group-btn')
+                inputGroupBtn.appendChild(button)
+                inputGroup.appendChild(input)
+                inputGroup.appendChild(inputGroupBtn)
+                form.appendChild(inputGroup)
+
                 gpx.parentNode.replaceChild(form, gpx)
                 document.getElementById('gpx-file-input').click()
             }
 
-            if ('{{ ims }}'.length <= 2) {
-                document.getElementById('uploaded-panoramas').innerHTML =
-                    '<h6 class="mt-0 mb-3">No panoramas found</h6>'
+            if ('{{ ims|length }}' == 0) {
+                console.log('No panoramas uploaded')
                 document.getElementById(
                     'uploaded-panoramas-button'
-                ).style.visibility = 'hidden'
+                ).disabled = true
             }
         </script>
     </body>

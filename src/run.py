@@ -264,7 +264,7 @@ def mark_file_as_seen(img_data):
         h = open(SEEN_IMAGES_PATH, "r")
         seen_images = h.readlines()
         h.close()
-        if img_data.filename in seen_images:
+        if img_data.filename in seen_images or f"{img_data.filename}\n" in seen_images:
             return
         else:
             h = open(SEEN_IMAGES_PATH, "a")

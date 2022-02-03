@@ -292,6 +292,9 @@ def load_image_data(filename):
         with open(f"{IMG_UPLOAD_FOLDER}/{filename}-img-data.pkl", "rb") as f:
             img_data = pickle.load(f)
             f.close()
+            if img_data is None:
+                ims = get_seen_images()
+                return load_image_data(ims[-1])
     except FileNotFoundError:
         return None
     return img_data
