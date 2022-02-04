@@ -12,9 +12,8 @@ from tools.debug import p_a, p_i, p_e, p_line, p_s
 from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
-import image_handling
 from operator import attrgetter
-from tools.types import CrsToLatLng, Distance, ImageInSight, LatLngToCrs, Location3D
+from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
 
 
 def get_raster_data(dem_file, coordinates):
@@ -116,7 +115,7 @@ def get_height_from_raster(location, ds_raster, converter):
 
 
 def find_visible_items_in_ds(locs, dataset, radius=150):
-    p_i("Looking for mountains in sight:")
+    p_i("Looking for items in sight:")
     lower_left, upper_left, upper_right, lower_right = get_raster_bounds(
         get_raster_path()
     )
@@ -150,7 +149,7 @@ def find_visible_items_in_ds(locs, dataset, radius=150):
                 break
 
     if len(items_in_sight) == 0:
-        p_a("No mountains in sight")
+        p_a("No items in sight")
     else:
         p_s(f"Found a total of {len(items_in_sight)} items in sight")
     return items_in_sight

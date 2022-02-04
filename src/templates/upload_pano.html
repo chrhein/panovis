@@ -57,10 +57,27 @@
                     </div>
                 </div>
                 <div class="row m-3">
-                    <div class="col-6 d-flex align-items-center fs-5">
+                    <div class="col-xl-6 col-md-12 align-items-center fs-5">
                         Number of uploaded panoramas: {{ ims|length }}
                     </div>
-                    <div class="col-6 text-end">
+                    <div
+                        class="col-xl-4 col-sm-12 form-check d-flex align-items-center d-flex justify-content-end"
+                    >
+                        <label
+                            class="form-check-label fs-5 bg-light text-end"
+                            for="flexCheckDefault"
+                        >
+                            Create Interactive Map:
+                        </label>
+                        <input
+                            id="interactive-map-checkbox"
+                            class="form-check-input mx-2"
+                            type="checkbox"
+                            value="{{ interactive }}"
+                            id="flexCheckDefault"
+                        />
+                    </div>
+                    <div class="col-xl-2 col-sm-12 text-xl-end text-sm-start">
                         <button
                             id="uploaded-panoramas-button"
                             type="submit"
@@ -106,11 +123,31 @@
 
         <script>
             function navigate() {
+                const interactive = document.getElementById(
+                    'interactive-map-checkbox'
+                ).checked
                 redir_url = 'mountains'
-                task = 'findmtns'
+                task = 'findmtns?interactive=' + interactive
                 title = 'Locating Mountains'
                 text = 'Finding mountains in panorama...'
                 window.location.href = `/loading?redirect_url=${redir_url}&task=${task}&title=${title}&text=${text}`
+            }
+
+            if ('{{ folium }}' == 'True') {
+                console.log('Folium is True')
+                document.getElementById(
+                    'interactive-map-checkbox'
+                ).checked = true
+            } else {
+                document.getElementById(
+                    'interactive-map-checkbox'
+                ).checked = false
+            }
+
+            if ('{{ gpx }}' == 'None selected') {
+                document
+                    .getElementById('uploaded-panoramas-button')
+                    .setAttribute('disabled', 'true')
             }
 
             function removeImage(imageId) {

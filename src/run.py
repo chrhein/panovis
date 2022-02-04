@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 from flask import Flask, render_template, request, redirect, session, url_for
+from matplotlib import interactive
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gsp_img_direction,
@@ -49,7 +50,8 @@ def create_app():
         gpx = session.get("gpx_path", "None selected")
         if gpx != "None selected":
             gpx = gpx.split("/")[-1]
-        return render_template("upload_pano.html", ims=i, gpx=gpx)
+        interactive = session.get("interactive", False)
+        return render_template("upload_pano.html", ims=i, gpx=gpx, folium=interactive)
 
     @app.route("/loading", methods=["POST", "GET"])
     def loading():
@@ -126,7 +128,7 @@ def create_app():
 
     @app.route("/rendering")
     def rendering():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
         render_complete = render_height(IMAGE_DATA)
         if render_complete:
             return ("", 204)
@@ -136,13 +138,13 @@ def create_app():
     # select pano coordinates
     @app.route("/spcoords")
     def spcoords():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
 
         with Image.open(IMAGE_DATA.path) as img:
             width, height = img.size
             img.close()
-        horizontal_fov = 360 / (width / height)
-        vertical_fov = 180 / (width / height)
+        horizontal_fov = 750 * (height / width)
+        vertical_fov = 250 * (height / width)
         return render_template(
             "pano_select_coords.html",
             pano_path=IMAGE_DATA.path,
@@ -156,7 +158,7 @@ def create_app():
     # get pano selectec coordinates
     @app.route("/gpsc", methods=["POST"])
     def gpsc():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
         if request.method == "POST":
             pano_coords = request.form.get("pano-coords")
             pano_coords = strip_array(pano_coords)
@@ -172,7 +174,7 @@ def create_app():
     # select render coordinates
     @app.route("/srcoords")
     def srcoords():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
         pano_coords = request.args.get("pano_coords")
         with Image.open(IMAGE_DATA.render_path) as img:
             width, height = img.size
@@ -203,9 +205,11 @@ def create_app():
 
     @app.route("/transform", methods=["POST", "GET"])
     def transform():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
 
         im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
+        session["filename"] = IMAGE_DATA.filename
+        mark_file_as_seen(IMAGE_DATA)
 
         if im_view_direction is None:
             pano_coords = strip_array(request.args.get("pano_coords"), True)
@@ -227,13 +231,20 @@ def create_app():
     @app.route("/findmtns")
     def findmtns():
         gpx_path = session.get("gpx_path", None)
+        if request.args.get("interactive", False) == "true":
+            interactive = True
+        else:
+            interactive = False
+        session["interactive"] = interactive
         seen_images = get_seen_images()
-        fn = session.get("filename", seen_images[-1])
+        fn = get_filename()
         session["filename"] = fn
         for pano_filename in seen_images:
             im_data = load_image_data(pano_filename)
             if im_data is not None:
-                mountains_3d, images_3d = mountain_lookup(im_data, gpx_path)
+                mountains_3d, images_3d = mountain_lookup(
+                    im_data, gpx_path, interactive
+                )
                 gpx = gpx_path.split("/")[-1].split(".")[0]
                 hs = create_hotspots(im_data, mountains_3d, images_3d)
                 im_data.add_hotspots(gpx, hs)
@@ -243,15 +254,23 @@ def create_app():
 
     @app.route("/mountains")
     def mountains():
-        IMAGE_DATA = load_image_data(session.get("filename", None))
+        IMAGE_DATA = load_image_data(get_filename())
         gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
         scenes = make_scenes(gpx_filename)
+        interactive = session.get("interactive", False)
         return render_template(
             "view_mountains.html",
             scenes=scenes,
             defaultScene=IMAGE_DATA.filename,
             gpx=gpx_filename,
+            interactive=interactive,
         )
+
+    def get_filename():
+        fn = session.get("filename", None)
+        if fn is None:
+            fn = get_seen_images()[-1]
+        return fn
 
     return app
 

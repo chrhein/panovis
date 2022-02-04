@@ -196,7 +196,7 @@ def render_height(IMAGE_DATA):
     return True
 
 
-def mountain_lookup(IMAGE_DATA, gpx_file):
+def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
     start_time = time.time()
 
     pov_filename = "/tmp/pov_file.pov"
@@ -273,15 +273,25 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         IMAGE_DATA.filename, "src/static/images", ds_raster, converter
     )
     images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
-    mountains = read_mountain_gpx(gpx_file)
-    mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
 
-    mountains_3d = get_3d_location(
-        camera_location,
-        viewing_direction,
-        converter,
-        mountains_in_sight,
-    )
+    mountains_3d_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}-3d.pkl"
+    if not os.path.exists(mountains_3d_path):
+        mountains = read_mountain_gpx(gpx_file)
+        mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
+        mountains_3d = get_3d_location(
+            camera_location,
+            viewing_direction,
+            converter,
+            mountains_in_sight,
+        )
+        with open(mountains_3d_path, "wb") as f:
+            pickle.dump(mountains_3d, f)
+            f.close()
+    else:
+        mountains = read_mountain_gpx(gpx_file)
+        with open(mountains_3d_path, "rb") as f:
+            mountains_3d = pickle.load(f)
+            f.close()
 
     images_3d = get_3d_location(
         camera_location,
@@ -290,17 +300,18 @@ def mountain_lookup(IMAGE_DATA, gpx_file):
         images_in_sight,
     )
 
-    plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
-    plot_to_map(
-        mountains_3d,
-        coordinates,
-        plot_filename,
-        dem_path,
-        mountain_radius=radius,
-        locs=locs,
-        mountains=mountains,
-        images=images,
-    )
+    if plot:
+        plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
+        plot_to_map(
+            mountains_3d,
+            coordinates,
+            plot_filename,
+            dem_path,
+            mountain_radius=radius,
+            locs=locs,
+            mountains=mountains,
+            images=images,
+        )
 
     stats = [
         "Information about completed task: \n",
