@@ -8,12 +8,13 @@ from tools.converters import (
     convert_coordinates,
     get_earth_radius,
 )
-from tools.debug import p_a, p_i, p_e, p_line, p_s
+from tools.debug import p_a, p_i, p_e, p_s
 from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
 from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
+from numba import njit
 
 
 def get_raster_data(dem_file, coordinates):
@@ -76,16 +77,13 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
 
     ds_raster = rasterio.open(dem_file)
     ds_raster_height_band = ds_raster.read(1)
-    crs = int(ds_raster.crs.to_authority()[1])
     dims = ds_raster_height_band.shape
 
     x_ = dims[0] / (256)
     y_ = dims[1] / (256)
 
-    latlng_color_coordinates = []
+    coords = []
     height_threshold = 50
-
-    converter = CrsToLatLng(crs)
 
     for color in unique_colors:
         c = color_coords.get(tuple(color))
@@ -95,8 +93,8 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
             px, py = ds_raster.xy(s_x, s_y)
             height = ds_raster_height_band[s_x, s_y]
             if height > height_threshold:
-                latlng_color_coordinates.append(converter.convert(px, py, height))
-    return latlng_color_coordinates
+                coords.append(np.array((px, py)))
+    return coords
 
 
 def get_raster_path():
@@ -115,7 +113,8 @@ def get_height_from_raster(location, ds_raster, converter):
 
 
 def find_visible_items_in_ds(locs, dataset, radius=150):
-    p_i("Looking for items in sight:")
+    if len(dataset) == 0:
+        return []
     lower_left, upper_left, upper_right, lower_right = get_raster_bounds(
         get_raster_path()
     )
@@ -134,17 +133,10 @@ def find_visible_items_in_ds(locs, dataset, radius=150):
 
     items_in_sight = []
 
-    p_line(
-        [
-            f"Total number of locations:        {len(locs)}",
-            f"Total number of items in dataset: {len(dataset)}",
-            f"Number of items in search:        {len(filtered_dataset)}",
-        ]
-    )
-    generator = Distance()
+    radius_sqrd = radius ** 2
     for i in filtered_dataset:
         for loc in locs:
-            if generator.coord_inside_radius(loc, i.location, radius):
+            if euclidian_distance(loc, i.location2d, radius_sqrd):
                 items_in_sight.append(i)
                 break
 
@@ -153,6 +145,11 @@ def find_visible_items_in_ds(locs, dataset, radius=150):
     else:
         p_s(f"Found a total of {len(items_in_sight)} items in sight")
     return items_in_sight
+
+
+@njit
+def euclidian_distance(y1, y2, radius_sqrd):
+    return np.sum((y1 - y2) ** 2) <= radius_sqrd
 
 
 def displace_camera(camera_lat, camera_lon, deg=0.0, dist=0.1):
@@ -267,9 +264,9 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
 
     def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
         d = generator.get_distance_between_locations(camera_location, item.location)
-        c_e = camera_location.elevation
+        c_e = camera_location.elevation + 25
         i_e = item.location.elevation
-        diff = int(i_e) - int(c_e)
+        diff = i_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
         i = item.location

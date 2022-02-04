@@ -27,7 +27,7 @@ from tools.file_handling import (
     read_image_locations,
     read_mountain_gpx,
 )
-from tools.types import LatLngToCrs, Location
+from tools.types import CrsToLatLng, LatLngToCrs, Location
 
 
 def render_dem(panorama_path, mode, mountains, render_filename):
@@ -197,8 +197,7 @@ def render_height(IMAGE_DATA):
 
 
 def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
-    start_time = time.time()
-
+    p_i(f"Beginning mountain lookup for {IMAGE_DATA.filename}")
     pov_filename = "/tmp/pov_file.pov"
 
     im_desc = get_image_description(IMAGE_DATA.path)
@@ -222,7 +221,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
         json_file.close()
 
     dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
-        dem_path, IMAGE_DATA.path, True
+        dem_path, IMAGE_DATA, True
     )
 
     raster_data = get_raster_data(dem_path, coordinates)
@@ -266,7 +265,6 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
         ds_raster, converter, lat, lon, only_height=True
     )
     camera_location = Location(lat, lon, camera_height)
-
     radius = 150  # in meters
 
     images = read_image_locations(
@@ -276,7 +274,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
 
     mountains_3d_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}-3d.pkl"
     if not os.path.exists(mountains_3d_path):
-        mountains = read_mountain_gpx(gpx_file)
+        mountains = read_mountain_gpx(gpx_file, converter)
         mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
         mountains_3d = get_3d_location(
             camera_location,
@@ -284,14 +282,11 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
             converter,
             mountains_in_sight,
         )
-        with open(mountains_3d_path, "wb") as f:
-            pickle.dump(mountains_3d, f)
-            f.close()
+
+        pickle.dump(mountains_3d, open(mountains_3d_path, "wb"))
     else:
-        mountains = read_mountain_gpx(gpx_file)
-        with open(mountains_3d_path, "rb") as f:
-            mountains_3d = pickle.load(f)
-            f.close()
+        mountains = read_mountain_gpx(gpx_file, converter)
+        mountains_3d = pickle.load(open(mountains_3d_path, "rb"))
 
     images_3d = get_3d_location(
         camera_location,
@@ -300,6 +295,8 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
         images_in_sight,
     )
 
+    converter_to_latlng = CrsToLatLng(crs)
+
     if plot:
         plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
         plot_to_map(
@@ -307,19 +304,12 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
             coordinates,
             plot_filename,
             dem_path,
+            converter_to_latlng,
             mountain_radius=radius,
             locs=locs,
             mountains=mountains,
             images=images,
         )
-
-    stats = [
-        "Information about completed task: \n",
-        f"File:      {IMAGE_DATA.filename}",
-        f"Mode:      gradient",
-        f"Duration:  {time.time() - start_time} seconds",
-    ]
-    p_line(stats)
 
     return mountains_3d, images_3d
 

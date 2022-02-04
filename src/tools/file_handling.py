@@ -1,5 +1,7 @@
 import os
 import pickle
+
+import numpy as np
 from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
 from tkinter.filedialog import askopenfile, askopenfilenames
@@ -11,11 +13,12 @@ import rasterio
 import image_handling
 import location_handler
 from tools.debug import p_i, p_line
-from tools.types import ImageInSight, LatLngToCrs, Location, Mountain
+from tools.types import ImageInSight, LatLngToCrs, Location, Location2D, Mountain
 from osgeo import gdal
 
 
-def get_mountain_data(dem_file, panorama_path, gradient=False):
+def get_mountain_data(dem_file, im_data, gradient=False):
+    panorama_path = im_data.path
     image_location = image_handling.get_exif_gps_latlon(panorama_path)
     if image_location:
         camera_lat, camera_lon = image_location.latitude, image_location.longitude
@@ -48,7 +51,7 @@ def get_mountain_data(dem_file, panorama_path, gradient=False):
 
     coordinates = [camera_lat, camera_lon, *look_ats]
 
-    cropped_dem = "dev/cropped.png"
+    cropped_dem = f"dev/cropped-{im_data.filename}.png"
     gdal.Translate(cropped_dem, dem_file, projWin=bbox)
 
     return [cropped_dem, dem_file, coordinates, viewing_direction]
@@ -73,19 +76,18 @@ def read_hike_gpx(gpx_path):
     ]
 
 
-def read_mountain_gpx(gpx_path):
+def read_mountain_gpx(gpx_path, converter):
     try:
         gpx_file = open(gpx_path, "r")
     except FileNotFoundError:
         return []
     gpx = gpxpy.parse(gpx_file)
-    mountains = [
-        Mountain(
-            i.name,
-            Location(i.latitude, i.longitude, i.elevation),
-        )
-        for i in gpx.waypoints
-    ]
+    mountains = []
+    for i in gpx.waypoints:
+        loc = Location(i.latitude, i.longitude, i.elevation)
+        p = converter.convert(loc.latitude, loc.longitude, loc.elevation)
+        loc2d = np.array((p.GetX(), p.GetY()))
+        mountains.append(Mountain(i.name, loc, loc2d))
     return mountains
 
 
@@ -99,14 +101,9 @@ def read_image_locations(filename, image_folder, ds_raster, converter):
         t_im_path = f"{image_folder}/{image}/{image}-thumbnail.jpg"
         loc = image_handling.get_exif_gps_latlon(im_path)
         height = location_handler.get_height_from_raster(loc, ds_raster, converter)
-
-        locs.append(
-            ImageInSight(
-                image,
-                t_im_path,
-                Location(loc.latitude, loc.longitude, height),
-            )
-        )
+        loc = Location(loc.latitude, loc.longitude, height)
+        p = converter.convert(loc.latitude, loc.longitude, loc.elevation)
+        locs.append(ImageInSight(image, t_im_path, loc, np.array((p.GetX(), p.GetY()))))
     return locs
 
 

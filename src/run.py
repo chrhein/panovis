@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import time
 from flask import Flask, render_template, request, redirect, session, url_for
 from matplotlib import interactive
 from werkzeug.utils import secure_filename
@@ -18,7 +19,7 @@ from tools.file_handling import (
     save_image_data,
 )
 from PIL import Image
-
+from joblib import Parallel, delayed
 from tools.types import ImageData
 
 global UPLOAD_FOLDER
@@ -228,6 +229,15 @@ def create_app():
             render=IMAGE_DATA.ultrawide_path,
         )
 
+    def mtn_lookup(pano_filename, gpx_path, interactive):
+        im_data = load_image_data(pano_filename)
+        if im_data is not None:
+            mountains_3d, images_3d = mountain_lookup(im_data, gpx_path, interactive)
+            gpx = gpx_path.split("/")[-1].split(".")[0]
+            hs = create_hotspots(im_data, mountains_3d, images_3d)
+            im_data.add_hotspots(gpx, hs)
+            save_image_data(im_data)
+
     @app.route("/findmtns")
     def findmtns():
         gpx_path = session.get("gpx_path", None)
@@ -239,17 +249,14 @@ def create_app():
         seen_images = get_seen_images()
         fn = get_filename()
         session["filename"] = fn
-        for pano_filename in seen_images:
-            im_data = load_image_data(pano_filename)
-            if im_data is not None:
-                mountains_3d, images_3d = mountain_lookup(
-                    im_data, gpx_path, interactive
-                )
-                gpx = gpx_path.split("/")[-1].split(".")[0]
-                hs = create_hotspots(im_data, mountains_3d, images_3d)
-                im_data.add_hotspots(gpx, hs)
-                save_image_data(im_data)
-
+        start_time = time.time()
+        Parallel(n_jobs=len(seen_images))(
+            delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
+            for pano_filename in seen_images
+        )
+        app.logger.info(
+            f"Duration:  {time.time() - start_time} seconds",
+        )
         return ("", 204)
 
     @app.route("/mountains")

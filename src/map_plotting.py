@@ -13,6 +13,7 @@ def plot_to_map(
     coordinates,
     filename,
     dem_file,
+    converter,
     mountain_radius,
     locs=[],
     mountains=[],
@@ -101,19 +102,16 @@ def plot_to_map(
     if locs:
         locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
         m.add_child(locs_fg)
-        [
-            (
-                folium.Circle(
-                    location=(i.latitude, i.longitude),
-                    color="#0a6496",
-                    fill=True,
-                    fill_color="#0a6496",
-                    fill_opacity=1,
-                    radius=15,
-                ).add_to(locs_fg)
-            )
-            for i in locs
-        ]
+        for i in locs:
+            loc = converter.convert(i[0], i[1])
+            folium.Circle(
+                location=(loc.latitude, loc.longitude),
+                color="#0a6496",
+                fill=True,
+                fill_color="#0a6496",
+                fill_opacity=1,
+                radius=15,
+            ).add_to(locs_fg)
 
     raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
     m.add_child(raster_bounds)

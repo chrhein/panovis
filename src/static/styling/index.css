@@ -344,4 +344,11 @@ div.panorama-image-tooltip span:after {
     position: absolute;
     bottom: 0;
     left: 0;
+    background: rgba(200, 200, 200, 0.6);
+    color: #000;
+}
+
+.pnlm-compass {
+    opacity: 0.6;
+    background-color: rgb(200, 200, 200);
 }

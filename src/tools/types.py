@@ -1,8 +1,9 @@
 import operator
 from dataclasses import dataclass
-from numpy import number
+import numpy as np
 from osgeo import ogr, osr
 from geopy import distance
+import numpy as np
 
 
 @dataclass
@@ -23,9 +24,16 @@ class Location3D:
 
 
 @dataclass
+class Location2D:
+    x: float
+    y: float
+
+
+@dataclass
 class Mountain:
     name: str
     location: Location
+    location2d: any
     location_in_3d: Location3D = None
 
     def __eq__(self, other):
@@ -46,6 +54,7 @@ class ImageInSight:
     name: str
     thumbnail_path: str
     location: Location
+    location2d: any
     location_in_3d: Location3D = None
 
     def __eq__(self, other):
@@ -129,11 +138,11 @@ class ImageData:
 
 @dataclass(init=False)
 class CrsToLatLng:
-    crs: number
+    crs: any
     in_sr: any
     out_sr: any
     transform: any
-    latlng_epsg: number = 4326  # WGS84
+    latlng_epsg: int = 4326  # WGS84
 
     def __init__(self, crs):
         self.crs = crs
@@ -153,11 +162,11 @@ class CrsToLatLng:
 
 @dataclass(init=False)
 class LatLngToCrs:
-    crs: number
+    crs: any
     in_sr: any
     out_sr: any
     transform: any
-    latlng_epsg: number = 4326  # WGS84
+    latlng_epsg: int = 4326  # WGS84
 
     def __init__(self, crs):
         self.crs = crs
@@ -176,11 +185,6 @@ class LatLngToCrs:
 @dataclass
 class Distance:
     generator: any = distance
-
-    def coord_inside_radius(self, loc, m, radius):
-        coord = [m.latitude, m.longitude]
-        test_coord = [loc.latitude, loc.longitude]
-        return self.generator.great_circle(coord, test_coord).m <= radius
 
     def get_distance_between_locations(self, loc1, loc2):
         return self.generator.great_circle(
