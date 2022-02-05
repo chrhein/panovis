@@ -51,6 +51,12 @@ class Mountain:
 
 
 @dataclass
+class Hike:
+    name: str
+    locations: list
+
+
+@dataclass
 class ImageInSight:
     name: str
     thumbnail_path: str

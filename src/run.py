@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import pickle
 import time
 from flask import Flask, render_template, request, redirect, session, url_for
 from matplotlib import interactive
@@ -13,10 +14,12 @@ from image_handling import (
 )
 from renderer import mountain_lookup, render_height
 from tools.file_handling import (
+    get_files,
     get_seen_images,
     load_image_data,
     make_folder,
     save_image_data,
+    trim_hikes,
 )
 from PIL import Image
 from joblib import Parallel, delayed
@@ -32,6 +35,7 @@ global DEBUG_LOCATIONS
 DEBUG_LOCATIONS = False
 
 SEEN_IMAGES_PATH = f"{UPLOAD_FOLDER}dev/seen_images.txt"
+SEEN_HIKES = f"{UPLOAD_FOLDER}hikes/"
 
 
 def create_app():
@@ -52,7 +56,13 @@ def create_app():
         if gpx != "None selected":
             gpx = gpx.split("/")[-1]
         interactive = session.get("interactive", False)
-        return render_template("upload_pano.html", ims=i, gpx=gpx, folium=interactive)
+        uploaded_hikes = [
+            f"{x.split('/')[-1].split('.')[0]}.gpx" for x in get_files(SEEN_HIKES)
+        ]
+
+        return render_template(
+            "upload_pano.html", ims=i, gpx=gpx, hikes=uploaded_hikes, folium=interactive
+        )
 
     @app.route("/loading", methods=["POST", "GET"])
     def loading():
@@ -88,7 +98,7 @@ def create_app():
                 save_image_data(IMAGE_DATA)
 
             session["filename"] = IMAGE_DATA.filename
-            mark_file_as_seen(IMAGE_DATA)
+            mark_image_seen(IMAGE_DATA)
 
             if not os.path.exists(IMAGE_DATA.path):
                 f.save(IMAGE_DATA.path)
@@ -117,10 +127,21 @@ def create_app():
             f.save(gpx_path)
             return redirect(url_for("homepage"))
 
+    @app.route("/uploadhike", methods=["POST", "GET"])
+    def uploadhike():
+        if request.method == "POST":
+            f = request.files["file"]
+            filename = secure_filename(f.filename)
+            make_folder(SEEN_HIKES)
+            trimmed = trim_hikes(f)
+            hike_path = f"{SEEN_HIKES}{filename.split('.')[0]}.pkl"
+            pickle.dump(trimmed, open(hike_path, "wb"))
+            return redirect(url_for("homepage"))
+
     @app.route("/rmvimg", methods=["GET"])
     def rmvimg():
         file_to_remove = request.args.get("image_id")
-        session["filename"] = remove_file_as_seen(file_to_remove)
+        session["filename"] = remove_image_as_seen(file_to_remove)
         return redirect(url_for("homepage"))
 
     @app.route("/selectgpx", methods=["POST", "GET"])
@@ -210,7 +231,7 @@ def create_app():
 
         im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
         session["filename"] = IMAGE_DATA.filename
-        mark_file_as_seen(IMAGE_DATA)
+        mark_image_seen(IMAGE_DATA)
 
         if im_view_direction is None:
             pano_coords = strip_array(request.args.get("pano_coords"), True)
@@ -282,7 +303,7 @@ def create_app():
     return app
 
 
-def mark_file_as_seen(img_data):
+def mark_image_seen(img_data):
     if img_data.view_direction is None or img_data.hotspots is None:
         return
     make_folder(f"{UPLOAD_FOLDER}dev/")
@@ -303,7 +324,7 @@ def mark_file_as_seen(img_data):
         h.close()
 
 
-def remove_file_as_seen(image_filename):
+def remove_image_as_seen(image_filename):
     try:
         h = open(SEEN_IMAGES_PATH, "r")
         seen_images = h.readlines()

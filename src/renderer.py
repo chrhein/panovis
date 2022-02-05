@@ -1,6 +1,5 @@
 import ast
 from json import load
-import json
 import os
 import pickle
 import time
@@ -9,7 +8,7 @@ from image_handling import (
     get_image_description,
 )
 from tools.converters import convert_coordinates
-from tools.debug import check_file_type, p_e, p_i, p_line
+from tools.debug import p_i, p_line
 from location_handler import (
     find_visible_coordinates_in_render,
     get_3d_location,
@@ -17,9 +16,8 @@ from location_handler import (
     get_raster_data,
 )
 from map_plotting import plot_to_map
-from povs import primary_pov, debug_pov
+from povs import primary_pov
 from tools.texture import (
-    create_route_texture,
     create_color_gradient_image,
 )
 from tools.file_handling import (
@@ -28,132 +26,6 @@ from tools.file_handling import (
     read_mountain_gpx,
 )
 from tools.types import CrsToLatLng, LatLngToCrs, Location
-
-
-def render_dem(panorama_path, mode, mountains, render_filename):
-    start_time = time.time()
-    panorama_filename = panorama_path.split("/")[-1].split(".")[0]
-    pov_filename = "/tmp/pov_file.pov"
-    gpx_file = f"data/hikes/{panorama_filename}.gpx"
-
-    render_settings_path = "render_settings.json"
-    with open(render_settings_path) as json_file:
-        data = load(json_file)
-        dem_path = data["dem_path"]
-        render_width = data["render_width"]
-        render_height = data["render_height"]
-
-        render_shape = [render_width, render_height]
-        json_file.close()
-
-    dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
-        dem_path, panorama_path
-    )
-    if not dem_path:
-        return False
-
-    if mode == "debug":
-        dem_path = original_dem
-
-    if not check_file_type(dem_path):
-        p_e("DEM file is not a valid GeoTIFF")
-        return
-
-    raster_data = get_raster_data(dem_path, coordinates)
-    if not raster_data:
-        return
-
-    ds_name = original_dem.split("/")[-1].split(".")[0]
-
-    if mode == "debug":
-        debug_mode = 2  # 1 for hike route texture
-        if debug_mode == 1:
-            route_texture, texture_bounds = create_route_texture(
-                dem_path, gpx_file, True
-            )
-        else:
-            route_texture, texture_bounds = "", None
-        with open(pov_filename, "w") as pf:
-            pov = debug_pov(dem_path, route_texture, texture_bounds, raster_data[1][2])
-            pf.write(pov)
-            pf.close()
-        params = [pov_filename, render_filename, [500, 500], "color"]
-        execute_pov(params)
-    else:
-        if mode == 1:
-            pov_mode = "depth"
-            pov = primary_pov(dem_path, raster_data, mode=pov_mode)
-            params = [pov_filename, render_filename, render_shape, pov_mode]
-            with open(pov_filename, "w") as pf:
-                pf.write(pov)
-            pf.close()
-            execute_pov(params)
-        elif mode == 2:
-            pov_mode = "height"
-            pov = primary_pov(dem_path, raster_data, mode=pov_mode)
-            params = [pov_filename, render_filename, render_shape, "color"]
-            with open(pov_filename, "w") as pf:
-                pf.write(pov)
-            pf.close()
-            execute_pov(params)
-        elif mode == 3:
-            pov_mode = "texture"
-            gpx_exists = os.path.isfile("%s" % gpx_file)
-            if gpx_exists:
-                route_texture, texture_bounds = create_route_texture(dem_path, gpx_file)
-                pov = primary_pov(
-                    dem_path,
-                    raster_data,
-                    texture_path=route_texture,
-                    tex_bounds=texture_bounds,
-                    mode=pov_mode,
-                )
-                params = [pov_filename, render_filename, render_shape, "color"]
-                with open(pov_filename, "w") as pf:
-                    pf.write(pov)
-                execute_pov(params)
-            else:
-                p_e("Could not find corresponding GPX")
-                return False
-        elif mode == 4:
-            pov_mode = "gradient"
-            gradient_render = os.path.isfile(render_filename)
-            gradient_path, _ = create_color_gradient_image()
-            if not gradient_render:
-                pov = primary_pov(
-                    dem_path, raster_data, texture_path=gradient_path, mode=pov_mode
-                )
-                params = [pov_filename, render_filename, render_shape, pov_mode]
-                with open(pov_filename, "w") as pf:
-                    pf.write(pov)
-                execute_pov(params)
-            locs = find_visible_coordinates_in_render(ds_name, gradient_path, dem_path)
-
-            radius = 150  # in meters
-            mountains_in_sight = find_visible_items_in_ds(
-                dem_path, locs, mountains, radius=radius
-            )
-            plot_filename = f"src/templates/{panorama_filename}.html"
-            plot_to_map(
-                mountains_in_sight,
-                coordinates,
-                plot_filename,
-                dem_path,
-                locs=locs,
-                mountains=mountains,
-                mountain_radius=radius,
-            )
-        else:
-            return False
-    stats = [
-        "Information about completed task: \n",
-        "File:      %s" % panorama_filename,
-        "Mode:      %s" % mode,
-        "Duration:  %i seconds" % (time.time() - start_time),
-    ]
-    subprocess.call(["rm", "-r", "dev/cropped.png.aux.xml", "dev/cropped.png"])
-    p_line(stats)
-    return True
 
 
 def render_height(IMAGE_DATA):

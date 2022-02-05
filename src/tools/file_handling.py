@@ -1,6 +1,5 @@
 import os
 import pickle
-
 import numpy as np
 from map_plotting import compare_mtns_on_map
 from tools.debug import p_i, p_in, p_line, p_e
@@ -13,8 +12,9 @@ import rasterio
 import image_handling
 import location_handler
 from tools.debug import p_i, p_line
-from tools.types import ImageInSight, LatLngToCrs, Location, Location2D, Mountain
+from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain
 from osgeo import gdal
+from rdp import rdp
 
 
 def get_mountain_data(dem_file, im_data, gradient=False):
@@ -74,6 +74,18 @@ def read_hike_gpx(gpx_path):
         location_handler.find_minimums(locations),
         location_handler.find_maximums(locations),
     ]
+
+
+def trim_hikes(gpx_file):
+    gpx = gpxpy.parse(gpx_file)
+    locations = [
+        [k.latitude, k.longitude, k.elevation]
+        for i in gpx.tracks
+        for j in i.segments
+        for k in j.points
+    ]
+    trimmed = rdp(locations, epsilon=0.0001)
+    return [Hike(gpx_file.filename, [Location(x, y, z) for x, y, z in trimmed])]
 
 
 def read_mountain_gpx(gpx_path, converter):
@@ -177,6 +189,8 @@ def get_files(folder):
     file_list = os.listdir(folder)
     all_files = []
     for file in file_list:
+        if file == ".DS_Store":
+            continue
         full_path = os.path.join(folder, file)
         if os.path.isdir(full_path):
             all_files = all_files + get_files(full_path)
