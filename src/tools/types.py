@@ -35,6 +35,7 @@ class Mountain:
     location: Location
     location2d: any
     location_in_3d: Location3D = None
+    link: str = None
 
     def __eq__(self, other):
         return self.name == other.name

@@ -87,7 +87,7 @@ def read_mountain_gpx(gpx_path, converter):
         loc = Location(i.latitude, i.longitude, i.elevation)
         p = converter.convert(loc.latitude, loc.longitude, loc.elevation)
         loc2d = np.array((p.GetX(), p.GetY()))
-        mountains.append(Mountain(i.name, loc, loc2d))
+        mountains.append(Mountain(i.name, loc, loc2d, link=i.link))
     return mountains
 
 

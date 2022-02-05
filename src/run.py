@@ -354,7 +354,7 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
                     + float(mountain.location_in_3d.yaw),
                     "pitch": mountain.location_in_3d.pitch,
                     "distance": mountain.location_in_3d.distance,
-                    "url": f"https://www.google.com/maps/search/{lat},{lon}/",
+                    "url": mountain.link,
                 }
             }
         )
