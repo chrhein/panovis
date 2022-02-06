@@ -264,7 +264,7 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
 
     def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
         d = generator.get_distance_between_locations(camera_location, item.location)
-        c_e = camera_location.elevation + 25
+        c_e = camera_location.elevation + 15
         i_e = item.location.elevation
         diff = i_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5

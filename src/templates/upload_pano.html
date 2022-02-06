@@ -95,18 +95,7 @@
             <h3 class="fw-bold text-start">Hikes</h3>
             <div class="border bg-light">
                 <div class="uploaded-hikes-wrapper">
-                    <div class="uploaded-hikes">
-                        {% for hike in hikes %}
-                        <a
-                            class="uploaded-hikes-child d-flex justify-content-center flex-nowrap"
-                            href="javascript:null"
-                        >
-                            <div class="hike-file text-center p-2">
-                                {{ hike }}
-                            </div>
-                        </a>
-                        {% endfor %}
-                    </div>
+                    <div id="hikes" class="uploaded-hikes"></div>
                 </div>
                 <div class="row m-3">
                     <div class="col-xl-6 col-md-12 align-items-center fs-5">
@@ -216,6 +205,10 @@
                 window.location.href = `/rmvimg?image_id=${imageId}`
             }
 
+            function removeHike(hikeId) {
+                window.location.href = `/rmvhike?hike_id=${hikeId}`
+            }
+
             function changeGPX() {
                 let gpx = document.getElementById('selected-gpx')
                 let form = document.createElement('form')
@@ -259,6 +252,28 @@
                 document.getElementById(
                     'uploaded-panoramas-button'
                 ).disabled = true
+            }
+
+            const hikes = JSON.parse('{{ hikes | tojson | safe }}')
+
+            let hikeWrapper = document.getElementById('hikes')
+
+            for (let i = 0; i < hikes.length; i++) {
+                let hike = hikes[i]
+                let hikeLink = document.createElement('a')
+                hikeLink.setAttribute(
+                    'href',
+                    'javascript:removeHike(' + '"' + hike + '"' + ')'
+                )
+                hikeLink.setAttribute(
+                    'class',
+                    'uploaded-hikes-child d-flex justify-content-center flex-nowrap'
+                )
+                let hikeFile = document.createElement('div')
+                hikeFile.setAttribute('class', 'hike-file text-center p-2')
+                hikeFile.innerHTML = hike.slice(0, hike.length - 9) + '.gpx'
+                hikeLink.appendChild(hikeFile)
+                hikeWrapper.appendChild(hikeLink)
             }
         </script>
     </body>

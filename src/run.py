@@ -57,7 +57,7 @@ def create_app():
             gpx = gpx.split("/")[-1]
         interactive = session.get("interactive", False)
         uploaded_hikes = [
-            f"{x.split('/')[-1].split('.')[0]}.gpx" for x in get_files(SEEN_HIKES)
+            f"{x.split('/')[-1].split('.')[0]}" for x in get_files(SEEN_HIKES)
         ]
 
         return render_template(
@@ -132,16 +132,25 @@ def create_app():
         if request.method == "POST":
             f = request.files["file"]
             filename = secure_filename(f.filename)
+            f_hash = hashlib.md5(filename.encode("utf-8")).hexdigest()[-8:]
+            fn = filename.split(".")[0]
+            filename_h = f"{fn}-{f_hash}"
             make_folder(SEEN_HIKES)
             trimmed = trim_hikes(f)
-            hike_path = f"{SEEN_HIKES}{filename.split('.')[0]}.pkl"
+            hike_path = f"{SEEN_HIKES}{filename_h}.pkl"
             pickle.dump(trimmed, open(hike_path, "wb"))
-            return redirect(url_for("homepage"))
+        return redirect(url_for("homepage"))
 
     @app.route("/rmvimg", methods=["GET"])
     def rmvimg():
         file_to_remove = request.args.get("image_id")
         session["filename"] = remove_image_as_seen(file_to_remove)
+        return redirect(url_for("homepage"))
+
+    @app.route("/rmvhike", methods=["GET"])
+    def rmvhike():
+        file_to_remove = request.args.get("hike_id")
+        remove_hike(file_to_remove)
         return redirect(url_for("homepage"))
 
     @app.route("/selectgpx", methods=["POST", "GET"])
@@ -341,6 +350,13 @@ def remove_image_as_seen(image_filename):
         except ValueError:
             pass
         return seen_images[-1].strip("\n")
+    except FileNotFoundError:
+        pass
+
+
+def remove_hike(hike_filename):
+    try:
+        os.remove(f"{SEEN_HIKES}/{hike_filename}.pkl")
     except FileNotFoundError:
         pass
 

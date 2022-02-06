@@ -143,28 +143,20 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
         IMAGE_DATA.filename, "src/static/images", ds_raster, converter
     )
     images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
-
-    mountains_3d_path = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}-3d.pkl"
-    if not os.path.exists(mountains_3d_path):
-        mountains = read_mountain_gpx(gpx_file, converter)
-        mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
-        mountains_3d = get_3d_location(
-            camera_location,
-            viewing_direction,
-            converter,
-            mountains_in_sight,
-        )
-
-        pickle.dump(mountains_3d, open(mountains_3d_path, "wb"))
-    else:
-        mountains = read_mountain_gpx(gpx_file, converter)
-        mountains_3d = pickle.load(open(mountains_3d_path, "rb"))
-
     images_3d = get_3d_location(
         camera_location,
         viewing_direction,
         converter,
         images_in_sight,
+    )
+
+    mountains = read_mountain_gpx(gpx_file, converter)
+    mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
+    mountains_3d = get_3d_location(
+        camera_location,
+        viewing_direction,
+        converter,
+        mountains_in_sight,
     )
 
     converter_to_latlng = CrsToLatLng(crs)
