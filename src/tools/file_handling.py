@@ -77,7 +77,8 @@ def read_hike_gpx(gpx_path):
 
 
 def trim_hikes(gpx_file):
-    gpx = gpxpy.parse(gpx_file)
+    gpx_f = open(gpx_file, "r")
+    gpx = gpxpy.parse(gpx_f)
     locations = [
         [k.latitude, k.longitude, k.elevation]
         for i in gpx.tracks
@@ -85,7 +86,7 @@ def trim_hikes(gpx_file):
         for k in j.points
     ]
     trimmed = rdp(locations, epsilon=0.0001)
-    return [Hike(gpx_file.filename, [Location(x, y, z) for x, y, z in trimmed])]
+    return [Hike(gpx_file.split("/")[-1], [Location(x, y, z) for x, y, z in trimmed])]
 
 
 def read_mountain_gpx(gpx_path, converter):

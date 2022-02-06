@@ -1,10 +1,8 @@
 import hashlib
-import json
 import os
 import pickle
 import time
 from flask import Flask, render_template, request, redirect, session, url_for
-from matplotlib import interactive
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gsp_img_direction,
@@ -131,15 +129,33 @@ def create_app():
     def uploadhike():
         if request.method == "POST":
             f = request.files["file"]
-            filename = secure_filename(f.filename)
-            f_hash = hashlib.md5(filename.encode("utf-8")).hexdigest()[-8:]
-            fn = filename.split(".")[0]
-            filename_h = f"{fn}-{f_hash}"
-            make_folder(SEEN_HIKES)
-            trimmed = trim_hikes(f)
-            hike_path = f"{SEEN_HIKES}{filename_h}.pkl"
-            pickle.dump(trimmed, open(hike_path, "wb"))
+            app.logger.info(f)
+            fp = f"{SEEN_HIKES}{f.filename}"
+            session["hike"] = fp
+            f.save(fp)
+            return redirect(
+                url_for(
+                    "loading",
+                    task="trimgpx",
+                    title="Uploading Hike",
+                    text="Uploading Hike ...",
+                    redirect_url=url_for("homepage"),
+                )
+            )
         return redirect(url_for("homepage"))
+
+    @app.route("/trimgpx")
+    def trimgpx():
+        f = session.get("hike", None)
+        f_hash = hashlib.md5(f.encode("utf-8")).hexdigest()[-8:]
+        fn = f.split("/")[-1].split(".")[0]
+        filename_h = f"{fn}-{f_hash}"
+        make_folder(SEEN_HIKES)
+        trimmed = trim_hikes(f)
+        hike_path = f"{SEEN_HIKES}{filename_h}.pkl"
+        pickle.dump(trimmed, open(hike_path, "wb"))
+        os.remove(f)
+        return ("", 204)
 
     @app.route("/rmvimg", methods=["GET"])
     def rmvimg():
