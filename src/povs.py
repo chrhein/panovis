@@ -202,7 +202,7 @@ def primary_pov(
                 translate CAMERAPOS
                 #else
                 pigment { color rgb<0.16, 0.41, 0.52> }
-                
+
                 finish {
                     reflection 0 ambient 1 diffuse 0 specular 0
                 }

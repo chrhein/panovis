@@ -26,12 +26,6 @@
             }
         </script>
         <script src="https://cdn.knightlab.com/libs/juxtapose/latest/js/juxtapose.min.js"></script>
-        <script
-            src="https://cdnjs.cloudflare.com/ajax/libs/screenfull.js/5.1.0/screenfull.min.js"
-            integrity="sha512-SGPHIoS+NsP1NUL5RohNpDs44JlF36tXLN6H3Cw+EUyenEc5zPXWqfw9D+xmvR00QYUYewQIJQ6P5yH82Vw6Fg=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"
-        ></script>
         <link
             rel="stylesheet"
             href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
@@ -84,15 +78,11 @@
         </div>
 
         <div class="px-4 py-2 my-4 text-center">
-            <h3 class="fw-bold text-start">
-                Render/panorama comparison
-                <div class="ctrl" id="toggleFullscreen" style="width: 3rem">
-                    &#x2922;
-                </div>
-            </h3>
+            <h3 class="fw-bold text-start">Render/panorama comparison</h3>
 
             <div class="border bg-light px-5">
                 <div
+                    id="compare-wrapper"
                     class="py-2 d-grid d-sm-flex justify-content-sm-center compare w-lg-75 w-md-100"
                 >
                     <div id="juxtapose"></div>
@@ -244,9 +234,25 @@
                     type: 'equirectangular',
                     autoLoad: true,
                     showControls: false,
+                    backgroundColor: [0.74, 0.88, 0.92],
                 },
                 scenes: gen(s),
             })
+
+            function renderPolyline(sceneId) {
+                const polyline = s[sceneId].polyline
+                const polyline_path = s[sceneId].polyline_path
+                const polyline_color = s[sceneId].polyline_color
+                const polyline_width = s[sceneId].polyline_width
+
+                if (polyline) {
+                    const polyline_layer = new L.Polyline(polyline_path, {
+                        color: polyline_color,
+                        weight: polyline_width,
+                    })
+                    polyline_layer.addTo(viewer.scene.getPanorama())
+                }
+            }
 
             viewer.on('scenechange', function (event) {
                 loadJuxtapose(event)
@@ -283,22 +289,15 @@
                     viewer.toggleFullscreen()
                 })
 
-            function requestFullscreen(element) {
-                if (element.requestFullscreen) {
-                    element.requestFullscreen()
-                } else if (element.mozRequestFullScreen) {
-                    element.mozRequestFullScreen()
-                } else if (element.webkitRequestFullScreen) {
-                    element.webkitRequestFullScreen(
-                        Element.ALLOW_KEYBOARD_INPUT
-                    )
-                }
-            }
-
             document
-                .getElementById('toggleFullscreen')
+                .getElementsByClassName('pnlm-compass')[0]
                 .addEventListener('click', function (e) {
-                    requestFullscreen(document.getElementById('juxtapose'))
+                    console.log('clicked compass')
+                    viewer.setYaw(
+                        viewer.getYaw() != 0
+                            ? 0
+                            : parseFloat(s[sceneIds[sceneIndex]].view_direction)
+                    )
                 })
         </script>
     </body>
