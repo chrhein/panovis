@@ -1,9 +1,7 @@
 import operator
 from dataclasses import dataclass
-import numpy as np
 from osgeo import ogr, osr
 from geopy import distance
-import numpy as np
 
 
 @dataclass

@@ -25,6 +25,12 @@
                 window.location.href = '/'
             }
         </script>
+        <script src="https://cdn.knightlab.com/libs/juxtapose/latest/js/juxtapose.min.js"></script>
+
+        <link
+            rel="stylesheet"
+            href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
+        />
 
         <title>E2 - View Mountains</title>
     </head>
@@ -72,10 +78,19 @@
             </div>
         </div>
 
+        <div class="px-4 py-2 my-4 text-center">
+            <h3 class="fw-bold text-start">Render/panorama comparison</h3>
+            <div class="border bg-light px-5">
+                <div
+                    class="py-2 d-grid d-sm-flex justify-content-sm-center compare w-lg-75 w-md-100"
+                >
+                    <div id="juxtapose"></div>
+                </div>
+            </div>
+        </div>
+
         <script>
             const s = JSON.parse('{{ scenes | tojson | safe }}')
-
-            console.log(s)
 
             const sceneIds = Object.keys(s)
             let sceneIndex = sceneIds.indexOf('{{ defaultScene }}')
@@ -84,9 +99,12 @@
                 document.getElementById('right').style.display = 'none'
             }
 
+            let interactive = true
+
             if ('{{ interactive }}' == 'False') {
                 document.getElementById('interactive-map').style.display =
                     'none'
+                interactive = false
             }
 
             function mountainHotspotTooltip(hotSpotDiv, args) {
@@ -162,6 +180,9 @@
 
             const gpx = '{{ gpx }}'
             function loadFolium(sceneId) {
+                if (!interactive) {
+                    return
+                }
                 const updatedFolium = `src/static/images/${sceneId}/${sceneId}-${gpx}.html`
                 let object = document.getElementById('folium-map')
                 object.setAttribute('data', updatedFolium)
@@ -169,11 +190,35 @@
                 let parent = object.parentNode
                 parent.removeChild(object)
                 parent.appendChild(clone)
-                console.log('Loaded new Folium map from image: ' + sceneId)
                 sceneIndex = sceneIds.indexOf(sceneId)
             }
 
-            loadFolium('{{ defaultScene }}')
+            function loadJuxtapose(sceneId) {
+                document.getElementById('juxtapose').innerHTML = ''
+                slider = new juxtapose.JXSlider(
+                    '#juxtapose',
+                    [
+                        {
+                            src: s[sceneId].cropped_overlay_path,
+                            label: 'Panorama',
+                        },
+                        {
+                            src: s[sceneId].cropped_render_path,
+                            label: 'Render',
+                        },
+                    ],
+                    {
+                        animate: true,
+                        showLabels: true,
+                        startingPosition: '80%',
+                        makeResponsive: true,
+                    }
+                )
+            }
+
+            loadFolium(sceneIds[sceneIndex])
+            loadJuxtapose(sceneIds[sceneIndex])
+
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
                     firstScene: '{{ defaultScene }}', // change this
@@ -192,7 +237,9 @@
             })
 
             viewer.on('scenechange', function (event) {
+                loadJuxtapose(event)
                 loadFolium(event)
+                console.log('Loaded new scene: ' + event)
             })
 
             document

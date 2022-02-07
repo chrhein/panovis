@@ -28,21 +28,21 @@ from tools.file_handling import (
 from tools.types import CrsToLatLng, LatLngToCrs, Location
 
 
-def render_height(IMAGE_DATA):
+def render_height(img_data):
     start_time = time.time()
 
-    panorama_path = IMAGE_DATA.path
-    render_filename = IMAGE_DATA.render_path
+    panorama_path = img_data.path
+    render_filename = img_data.render_path
     pov_filename = "/tmp/pov_file.pov"
 
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
-        render_width = data["render_width"]
-        render_height = data["render_height"]
+        r_width = data["render_width"]
+        r_height = data["render_height"]
 
-        render_shape = [render_width, render_height]
+        render_shape = [r_width, r_height]
         json_file.close()
 
     dem_path, _, coordinates, _ = get_mountain_data(dem_path, panorama_path)
@@ -60,7 +60,7 @@ def render_height(IMAGE_DATA):
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
-        f"File:      {IMAGE_DATA.filename}",
+        f"File:      {img_data.filename}",
         f"Mode:      {pov_mode}",
         f"Duration:  {time.time() - start_time} seconds",
     ]
@@ -68,44 +68,44 @@ def render_height(IMAGE_DATA):
     return True
 
 
-def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
-    p_i(f"Beginning mountain lookup for {IMAGE_DATA.filename}")
+def mountain_lookup(img_data, gpx_file, plot=False):
+    p_i(f"Beginning mountain lookup for {img_data.filename}")
     pov_filename = "/tmp/pov_file.pov"
 
-    im_desc = get_image_description(IMAGE_DATA.path)
+    im_desc = get_image_description(img_data.path)
     custom_tags = ast.literal_eval(im_desc)
     fov = custom_tags["fov"]
-    imdims = custom_tags["imdims"]
+    im_dims = custom_tags["imdims"]
 
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
         scale_factor = 0.75
-        if imdims:
-            render_width = imdims[1] * scale_factor
-            render_height = imdims[0] * scale_factor
+        if im_dims:
+            r_width = im_dims[1] * scale_factor
+            r_height = im_dims[0] * scale_factor
         else:
-            render_width = data["render_width"]
-            render_height = data["render_height"]
+            r_width = data["render_width"]
+            r_height = data["render_height"]
 
-        render_shape = [render_width, render_height]
+        render_shape = [r_width, r_height]
         json_file.close()
 
     dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
-        dem_path, IMAGE_DATA, True
+        dem_path, img_data, True
     )
 
     raster_data = get_raster_data(dem_path, coordinates)
     if not raster_data:
         return
 
-    locs_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-locs.pkl"
+    locs_filename = f"{img_data.folder}/{img_data.filename}-locs.pkl"
     if not os.path.exists(locs_filename):
 
         pov_mode = "gradient"
         gradient_path, _ = create_color_gradient_image()
-        if not os.path.exists(IMAGE_DATA.gradient_path):
+        if not os.path.exists(img_data.gradient_path):
             pov = primary_pov(
                 dem_path,
                 raster_data,
@@ -113,14 +113,14 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
                 mode=pov_mode,
                 fov=fov,
             )
-            params = [pov_filename, IMAGE_DATA.gradient_path, render_shape, pov_mode]
+            params = [pov_filename, img_data.gradient_path, render_shape, pov_mode]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
             execute_pov(params)
 
         ds_name = original_dem.split("/")[-1].split(".")[0]
         locs = find_visible_coordinates_in_render(
-            ds_name, gradient_path, IMAGE_DATA.gradient_path, dem_path
+            ds_name, gradient_path, img_data.gradient_path, dem_path
         )
         with open(locs_filename, "wb") as f:
             pickle.dump(locs, f)
@@ -140,7 +140,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
     radius = 150  # in meters
 
     images = read_image_locations(
-        IMAGE_DATA.filename, "src/static/images", ds_raster, converter
+        img_data.filename, "src/static/images", ds_raster, converter
     )
     images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
     images_3d = get_3d_location(
@@ -162,7 +162,7 @@ def mountain_lookup(IMAGE_DATA, gpx_file, plot=False):
     converter_to_latlng = CrsToLatLng(crs)
 
     if plot:
-        plot_filename = f"{IMAGE_DATA.folder}/{IMAGE_DATA.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
+        plot_filename = f"{img_data.folder}/{img_data.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
         plot_to_map(
             mountains_3d,
             coordinates,

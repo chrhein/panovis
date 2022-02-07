@@ -59,7 +59,7 @@ def create_app():
         ]
 
         return render_template(
-            "upload_pano.html", ims=i, gpx=gpx, hikes=uploaded_hikes, folium=interactive
+            "home.html", ims=i, gpx=gpx, hikes=uploaded_hikes, folium=interactive
         )
 
     @app.route("/loading", methods=["POST", "GET"])
@@ -390,6 +390,8 @@ def make_scenes(gpx_filename):
                     "hotspots": im_hs,
                     "render_path": im_data.render_path,
                     "view_direction": im_data.view_direction,
+                    "cropped_render_path": im_data.ultrawide_path,
+                    "cropped_overlay_path": im_data.overlay_path,
                 }
     return scenes
 
@@ -398,8 +400,6 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
     hotspots = {}
     mountain_hotpots = {}
     for mountain in mountains_3d:
-        lat = mountain.location.latitude
-        lon = mountain.location.longitude
         mountain_hotpots.update(
             {
                 str(mountain.name): {

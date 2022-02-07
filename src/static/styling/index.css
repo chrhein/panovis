@@ -64,6 +64,7 @@
 .compare {
     max-height: 80vh;
     overflow-y: scroll;
+    text-align: center;
 }
 
 .compare-images {
@@ -405,4 +406,8 @@ a:visited {
 .pnlm-compass {
     opacity: 0.6;
     background-color: rgb(200, 200, 200);
+}
+
+.jx-knightlab {
+    visibility: hidden;
 }

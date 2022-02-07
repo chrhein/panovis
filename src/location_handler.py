@@ -1,5 +1,5 @@
 from json import load
-from math import asin, cos, sin, atan2, degrees, pi
+from math import asin, atan2, pi
 import os
 import pickle
 import numpy as np
@@ -62,7 +62,7 @@ def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_
     unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
 
     p_i("Getting pixel coordinates for colors in render")
-    color_coordinates_path = f"data/color_coords.pkl"
+    color_coordinates_path = "data/color_coords.pkl"
     if not os.path.exists(color_coordinates_path):
         g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
         color_coords = {}
