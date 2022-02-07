@@ -26,7 +26,12 @@
             }
         </script>
         <script src="https://cdn.knightlab.com/libs/juxtapose/latest/js/juxtapose.min.js"></script>
-
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/screenfull.js/5.1.0/screenfull.min.js"
+            integrity="sha512-SGPHIoS+NsP1NUL5RohNpDs44JlF36tXLN6H3Cw+EUyenEc5zPXWqfw9D+xmvR00QYUYewQIJQ6P5yH82Vw6Fg=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
         <link
             rel="stylesheet"
             href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
@@ -79,7 +84,13 @@
         </div>
 
         <div class="px-4 py-2 my-4 text-center">
-            <h3 class="fw-bold text-start">Render/panorama comparison</h3>
+            <h3 class="fw-bold text-start">
+                Render/panorama comparison
+                <div class="ctrl" id="toggleFullscreen" style="width: 3rem">
+                    &#x2922;
+                </div>
+            </h3>
+
             <div class="border bg-light px-5">
                 <div
                     class="py-2 d-grid d-sm-flex justify-content-sm-center compare w-lg-75 w-md-100"
@@ -179,6 +190,7 @@
             }
 
             const gpx = '{{ gpx }}'
+
             function loadFolium(sceneId) {
                 if (!interactive) {
                     return
@@ -221,7 +233,7 @@
 
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
-                    firstScene: '{{ defaultScene }}', // change this
+                    firstScene: '{{ defaultScene }}',
                     sceneFadeDuration: 750,
                     compass: true,
                     doubleClickZoom: false,
@@ -269,6 +281,24 @@
                 .getElementById('fullscreen')
                 .addEventListener('click', function (e) {
                     viewer.toggleFullscreen()
+                })
+
+            function requestFullscreen(element) {
+                if (element.requestFullscreen) {
+                    element.requestFullscreen()
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen()
+                } else if (element.webkitRequestFullScreen) {
+                    element.webkitRequestFullScreen(
+                        Element.ALLOW_KEYBOARD_INPUT
+                    )
+                }
+            }
+
+            document
+                .getElementById('toggleFullscreen')
+                .addEventListener('click', function (e) {
+                    requestFullscreen(document.getElementById('juxtapose'))
                 })
         </script>
     </body>
