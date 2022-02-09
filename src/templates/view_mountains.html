@@ -31,7 +31,7 @@
             href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
         />
 
-        <title>E2 - View Mountains</title>
+        <title>E2 - View Panoramas</title>
     </head>
     <body>
         <button
@@ -58,6 +58,9 @@
                                 <div class="ctrl" id="fullscreen">&#x2922;</div>
                             </div>
                             <div id="right">
+                                <div class="ctrl" id="show-tooltips">
+                                    &#x2139;
+                                </div>
                                 <div class="ctrl" id="pan-left">&#8678;</div>
                                 <div class="ctrl" id="pan-right">&#8680;</div>
                             </div>
@@ -138,7 +141,7 @@
                         return [
                             key,
                             {
-                                panorama: value.render_path,
+                                panorama: value.warped_panorama_path,
                                 yaw: value.view_direction,
                                 title: key.slice(0, key.length - 9),
                                 hotSpots: [
@@ -218,6 +221,10 @@
                 )
             }
 
+            function switchScene() {
+                console.log('hei')
+            }
+
             loadFolium(sceneIds[sceneIndex])
             loadJuxtapose(sceneIds[sceneIndex])
 
@@ -234,7 +241,7 @@
                     type: 'equirectangular',
                     autoLoad: true,
                     showControls: false,
-                    backgroundColor: [0.74, 0.88, 0.92],
+                    // backgroundColor: [0.75, 0.88, 0.93],
                 },
                 scenes: gen(s),
             })
@@ -298,6 +305,22 @@
                             ? 0
                             : parseFloat(s[sceneIds[sceneIndex]].view_direction)
                     )
+                })
+
+            document
+                .getElementById('show-tooltips')
+                .addEventListener('click', function (e) {
+                    let hotspots = document.querySelectorAll(
+                        'div.mountain-tooltip span'
+                    )
+                    for (let i = 0; i < hotspots.length; i++) {
+                        let vis = hotspots[i].style.visibility
+                        if (vis == 'hidden') {
+                            hotspots[i].style.visibility = 'visible'
+                        } else {
+                            hotspots[i].style.visibility = 'hidden'
+                        }
+                    }
                 })
         </script>
     </body>

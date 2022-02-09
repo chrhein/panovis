@@ -108,6 +108,7 @@ class ImageData:
     gradient_path: str
     overlay_path: str
     ultrawide_path: str
+    warped_panorama_path = str
     hotspots: dict = None
     view_direction: float = None
     fov_l: float = None
@@ -131,6 +132,9 @@ class ImageData:
         )
         self.thumbnail_path = self.path.replace(
             f"{self.filename}.jpg", f"{self.filename}-thumbnail.jpg"
+        )
+        self.warped_panorama_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-warped.jpg"
         )
 
         self.hotspots = {}

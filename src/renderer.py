@@ -29,9 +29,11 @@ from tools.types import CrsToLatLng, LatLngToCrs, Location
 
 
 def render_height(img_data):
+    if os.path.exists(img_data.render_path):
+        return
+
     start_time = time.time()
 
-    panorama_path = img_data.path
     render_filename = img_data.render_path
     pov_filename = "/tmp/pov_file.pov"
 
@@ -45,7 +47,7 @@ def render_height(img_data):
         render_shape = [r_width, r_height]
         json_file.close()
 
-    dem_path, _, coordinates, _ = get_mountain_data(dem_path, panorama_path)
+    dem_path, _, coordinates, _ = get_mountain_data(dem_path, img_data)
 
     raster_data = get_raster_data(dem_path, coordinates)
     if not raster_data:
@@ -113,7 +115,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
                 mode=pov_mode,
                 fov=fov,
             )
-            params = [pov_filename, img_data.gradient_path, render_shape, pov_mode]
+            params = [pov_filename, img_data.gradient_path,
+                      render_shape, pov_mode]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
             execute_pov(params)
@@ -151,7 +154,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     )
 
     mountains = read_mountain_gpx(gpx_file, converter)
-    mountains_in_sight = find_visible_items_in_ds(locs, mountains, radius=radius)
+    mountains_in_sight = find_visible_items_in_ds(
+        locs, mountains, radius=radius)
     mountains_3d = get_3d_location(
         camera_location,
         viewing_direction,
@@ -164,6 +168,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     if plot:
         plot_filename = f"{img_data.folder}/{img_data.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
         plot_to_map(
+            img_data.thumbnail_path,
             mountains_3d,
             coordinates,
             plot_filename,

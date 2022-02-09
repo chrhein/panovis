@@ -177,7 +177,8 @@ def structured_forest(image):
     p_i("Starting Structured Forest Edge Detection...")
     sf = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     sf = sf.astype(np.float32) / 512.0
-    edge_detector = cv2.ximgproc.createStructuredEdgeDetection("assets/model.yml")
+    edge_detector = cv2.ximgproc.createStructuredEdgeDetection(
+        "assets/model.yml")
     edges = edge_detector.detectEdges(sf) * 512.0
     p_i("Structured Forest Edge Detection complete!")
     return edges
@@ -249,7 +250,7 @@ def trim_edges(image):
 
 def reduce_filesize(image_path, image_quality=50):
     im = Image.open(image_path)
-    resized_pano = f"/tmp/resized.jpg"
+    resized_pano = "/tmp/resized.jpg"
     im.save(resized_pano, quality=image_quality, optimize=True)
     transplant(image_path, resized_pano)
     os.remove(image_path)
@@ -263,7 +264,8 @@ def transform_panorama(
 ):
     pts_panorama = np.float32([[x, y] for x, y in pano_coords])
     panorama_image = cv2.imread(IMAGE_DATA.path)
-    panorama_image[np.where((panorama_image == [0, 0, 0]).all(axis=2))] = [1, 1, 1]
+    panorama_image[np.where((panorama_image == [0, 0, 0]).all(axis=2))] = [
+        1, 1, 1]
 
     pts_render = np.float32([[x, y] for x, y in render_coords])
     render_image = cv2.imread(IMAGE_DATA.render_path)
@@ -280,6 +282,9 @@ def transform_panorama(
             pts_render[i][0] = x + render_width
             shift_coords = True
         prev_x_coord = x
+
+    black_img = np.zeros(
+        (render_image.shape[0], render_image.shape[1], 3), dtype="uint8")
 
     render_image = cv2.hconcat([render_image, render_image])
 
@@ -299,15 +304,30 @@ def transform_panorama(
         [[0, 0], [p_w, 0], [p_w, p_h], [0, p_h]],
         dtype=np.float32,
     )
-    warped_bbox = cv2.perspectiveTransform(pano_bbox[None, :, :], TRANSFORM_MATRIX)
+    warped_bbox = cv2.perspectiveTransform(
+        pano_bbox[None, :, :], TRANSFORM_MATRIX)
 
-    mask = np.where((warped_panorama == (0, 0, 0)).all(axis=2), 0, 255).astype(np.uint8)
+    mask = np.where((warped_panorama == (0, 0, 0)).all(
+        axis=2), 0, 255).astype(np.uint8)
     warped_panorama = cv2.cvtColor(warped_panorama, cv2.COLOR_BGR2BGRA)
 
     warped_panorama[:, :, 3] = mask
     render_image = cv2.cvtColor(render_image, cv2.COLOR_BGR2BGRA)
-    bg_render = cv2.bitwise_and(render_image, render_image, mask=cv2.bitwise_not(mask))
+    bg_render = cv2.bitwise_and(
+        render_image, render_image, mask=cv2.bitwise_not(mask))
     fg_panorama = cv2.bitwise_and(warped_panorama, warped_panorama, mask=mask)
+
+    def im_crop(x):
+        height, width, _ = x.shape
+        return [x[0:height, 0:width//2], x[0:height, width//2:width]]
+
+    fg_l, fg_r = im_crop(fg_panorama.copy())
+    alpha = fg_r[:, :, 3] / 255.0
+    black_img[:, :, 0] = (1. - alpha) * fg_l[:, :, 0] + alpha * fg_r[:, :, 0]
+    black_img[:, :, 1] = (1. - alpha) * fg_l[:, :, 1] + alpha * fg_r[:, :, 1]
+    black_img[:, :, 2] = (1. - alpha) * fg_l[:, :, 2] + alpha * fg_r[:, :, 2]
+
+    cv2.imwrite(IMAGE_DATA.warped_panorama_path, black_img)
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
@@ -318,14 +338,16 @@ def transform_panorama(
     miny = min(int(ub_l[1]), int(ub_r[1]))
     maxy = max(int(lb_l[1]), int(lb_r[1]))
 
-    heading_bound_left, heading_bound_right = get_fov_bounds(render_width, minx, maxx)
+    heading_bound_left, heading_bound_right = get_fov_bounds(
+        render_width, minx, maxx)
 
     overlay_crop = im_overlay[miny:maxy, minx:maxx]
     ultrawide_render_crop = render_image[miny:maxy, minx:maxx]
 
     cv2.imwrite(IMAGE_DATA.overlay_path, overlay_crop)
     cv2.imwrite(IMAGE_DATA.ultrawide_path, ultrawide_render_crop)
-    cv2.imwrite(IMAGE_DATA.thumbnail_path, resizer(panorama_image, im_width=450))
+    cv2.imwrite(IMAGE_DATA.thumbnail_path,
+                resizer(panorama_image, im_width=450))
 
     fov = heading_bound_left, heading_bound_right
     IMAGE_DATA.fov_l = heading_bound_left

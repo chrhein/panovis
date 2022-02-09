@@ -19,7 +19,8 @@ def get_mountain_data(dem_file, im_data, gradient=False):
     else:
         p_e("No location data found in image. Exiting program.")
         return
-    exif_view_direction = image_handling.get_exif_gsp_img_direction(panorama_path)
+    exif_view_direction = image_handling.get_exif_gsp_img_direction(
+        panorama_path)
     if exif_view_direction and gradient:
         viewing_direction = exif_view_direction
     else:
@@ -107,10 +108,12 @@ def read_image_locations(filename, image_folder, ds_raster, converter):
         im_path = f"{image_folder}/{image}/{image}.jpg"
         t_im_path = f"{image_folder}/{image}/{image}-thumbnail.jpg"
         loc = image_handling.get_exif_gps_latlon(im_path)
-        height = location_handler.get_height_from_raster(loc, ds_raster, converter)
+        height = location_handler.get_height_from_raster(
+            loc, ds_raster, converter)
         loc = Location(loc.latitude, loc.longitude, height)
         p = converter.convert(loc.latitude, loc.longitude, loc.elevation)
-        locs.append(ImageInSight(image, t_im_path, loc, np.array((p.GetX(), p.GetY()))))
+        locs.append(ImageInSight(image, t_im_path, loc,
+                    np.array((p.GetX(), p.GetY()))))
     return locs
 
 

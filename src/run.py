@@ -256,19 +256,21 @@ def create_app():
 
         im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
         session["filename"] = IMAGE_DATA.filename
-        mark_image_seen(IMAGE_DATA)
 
         if im_view_direction is None:
             pano_coords = strip_array(request.args.get("pano_coords"), True)
-            render_coords = strip_array(request.args.get("render_coords"), True)
+            render_coords = strip_array(
+                request.args.get("render_coords"), True)
 
-            IMAGE_DATA = transform_panorama(IMAGE_DATA, pano_coords, render_coords)
+            IMAGE_DATA = transform_panorama(
+                IMAGE_DATA, pano_coords, render_coords)
             if not IMAGE_DATA:
                 return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
 
             save_image_data(IMAGE_DATA)
             session["filename"] = IMAGE_DATA.filename
 
+        mark_image_seen(IMAGE_DATA)
         return render_template(
             "preview_warped.html",
             warped=IMAGE_DATA.overlay_path,
@@ -278,7 +280,8 @@ def create_app():
     def mtn_lookup(pano_filename, gpx_path, interactive):
         im_data = load_image_data(pano_filename)
         if im_data is not None:
-            mountains_3d, images_3d = mountain_lookup(im_data, gpx_path, interactive)
+            mountains_3d, images_3d = mountain_lookup(
+                im_data, gpx_path, interactive)
             gpx = gpx_path.split("/")[-1].split(".")[0]
             hs = create_hotspots(im_data, mountains_3d, images_3d)
             im_data.add_hotspots(gpx, hs)
@@ -296,7 +299,7 @@ def create_app():
         fn = get_filename()
         session["filename"] = fn
         start_time = time.time()
-        Parallel(n_jobs=len(seen_images))(
+        Parallel(n_jobs=min(4, len(seen_images)))(
             delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
             for pano_filename in seen_images
         )
@@ -308,7 +311,8 @@ def create_app():
     @app.route("/mountains")
     def mountains():
         IMAGE_DATA = load_image_data(get_filename())
-        gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
+        gpx_filename = session.get(
+            "gpx_path", None).split("/")[-1].split(".")[0]
         scenes = make_scenes(gpx_filename)
         interactive = session.get("interactive", False)
         return render_template(
@@ -344,9 +348,7 @@ def mark_image_seen(img_data):
             h.close()
 
     except FileNotFoundError:
-        h = open(SEEN_IMAGES_PATH, "w")
-        h.write(f"{img_data.filename}\n")
-        h.close()
+        print("An error occured when marking image as seen")
 
 
 def remove_image_as_seen(image_filename):
@@ -392,6 +394,7 @@ def make_scenes(gpx_filename):
                     "view_direction": im_data.view_direction,
                     "cropped_render_path": im_data.ultrawide_path,
                     "cropped_overlay_path": im_data.overlay_path,
+                    "warped_panorama_path": im_data.warped_panorama_path,
                 }
     return scenes
 
@@ -443,7 +446,8 @@ def strip_array(arr, to_pythonic_list=False):
     for i in arr:
         x, y = i.split(",")
         a.append(
-            ((float(x), float(y)) if to_pythonic_list else f"{float(x)}:{float(y)}")
+            ((float(x), float(y))
+             if to_pythonic_list else f"{float(x)}:{float(y)}")
         )
     return a
 
