@@ -307,18 +307,28 @@
                     )
                 })
 
+            let showAllTooltips = false
             document
                 .getElementById('show-tooltips')
                 .addEventListener('click', function (e) {
+                    let ctrl = document.getElementById('show-tooltips')
+                    if (showAllTooltips) {
+                        ctrl.style.background = null
+                        showAllTooltips = false
+                    } else {
+                        ctrl.style.background = 'rgba(200, 200, 200, 1.0)'
+                        showAllTooltips = true
+                    }
+
                     let hotspots = document.querySelectorAll(
                         'div.mountain-tooltip span'
                     )
                     for (let i = 0; i < hotspots.length; i++) {
                         let vis = hotspots[i].style.visibility
-                        if (vis == 'hidden') {
-                            hotspots[i].style.visibility = 'visible'
+                        if (vis == 'visible') {
+                            hotspots[i].style.removeProperty('visibility')
                         } else {
-                            hotspots[i].style.visibility = 'hidden'
+                            hotspots[i].style.visibility = 'visible'
                         }
                     }
                 })
