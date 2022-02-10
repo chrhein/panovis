@@ -195,7 +195,6 @@
                 let parent = object.parentNode
                 parent.removeChild(object)
                 parent.appendChild(clone)
-                sceneIndex = sceneIds.indexOf(sceneId)
             }
 
             function loadJuxtapose(sceneId) {
@@ -221,12 +220,13 @@
                 )
             }
 
-            function switchScene() {
-                console.log('hei')
+            function switchScene(sceneId) {
+                loadFolium(sceneId)
+                loadJuxtapose(sceneId)
+                sceneIndex = sceneIds.indexOf(sceneId)
             }
 
-            loadFolium(sceneIds[sceneIndex])
-            loadJuxtapose(sceneIds[sceneIndex])
+            switchScene(sceneIds[sceneIndex])
 
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
@@ -237,7 +237,8 @@
                     mouseZoom: false,
                     keyboardZoom: false,
                     hfov: 180,
-                    vaov: 125,
+                    vaov: 110,
+                    pitch: -7.5,
                     type: 'equirectangular',
                     autoLoad: true,
                     showControls: false,
@@ -262,8 +263,7 @@
             }
 
             viewer.on('scenechange', function (event) {
-                loadJuxtapose(event)
-                loadFolium(event)
+                switchScene(event)
                 console.log('Loaded new scene: ' + event)
             })
 
