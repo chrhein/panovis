@@ -62,7 +62,9 @@
                                     &#x2139;
                                 </div>
                                 <div class="ctrl" id="pan-left">&#8678;</div>
-                                <div class="ctrl" id="pan-right">&#8680;</div>
+                                <div class="ctrl rotate180" id="pan-right">
+                                    &#8678;
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -169,7 +171,12 @@
                                             pitch: mountain.pitch,
                                             cssClass:
                                                 'custom-hotspot mountain-hotspot',
-                                            createTooltipArgs: name,
+                                            createTooltipArgs: `<div>${name}</div>
+                                            <div style="width: 150px;">${
+                                                mountain.elevation
+                                            } m, ${Number(
+                                                mountain.distance / 1000
+                                            ).toFixed(1)} km</div>`,
                                             createTooltipFunc:
                                                 mountainHotspotTooltip,
                                             URL: mountain.url,
@@ -295,6 +302,16 @@
                 .addEventListener('click', function (e) {
                     viewer.toggleFullscreen()
                 })
+            /* document
+                .getElementById('increase-pitch')
+                .addEventListener('click', function (e) {
+                    viewer.setPitch(viewer.getPitch() + 10)
+                })
+            document
+                .getElementById('decrease-pitch')
+                .addEventListener('click', function (e) {
+                    viewer.setPitch(viewer.getPitch() - 10)
+                }) */
 
             document
                 .getElementsByClassName('pnlm-compass')[0]
