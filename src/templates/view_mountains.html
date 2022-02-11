@@ -96,10 +96,13 @@
         </div>
 
         <script>
+            const urlParams = new URLSearchParams(window.location.search)
             const s = JSON.parse('{{ scenes | tojson | safe }}')
 
             const sceneIds = Object.keys(s)
-            let sceneIndex = sceneIds.indexOf('{{ defaultScene }}')
+            let sceneIndex = urlParams.has('sceneId')
+                ? sceneIds.indexOf(urlParams.get('sceneId'))
+                : sceneIds.indexOf('{{ defaultScene }}')
 
             if (sceneIds.length == 1) {
                 document.getElementById('right').style.display = 'none'
@@ -231,13 +234,14 @@
                 loadFolium(sceneId)
                 loadJuxtapose(sceneId)
                 sceneIndex = sceneIds.indexOf(sceneId)
+                window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
 
             switchScene(sceneIds[sceneIndex])
 
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
-                    firstScene: '{{ defaultScene }}',
+                    firstScene: sceneIds[sceneIndex],
                     sceneFadeDuration: 750,
                     compass: true,
                     doubleClickZoom: false,
