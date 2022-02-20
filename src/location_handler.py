@@ -1,15 +1,13 @@
 import subprocess
 from json import load
 from math import asin, atan2, pi
-import os
-import pickle
 import numpy as np
 import rasterio
 from tools.converters import (
     convert_coordinates,
     get_earth_radius,
 )
-from tools.debug import p_a, p_i, p_e, p_s
+from tools.debug import p_a, p_e, p_s
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
@@ -17,10 +15,8 @@ from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
 
 
 def get_raster_data(ds_raster,  coordinates):
-    # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     converter = LatLngToCrs(crs)
-    # convert lat_lon to grid coordinates in the interval [0, 1]
     camera_lat_lon = convert_coordinates(
         ds_raster, converter, coordinates[0], coordinates[1]
     )
@@ -34,7 +30,6 @@ def get_raster_data(ds_raster,  coordinates):
         p_e("Viewpoint location is out of bounds")
         return
     raster_left, raster_bottom, raster_right, raster_top = ds_raster.bounds
-    # get total sample points across x and y axis
     total_distance_e_w = raster_right - raster_left
     total_distance_n_s = raster_top - raster_bottom
     distances = [total_distance_n_s, total_distance_e_w]
@@ -46,53 +41,6 @@ def get_raster_data(ds_raster,  coordinates):
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
     raster_metadata = [distances, max_height]
     return [normalized_coordinates, raster_metadata]
-
-
-def get_location(lat, lon, hgt, look_at_lat, look_at_lon, look_at_hgt):
-    return [[lat, lon, hgt], [look_at_lat, look_at_lon, look_at_hgt]]
-
-
-def find_visible_coordinates_in_render(ds_name, gradient_path, render_path, dem_file):
-    render_with_gradient = f"{ds_name}-render-gradient.png"
-    p_i(f"Finding all visible coordinates in {render_with_gradient}")
-    image = cv2.cvtColor(cv2.imread(render_path), cv2.COLOR_BGR2RGB)
-    p_i("Computing list of unique colors")
-    unique_colors = np.unique(image.reshape(-1, image.shape[2]), axis=0)[2:]
-
-    p_i("Getting pixel coordinates for colors in render")
-    color_coordinates_path = "data/color_coords.pkl"
-    if not os.path.exists(color_coordinates_path):
-        g = cv2.cvtColor(cv2.imread(gradient_path), cv2.COLOR_BGR2RGB)
-        color_coords = {}
-        for y in range(g.shape[0]):
-            for x in range(g.shape[1]):
-                color_coords[tuple(g[x, y])] = (x, y)
-        with open(color_coordinates_path, "wb") as f:
-            pickle.dump(color_coords, f)
-    else:
-        with open(color_coordinates_path, "rb") as f:
-            color_coords = pickle.load(f)
-
-    ds_raster = rasterio.open(dem_file)
-    ds_raster_height_band = ds_raster.read(1)
-    dims = ds_raster_height_band.shape
-
-    x_ = dims[0] / (256)
-    y_ = dims[1] / (256)
-
-    coords = []
-    height_threshold = 50
-
-    for color in unique_colors:
-        c = color_coords.get(tuple(color))
-        if c is not None:
-            x, y = c
-            s_x, s_y = round(x * x_), round(y * y_)
-            px, py = ds_raster.xy(s_x, s_y)
-            height = ds_raster_height_band[s_x, s_y]
-            if height > height_threshold:
-                coords.append(np.array((px, py)))
-    return coords
 
 
 def get_raster_path():
@@ -165,11 +113,6 @@ def displace_camera(camera_lat, camera_lon, deg=0.0, dist=0.1):
     )
     displaced_lon = (displaced_lon + 3 * pi) % (2 * pi) - pi
     return to_degrees(displaced_lat), to_degrees(displaced_lon)
-
-
-def get_min_max_coordinates(dem_file):
-    lower_left, _, upper_right, _ = get_raster_bounds(dem_file)
-    return lower_left + upper_right
 
 
 def get_raster_bounds(dem_file, lat_lon=True):

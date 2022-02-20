@@ -317,6 +317,8 @@ hed_model
 *.pkl
 panorama*.html
 compared_ds/
-*.txt
 src/static/images/
 src/static/gpx/
+src/static/dev/
+dev/
+exports/
