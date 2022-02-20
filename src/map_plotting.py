@@ -1,10 +1,8 @@
 import base64
-import image_handling
 from dotenv import load_dotenv
 import folium
 import folium.raster_layers
 import os
-import cv2
 import location_handler
 from tools.debug import p_i
 
@@ -16,10 +14,9 @@ def plot_to_map(
     filename,
     dem_file,
     converter,
-    mountain_radius,
-    locs=[],
-    mountains=[],
-    images=[],
+    locs=None,
+    mountains=None,
+    images=None,
 ):
     p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
@@ -52,7 +49,7 @@ def plot_to_map(
                     fill=True,
                     fill_color="#ed6952",
                     fill_opacity=0.2,
-                    radius=mountain_radius,
+                    radius=100,
                     popup=f"{i.name}, {int(i.location.elevation)} m",
                 ).add_to(mountains_fg)
             )
@@ -113,7 +110,7 @@ def plot_to_map(
         locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
         m.add_child(locs_fg)
         for i in locs:
-            loc = converter.convert(i[0], i[1])
+            loc = converter.convert(*i)
             folium.Circle(
                 location=(loc.latitude, loc.longitude),
                 color="#0a6496",
@@ -129,6 +126,8 @@ def plot_to_map(
         raster_bounds
     )
 
+    """
+
     (
         lower_left,
         upper_left,
@@ -136,7 +135,7 @@ def plot_to_map(
         lower_right,
     ) = location_handler.get_raster_bounds(dem_file)
 
-    ll1, _ = lower_left
+     ll1, _ = lower_left
     _, ul2 = upper_left
     ur1, _ = upper_right
     _, lr2 = lower_right
@@ -155,6 +154,8 @@ def plot_to_map(
         mercator_project=True,
         origin="upper",
     ).add_to(color_gradient)
+
+    """
 
     folium.LayerControl().add_to(m)
     m.save(filename)

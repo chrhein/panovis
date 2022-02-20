@@ -1,3 +1,4 @@
+import subprocess
 from json import load
 from math import asin, atan2, pi
 import os
@@ -9,16 +10,13 @@ from tools.converters import (
     get_earth_radius,
 )
 from tools.debug import p_a, p_i, p_e, p_s
-from pygeodesy.sphericalNvector import LatLon
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
 from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
-from numba import njit
 
 
-def get_raster_data(dem_file, coordinates):
-    ds_raster = rasterio.open(dem_file)
+def get_raster_data(ds_raster,  coordinates):
     # get coordinate reference system
     crs = int(ds_raster.crs.to_authority()[1])
     converter = LatLngToCrs(crs)
@@ -46,7 +44,7 @@ def get_raster_data(dem_file, coordinates):
         max_height = 10000
         pass
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
-    raster_metadata = [ds_raster, distances, max_height]
+    raster_metadata = [distances, max_height]
     return [normalized_coordinates, raster_metadata]
 
 
@@ -112,44 +110,37 @@ def get_height_from_raster(location, ds_raster, converter):
     return h
 
 
-def find_visible_items_in_ds(locs, dataset, radius=150):
+def get_visible_coordinates(ds_raster, viewshed):
+    im = cv2.imread(viewshed, cv2.IMREAD_GRAYSCALE)
+    coords = np.column_stack(np.where(im == 255))
+    height_band = ds_raster.read(1)
+    return [ds_raster.xy(*xy) for xy in coords if height_band[coords[0], coords[1]] > 25]
+
+
+def find_visible_items_in_ds(ds_viewshed, dataset):
     if len(dataset) == 0:
         return []
-    lower_left, upper_left, upper_right, lower_right = get_raster_bounds(
-        get_raster_path()
-    )
-    b = (
-        LatLon(*lower_left),
-        LatLon(*upper_left),
-        LatLon(*upper_right),
-        LatLon(*lower_right),
-    )
-    filtered_dataset = []
-    for i in dataset:
-        loc = i.location
-        p = LatLon(loc.latitude, loc.longitude)
-        if p.isenclosedBy(b):
-            filtered_dataset.append(i)
 
     items_in_sight = []
+    vs_val = ds_viewshed.read(1)
 
-    radius_sqrd = radius ** 2
-    for i in filtered_dataset:
-        for loc in locs:
-            if euclidian_distance(loc, i.location2d, radius_sqrd):
-                items_in_sight.append(i)
-                break
+    for i in dataset:
+        try:
+            for x in range(-1, 2):
+                for y in range(-1, 2):
+                    loc = i.location2d
+                    raster_coordinates = ds_viewshed.index(loc[0]+x, loc[1]+y)
+                    if vs_val[raster_coordinates] == 255:
+                        items_in_sight.append(i)
+                        break
+        except IndexError:
+            continue
 
     if len(items_in_sight) == 0:
         p_a("No items in sight")
     else:
         p_s(f"Found a total of {len(items_in_sight)} items in sight")
     return items_in_sight
-
-
-@njit
-def euclidian_distance(y1, y2, radius_sqrd):
-    return np.sum((y1 - y2) ** 2) <= radius_sqrd
 
 
 def displace_camera(camera_lat, camera_lon, deg=0.0, dist=0.1):
@@ -255,7 +246,8 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
             dist=1.0,
         ),
     )
-    loc3 = converter.convert(camera_location.latitude, camera_location.longitude)
+    loc3 = converter.convert(camera_location.latitude,
+                             camera_location.longitude)
 
     def find_angle_between_three_locations(loc1, loc2, loc3):
         a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
@@ -263,7 +255,8 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         return degrees(a1 - a2)
 
     def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
-        d = generator.get_distance_between_locations(camera_location, item.location)
+        d = generator.get_distance_between_locations(
+            camera_location, item.location)
         c_e = camera_location.elevation + 15
         i_e = item.location.elevation
         diff = i_e - c_e
@@ -282,3 +275,10 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         item.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 
     return dataset
+
+
+def create_viewshed(dem_file, location, folder):
+    x, y = location
+    viewshed_filename = f"{folder}/viewshed.tif"
+    args = f'gdal_viewshed -ox {x} -oy {y} {dem_file} {viewshed_filename}'
+    subprocess.Popen(args, shell=True)

@@ -263,11 +263,21 @@ def transform_panorama(
     render_coords,
 ):
     pts_panorama = np.float32([[x, y] for x, y in pano_coords])
+    """
+        print(f"Before sorting: {pts_panorama}")
+        pts_panorama = np.sort(pts_panorama, axis=0)
+        print(f"After sorting: {pts_panorama}")
+    """
     panorama_image = cv2.imread(IMAGE_DATA.path)
     panorama_image[np.where((panorama_image == [0, 0, 0]).all(axis=2))] = [
         1, 1, 1]
 
     pts_render = np.float32([[x, y] for x, y in render_coords])
+    """
+        print(f"Before sorting: {render_coords}")
+        pts_render = np.sort(pts_render, axis=0)
+        print(f"After sorting: {pts_render}")
+    """
     render_image = cv2.imread(IMAGE_DATA.render_path)
     render_width = render_image.shape[1]
 

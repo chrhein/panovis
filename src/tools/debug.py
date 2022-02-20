@@ -74,7 +74,7 @@ def custom_imshow(image, title, from_left=100, from_top=400):
 def check_file_type(in_file):
     f = in_file.lower()
     allowed_file_types = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]
-    file_type = f[f.rfind(".") :]
+    file_type = f[f.rfind("."):]
     if file_type in allowed_file_types:
         return True
     else:

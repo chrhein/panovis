@@ -11,6 +11,7 @@ from image_handling import (
     transform_panorama,
 )
 from renderer import mountain_lookup, render_height
+from tools.debug import p_i
 from tools.file_handling import (
     get_files,
     get_seen_images,
@@ -333,7 +334,8 @@ def create_app():
 
 
 def mark_image_seen(img_data):
-    if img_data.view_direction is None or img_data.hotspots is None:
+    p_i('Marking image as seen')
+    if img_data.view_direction is None:
         return
     make_folder(f"{UPLOAD_FOLDER}dev/")
     try:
@@ -348,7 +350,9 @@ def mark_image_seen(img_data):
             h.close()
 
     except FileNotFoundError:
-        print("An error occured when marking image as seen")
+        h = open(SEEN_IMAGES_PATH, "a")
+        h.write(f"{img_data.filename}\n")
+        h.close()
 
 
 def remove_image_as_seen(image_filename):

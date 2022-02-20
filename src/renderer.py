@@ -1,25 +1,18 @@
-import ast
 from json import load
 import os
-import pickle
 import time
 import subprocess
-from image_handling import (
-    get_image_description,
-)
+import rasterio
 from tools.converters import convert_coordinates
 from tools.debug import p_i, p_line
 from location_handler import (
-    find_visible_coordinates_in_render,
+    create_viewshed,
     get_3d_location,
     find_visible_items_in_ds,
     get_raster_data,
 )
 from map_plotting import plot_to_map
 from povs import primary_pov
-from tools.texture import (
-    create_color_gradient_image,
-)
 from tools.file_handling import (
     get_mountain_data,
     read_image_locations,
@@ -49,7 +42,8 @@ def render_height(img_data):
 
     dem_path, _, coordinates, _ = get_mountain_data(dem_path, img_data)
 
-    raster_data = get_raster_data(dem_path, coordinates)
+    ds_raster = rasterio.open(dem_path)
+    raster_data = get_raster_data(ds_raster, coordinates)
     if not raster_data:
         return
 
@@ -59,6 +53,11 @@ def render_height(img_data):
     with open(pov_filename, "w") as pf:
         pf.write(pov)
     pf.close()
+
+    converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
+    locxy = converter.convert(coordinates[0], coordinates[1])
+    create_viewshed(dem_path, (locxy.GetX(), locxy.GetY()), img_data.folder)
+
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
@@ -72,66 +71,18 @@ def render_height(img_data):
 
 def mountain_lookup(img_data, gpx_file, plot=False):
     p_i(f"Beginning mountain lookup for {img_data.filename}")
-    pov_filename = "/tmp/pov_file.pov"
-
-    im_desc = get_image_description(img_data.path)
-    custom_tags = ast.literal_eval(im_desc)
-    fov = custom_tags["fov"]
-    im_dims = custom_tags["imdims"]
 
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_path = data["dem_path"]
-        scale_factor = 0.75
-        if im_dims:
-            r_width = im_dims[1] * scale_factor
-            r_height = im_dims[0] * scale_factor
-        else:
-            r_width = data["render_width"]
-            r_height = data["render_height"]
-
-        render_shape = [r_width, r_height]
         json_file.close()
 
-    dem_path, original_dem, coordinates, viewing_direction = get_mountain_data(
+    dem_path, _, coordinates, viewing_direction = get_mountain_data(
         dem_path, img_data, True
     )
 
-    raster_data = get_raster_data(dem_path, coordinates)
-    if not raster_data:
-        return
-
-    locs_filename = f"{img_data.folder}/{img_data.filename}-locs.pkl"
-    if not os.path.exists(locs_filename):
-
-        pov_mode = "gradient"
-        gradient_path, _ = create_color_gradient_image()
-        if not os.path.exists(img_data.gradient_path):
-            pov = primary_pov(
-                dem_path,
-                raster_data,
-                texture_path=gradient_path,
-                mode=pov_mode,
-                fov=fov,
-            )
-            params = [pov_filename, img_data.gradient_path,
-                      render_shape, pov_mode]
-            with open(pov_filename, "w") as pf:
-                pf.write(pov)
-            execute_pov(params)
-
-        ds_name = original_dem.split("/")[-1].split(".")[0]
-        locs = find_visible_coordinates_in_render(
-            ds_name, gradient_path, img_data.gradient_path, dem_path
-        )
-        with open(locs_filename, "wb") as f:
-            pickle.dump(locs, f)
-    else:
-        with open(locs_filename, "rb") as f:
-            locs = pickle.load(f)
-
-    ds_raster = raster_data[1][0]
+    ds_raster = rasterio.open(dem_path)
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
 
@@ -140,12 +91,14 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         ds_raster, converter, lat, lon, only_height=True
     )
     camera_location = Location(lat, lon, camera_height)
-    radius = 150  # in meters
+
+    viewshed = f'{img_data.folder}/viewshed.tif'
+    ds_viewshed = rasterio.open(viewshed)
 
     images = read_image_locations(
         img_data.filename, "src/static/images", ds_raster, converter
     )
-    images_in_sight = find_visible_items_in_ds(locs, images, radius=radius)
+    images_in_sight = find_visible_items_in_ds(ds_viewshed, images)
     images_3d = get_3d_location(
         camera_location,
         viewing_direction,
@@ -155,15 +108,13 @@ def mountain_lookup(img_data, gpx_file, plot=False):
 
     mountains = read_mountain_gpx(gpx_file, converter)
     mountains_in_sight = find_visible_items_in_ds(
-        locs, mountains, radius=radius)
+        ds_viewshed, mountains)
     mountains_3d = get_3d_location(
         camera_location,
         viewing_direction,
         converter,
         mountains_in_sight,
     )
-
-    converter_to_latlng = CrsToLatLng(crs)
 
     if plot:
         plot_filename = f"{img_data.folder}/{img_data.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
@@ -173,9 +124,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
             coordinates,
             plot_filename,
             dem_path,
-            converter_to_latlng,
-            mountain_radius=radius,
-            locs=locs,
+            CrsToLatLng(crs),
+            # locs=get_visible_coordinates(ds_raster, viewshed),
             mountains=mountains,
             images=images,
         )

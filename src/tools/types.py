@@ -108,11 +108,12 @@ class ImageData:
     gradient_path: str
     overlay_path: str
     ultrawide_path: str
-    warped_panorama_path = str
+    warped_panorama_path: str
     hotspots: dict = None
     view_direction: float = None
     fov_l: float = None
     fov_r: float = None
+    location: Location = None
 
     def __init__(self, path):
         self.path = path
