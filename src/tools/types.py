@@ -1,9 +1,7 @@
 import operator
 from dataclasses import dataclass
-import numpy as np
 from osgeo import ogr, osr
 from geopy import distance
-import numpy as np
 
 
 @dataclass
@@ -48,6 +46,12 @@ class Mountain:
 
     def set_location_in_3d(self, location_in_3d):
         self.location_in_3d = location_in_3d
+
+
+@dataclass
+class Hike:
+    name: str
+    locations: list
 
 
 @dataclass
@@ -104,10 +108,12 @@ class ImageData:
     gradient_path: str
     overlay_path: str
     ultrawide_path: str
+    warped_panorama_path: str
     hotspots: dict = None
     view_direction: float = None
     fov_l: float = None
     fov_r: float = None
+    location: Location = None
 
     def __init__(self, path):
         self.path = path
@@ -127,6 +133,9 @@ class ImageData:
         )
         self.thumbnail_path = self.path.replace(
             f"{self.filename}.jpg", f"{self.filename}-thumbnail.jpg"
+        )
+        self.warped_panorama_path = self.path.replace(
+            f"{self.filename}.jpg", f"{self.filename}-warped.jpg"
         )
 
         self.hotspots = {}

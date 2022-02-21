@@ -14,7 +14,7 @@
         <div class="p-3 border bg-secondary text-light">
             <div class="d-flex">
                 <div class="my-auto fw-bold h6 text-start me-3">
-                    GPX in use:
+                    Mountain dataset:
                 </div>
 
                 <div
@@ -36,12 +36,12 @@
         <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-5">
             <h3 class="fw-bold text-start">View panoramas</h3>
             <div class="border bg-light">
-                <div id="uploaded-panoramas" class="parent-wrapper">
-                    <div class="parent">
+                <div class="uploaded-panoramas-wrapper">
+                    <div class="uploaded-panoramas">
                         {% for pano in ims %}
                         <a href='javascript:removeImage("{{ pano[0] }}")'>
                             <div
-                                class="child d-flex justify-content-center flex-nowrap"
+                                class="uploaded-panoramas-child d-flex justify-content-center flex-nowrap"
                             >
                                 <div class="hover-effect">
                                     <img
@@ -57,14 +57,14 @@
                     </div>
                 </div>
                 <div class="row m-3">
-                    <div class="col-xl-6 col-md-12 align-items-center fs-5">
+                    <div class="col-xl-6 col-sm-6 align-items-center fs-5">
                         Number of uploaded panoramas: {{ ims|length }}
                     </div>
                     <div
-                        class="col-xl-4 col-sm-12 form-check d-flex align-items-center d-flex justify-content-end"
+                        class="col-xl-4 col-sm-6 col-xs-12 form-check d-flex align-items-center d-flex justify-content-sm-end justify-content-xs-start"
                     >
                         <label
-                            class="form-check-label fs-5 bg-light text-end"
+                            class="form-check-label fs-5"
                             for="flexCheckDefault"
                         >
                             Create Interactive Map:
@@ -91,32 +91,83 @@
             </div>
         </div>
 
+        <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-5">
+            <h3 class="fw-bold text-start">Hikes</h3>
+            <div class="border bg-light">
+                <div class="uploaded-hikes-wrapper">
+                    <div id="hikes" class="uploaded-hikes"></div>
+                </div>
+                <div class="row m-3">
+                    <div class="col-xl-6 col-md-12 align-items-center fs-5">
+                        Number of uploaded hikes: {{ hikes|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-4">
-            <h4 class="fw-bold text-start">Upload new panorama</h4>
-            <div class="p-3 border bg-light">
-                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
-                    <form
-                        action="/upload"
-                        method="POST"
-                        enctype="multipart/form-data"
-                    >
-                        <div class="input-group">
-                            <input
-                                class="form-control"
-                                type="file"
-                                name="file"
-                                accept="image/jpeg"
-                            />
-                            <span class="input-group-btn">
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary btn-md px-4 gap-3 mx-1"
-                                >
-                                    Select
-                                </button>
-                            </span>
+            <div class="row">
+                <div class="col-xs-12 col-xl-6 mx-auto align-middle pt-4">
+                    <h4 class="fw-bold text-start">Upload new panorama</h4>
+                    <div class="p-3 border bg-light">
+                        <div
+                            class="d-grid py-5 d-sm-flex justify-content-sm-center"
+                        >
+                            <form
+                                action="/upload"
+                                method="POST"
+                                enctype="multipart/form-data"
+                            >
+                                <div class="input-group">
+                                    <input
+                                        class="form-control"
+                                        type="file"
+                                        name="file"
+                                        accept="image/jpeg"
+                                    />
+                                    <span class="input-group-btn">
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary btn-md px-4 gap-3 mx-1"
+                                        >
+                                            Select
+                                        </button>
+                                    </span>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-xl-6 mx-auto align-middle pt-4">
+                    <h4 class="fw-bold text-start">Upload new hike</h4>
+                    <div class="p-3 border bg-light">
+                        <div
+                            class="d-grid py-5 d-sm-flex justify-content-sm-center"
+                        >
+                            <form
+                                action="/uploadhike"
+                                method="POST"
+                                enctype="multipart/form-data"
+                            >
+                                <div class="input-group">
+                                    <input
+                                        class="form-control"
+                                        type="file"
+                                        name="file"
+                                        accept=".gpx"
+                                    />
+                                    <span class="input-group-btn">
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary btn-md px-4 gap-3 mx-1"
+                                        >
+                                            Select
+                                        </button>
+                                    </span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -152,6 +203,10 @@
 
             function removeImage(imageId) {
                 window.location.href = `/rmvimg?image_id=${imageId}`
+            }
+
+            function removeHike(hikeId) {
+                window.location.href = `/rmvhike?hike_id=${hikeId}`
             }
 
             function changeGPX() {
@@ -197,6 +252,28 @@
                 document.getElementById(
                     'uploaded-panoramas-button'
                 ).disabled = true
+            }
+
+            const hikes = JSON.parse('{{ hikes | tojson | safe }}')
+
+            let hikeWrapper = document.getElementById('hikes')
+
+            for (let i = 0; i < hikes.length; i++) {
+                let hike = hikes[i]
+                let hikeLink = document.createElement('a')
+                hikeLink.setAttribute(
+                    'href',
+                    'javascript:removeHike(' + '"' + hike + '"' + ')'
+                )
+                hikeLink.setAttribute(
+                    'class',
+                    'uploaded-hikes-child d-flex justify-content-center flex-nowrap'
+                )
+                let hikeFile = document.createElement('div')
+                hikeFile.setAttribute('class', 'hike-file text-center p-2')
+                hikeFile.innerHTML = hike.slice(0, hike.length - 9) + '.gpx'
+                hikeLink.appendChild(hikeFile)
+                hikeWrapper.appendChild(hikeLink)
             }
         </script>
     </body>

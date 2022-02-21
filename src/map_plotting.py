@@ -1,23 +1,22 @@
 import base64
-import image_handling
 from dotenv import load_dotenv
-import folium, folium.raster_layers
+import folium
+import folium.raster_layers
 import os
-import cv2
 import location_handler
 from tools.debug import p_i
 
 
 def plot_to_map(
+    camera_pano_path,
     mountains_in_sight,
     coordinates,
     filename,
     dem_file,
     converter,
-    mountain_radius,
-    locs=[],
-    mountains=[],
-    images=[],
+    locs=None,
+    mountains=None,
+    images=None,
 ):
     p_i("Creating Interactive Map")
     c_lat, c_lon, _, _ = coordinates
@@ -50,14 +49,15 @@ def plot_to_map(
                     fill=True,
                     fill_color="#ed6952",
                     fill_opacity=0.2,
-                    radius=mountain_radius,
+                    radius=100,
                     popup=f"{i.name}, {int(i.location.elevation)} m",
                 ).add_to(mountains_fg)
             )
             for i in mountains
         ]
     if mountains_in_sight:
-        mountains_in_sight_fg = folium.FeatureGroup(name="Visible Mountains", show=True)
+        mountains_in_sight_fg = folium.FeatureGroup(
+            name="Visible Mountains", show=True)
         m.add_child(mountains_in_sight_fg)
         [
             (
@@ -81,11 +81,12 @@ def plot_to_map(
         m.add_child(images_fg)
         for im in images:
             encoded = base64.b64encode(open(im.thumbnail_path, "rb").read())
-            html = '<img src="data:image/JPG;base64,{}">'.format
+            html = '<img id="folium-image" src="data:image/JPG;base64,{}"></img>'.format
+
             iframe = folium.IFrame(
                 html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
             )
-            popup = folium.Popup(iframe, max_width=450)
+            popup = folium.Popup(iframe, max_width=470)
 
             folium.Marker(
                 location=(im.location.latitude, im.location.longitude),
@@ -93,9 +94,15 @@ def plot_to_map(
                 icon=folium.Icon(color="beige", icon="camera"),
             ).add_to(images_fg)
 
+    encoded = base64.b64encode(open(camera_pano_path, "rb").read())
+    html = '<img src="data:image/JPG;base64,{}">'.format
+    iframe = folium.IFrame(
+        html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
+    )
+    popup = folium.Popup(iframe, max_width=450)
     folium.Marker(
         location=[c_lat, c_lon],
-        popup="Camera Location",
+        popup=popup,
         icon=folium.Icon(color="green", icon="camera"),
     ).add_to(m)
 
@@ -103,7 +110,7 @@ def plot_to_map(
         locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
         m.add_child(locs_fg)
         for i in locs:
-            loc = converter.convert(i[0], i[1])
+            loc = converter.convert(*i)
             folium.Circle(
                 location=(loc.latitude, loc.longitude),
                 color="#0a6496",
@@ -119,6 +126,8 @@ def plot_to_map(
         raster_bounds
     )
 
+    """
+
     (
         lower_left,
         upper_left,
@@ -126,7 +135,7 @@ def plot_to_map(
         lower_right,
     ) = location_handler.get_raster_bounds(dem_file)
 
-    ll1, _ = lower_left
+     ll1, _ = lower_left
     _, ul2 = upper_left
     ur1, _ = upper_right
     _, lr2 = lower_right
@@ -136,7 +145,8 @@ def plot_to_map(
     )
     m.add_child(color_gradient)
     im = cv2.imread("data/color_gradient.png")
-    rotated_image = image_handling.rotate_image_on_map(im, lower_left, upper_left)
+    rotated_image = image_handling.rotate_image_on_map(
+        im, lower_left, upper_left)
 
     folium.raster_layers.ImageOverlay(
         image=rotated_image,
@@ -144,6 +154,8 @@ def plot_to_map(
         mercator_project=True,
         origin="upper",
     ).add_to(color_gradient)
+
+    """
 
     folium.LayerControl().add_to(m)
     m.save(filename)
@@ -163,7 +175,8 @@ def compare_mtns_on_map(all_mtns, mn1, mn2, filename):
     load_dotenv()
     MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
     MAPBOX_STYLE_URL = os.getenv("MAPBOX_STYLE_URL")
-    lats, lons = zip(*[(i.location.latitude, i.location.longitude) for i in mn1])
+    lats, lons = zip(*[(i.location.latitude, i.location.longitude)
+                     for i in mn1])
     m = folium.Map(
         location=[(sum(lats) / len(lats)), (sum(lons) / len(lons))],
         tiles=MAPBOX_STYLE_URL,
@@ -174,7 +187,8 @@ def compare_mtns_on_map(all_mtns, mn1, mn2, filename):
     [
         (
             folium.Marker(
-                location=(float(i.location.latitude), float(i.location.longitude)),
+                location=(float(i.location.latitude),
+                          float(i.location.longitude)),
                 popup="%s\n%.4f, %.4f\n%im"
                 % (
                     str(i.name),

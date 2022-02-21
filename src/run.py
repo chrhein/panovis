@@ -1,9 +1,8 @@
 import hashlib
-import json
 import os
+import pickle
 import time
 from flask import Flask, render_template, request, redirect, session, url_for
-from matplotlib import interactive
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gsp_img_direction,
@@ -12,11 +11,14 @@ from image_handling import (
     transform_panorama,
 )
 from renderer import mountain_lookup, render_height
+from tools.debug import p_i
 from tools.file_handling import (
+    get_files,
     get_seen_images,
     load_image_data,
     make_folder,
     save_image_data,
+    trim_hikes,
 )
 from PIL import Image
 from joblib import Parallel, delayed
@@ -32,6 +34,7 @@ global DEBUG_LOCATIONS
 DEBUG_LOCATIONS = False
 
 SEEN_IMAGES_PATH = f"{UPLOAD_FOLDER}dev/seen_images.txt"
+SEEN_HIKES = f"{UPLOAD_FOLDER}hikes/"
 
 
 def create_app():
@@ -52,7 +55,13 @@ def create_app():
         if gpx != "None selected":
             gpx = gpx.split("/")[-1]
         interactive = session.get("interactive", False)
-        return render_template("upload_pano.html", ims=i, gpx=gpx, folium=interactive)
+        uploaded_hikes = [
+            f"{x.split('/')[-1].split('.')[0]}" for x in get_files(SEEN_HIKES)
+        ]
+
+        return render_template(
+            "home.html", ims=i, gpx=gpx, hikes=uploaded_hikes, folium=interactive
+        )
 
     @app.route("/loading", methods=["POST", "GET"])
     def loading():
@@ -88,7 +97,7 @@ def create_app():
                 save_image_data(IMAGE_DATA)
 
             session["filename"] = IMAGE_DATA.filename
-            mark_file_as_seen(IMAGE_DATA)
+            mark_image_seen(IMAGE_DATA)
 
             if not os.path.exists(IMAGE_DATA.path):
                 f.save(IMAGE_DATA.path)
@@ -117,10 +126,48 @@ def create_app():
             f.save(gpx_path)
             return redirect(url_for("homepage"))
 
+    @app.route("/uploadhike", methods=["POST", "GET"])
+    def uploadhike():
+        if request.method == "POST":
+            f = request.files["file"]
+            app.logger.info(f)
+            fp = f"{SEEN_HIKES}{f.filename}"
+            session["hike"] = fp
+            f.save(fp)
+            return redirect(
+                url_for(
+                    "loading",
+                    task="trimgpx",
+                    title="Uploading Hike",
+                    text="Uploading Hike ...",
+                    redirect_url=url_for("homepage"),
+                )
+            )
+        return redirect(url_for("homepage"))
+
+    @app.route("/trimgpx")
+    def trimgpx():
+        f = session.get("hike", None)
+        f_hash = hashlib.md5(f.encode("utf-8")).hexdigest()[-8:]
+        fn = f.split("/")[-1].split(".")[0]
+        filename_h = f"{fn}-{f_hash}"
+        make_folder(SEEN_HIKES)
+        trimmed = trim_hikes(f)
+        hike_path = f"{SEEN_HIKES}{filename_h}.pkl"
+        pickle.dump(trimmed, open(hike_path, "wb"))
+        os.remove(f)
+        return ("", 204)
+
     @app.route("/rmvimg", methods=["GET"])
     def rmvimg():
         file_to_remove = request.args.get("image_id")
-        session["filename"] = remove_file_as_seen(file_to_remove)
+        session["filename"] = remove_image_as_seen(file_to_remove)
+        return redirect(url_for("homepage"))
+
+    @app.route("/rmvhike", methods=["GET"])
+    def rmvhike():
+        file_to_remove = request.args.get("hike_id")
+        remove_hike(file_to_remove)
         return redirect(url_for("homepage"))
 
     @app.route("/selectgpx", methods=["POST", "GET"])
@@ -210,19 +257,21 @@ def create_app():
 
         im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
         session["filename"] = IMAGE_DATA.filename
-        mark_file_as_seen(IMAGE_DATA)
 
         if im_view_direction is None:
             pano_coords = strip_array(request.args.get("pano_coords"), True)
-            render_coords = strip_array(request.args.get("render_coords"), True)
+            render_coords = strip_array(
+                request.args.get("render_coords"), True)
 
-            IMAGE_DATA = transform_panorama(IMAGE_DATA, pano_coords, render_coords)
+            IMAGE_DATA = transform_panorama(
+                IMAGE_DATA, pano_coords, render_coords)
             if not IMAGE_DATA:
                 return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
 
             save_image_data(IMAGE_DATA)
             session["filename"] = IMAGE_DATA.filename
 
+        mark_image_seen(IMAGE_DATA)
         return render_template(
             "preview_warped.html",
             warped=IMAGE_DATA.overlay_path,
@@ -232,7 +281,8 @@ def create_app():
     def mtn_lookup(pano_filename, gpx_path, interactive):
         im_data = load_image_data(pano_filename)
         if im_data is not None:
-            mountains_3d, images_3d = mountain_lookup(im_data, gpx_path, interactive)
+            mountains_3d, images_3d = mountain_lookup(
+                im_data, gpx_path, interactive)
             gpx = gpx_path.split("/")[-1].split(".")[0]
             hs = create_hotspots(im_data, mountains_3d, images_3d)
             im_data.add_hotspots(gpx, hs)
@@ -250,7 +300,7 @@ def create_app():
         fn = get_filename()
         session["filename"] = fn
         start_time = time.time()
-        Parallel(n_jobs=len(seen_images))(
+        Parallel(n_jobs=min(4, len(seen_images)))(
             delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
             for pano_filename in seen_images
         )
@@ -262,7 +312,8 @@ def create_app():
     @app.route("/mountains")
     def mountains():
         IMAGE_DATA = load_image_data(get_filename())
-        gpx_filename = session.get("gpx_path", None).split("/")[-1].split(".")[0]
+        gpx_filename = session.get(
+            "gpx_path", None).split("/")[-1].split(".")[0]
         scenes = make_scenes(gpx_filename)
         interactive = session.get("interactive", False)
         return render_template(
@@ -282,8 +333,9 @@ def create_app():
     return app
 
 
-def mark_file_as_seen(img_data):
-    if img_data.view_direction is None or img_data.hotspots is None:
+def mark_image_seen(img_data):
+    p_i('Marking image as seen')
+    if img_data.view_direction is None:
         return
     make_folder(f"{UPLOAD_FOLDER}dev/")
     try:
@@ -298,12 +350,12 @@ def mark_file_as_seen(img_data):
             h.close()
 
     except FileNotFoundError:
-        h = open(SEEN_IMAGES_PATH, "w")
+        h = open(SEEN_IMAGES_PATH, "a")
         h.write(f"{img_data.filename}\n")
         h.close()
 
 
-def remove_file_as_seen(image_filename):
+def remove_image_as_seen(image_filename):
     try:
         h = open(SEEN_IMAGES_PATH, "r")
         seen_images = h.readlines()
@@ -324,6 +376,13 @@ def remove_file_as_seen(image_filename):
         pass
 
 
+def remove_hike(hike_filename):
+    try:
+        os.remove(f"{SEEN_HIKES}/{hike_filename}.pkl")
+    except FileNotFoundError:
+        pass
+
+
 def make_scenes(gpx_filename):
     seen_images = get_seen_images()
     scenes = {}
@@ -337,6 +396,9 @@ def make_scenes(gpx_filename):
                     "hotspots": im_hs,
                     "render_path": im_data.render_path,
                     "view_direction": im_data.view_direction,
+                    "cropped_render_path": im_data.ultrawide_path,
+                    "cropped_overlay_path": im_data.overlay_path,
+                    "warped_panorama_path": im_data.warped_panorama_path,
                 }
     return scenes
 
@@ -345,8 +407,6 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
     hotspots = {}
     mountain_hotpots = {}
     for mountain in mountains_3d:
-        lat = mountain.location.latitude
-        lon = mountain.location.longitude
         mountain_hotpots.update(
             {
                 str(mountain.name): {
@@ -354,6 +414,7 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
                     + float(mountain.location_in_3d.yaw),
                     "pitch": mountain.location_in_3d.pitch,
                     "distance": mountain.location_in_3d.distance,
+                    "elevation": mountain.location.elevation,
                     "url": mountain.link,
                 }
             }
@@ -390,7 +451,8 @@ def strip_array(arr, to_pythonic_list=False):
     for i in arr:
         x, y = i.split(",")
         a.append(
-            ((float(x), float(y)) if to_pythonic_list else f"{float(x)}:{float(y)}")
+            ((float(x), float(y))
+             if to_pythonic_list else f"{float(x)}:{float(y)}")
         )
     return a
 

@@ -1,8 +1,6 @@
-from math import radians, asin, cos, sin, atan2, degrees
+from math import radians, asin, atan2
 import rasterio
-from osgeo import ogr, osr
 from rasterio.warp import transform
-from tools.types import Location
 from functools import reduce
 import operator
 from numpy import sin, cos, degrees
@@ -38,19 +36,24 @@ def convert_coordinates(raster, converter, lat, lon, only_height=False):
 
     to_crs = raster.crs
     from_crs = rasterio.crs.CRS.from_epsg(4326)
-    new_x, new_y = reduce(operator.add, transform(from_crs, to_crs, [lon], [lat]))
+    new_x, new_y = reduce(operator.add, transform(
+        from_crs, to_crs, [lon], [lat]))
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
 
     try:
-        height = h[row][col]
+        total_elevation = 0
+        for i in range(row - 2, row + 3):
+            for j in range(col - 2, col + 3):
+                total_elevation += h[i, j]
+        height = total_elevation / 25
         if only_height:
             return height
     except IndexError:
         return
 
     def scale_height(height):
-        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2.1
+        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2
 
     height_scaled = scale_height(height)
     height_max_mountain_scaled = scale_height(h.max())
