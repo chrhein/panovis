@@ -46,8 +46,8 @@ def get_mountain_data(dem_file, im_data, gradient=False):
 
     coordinates = [camera_lat, camera_lon, *look_ats]
 
-    cropped_dem = f"dev/cropped-{im_data.filename}.png"
-    gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+    cropped_dem = f"dev/cropped-{im_data.filename}.tif"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox, format="GTiff")
 
     return [cropped_dem, dem_file, coordinates, viewing_direction]
 
