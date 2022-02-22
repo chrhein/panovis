@@ -238,12 +238,14 @@ div.panorama-image-tooltip span:after {
     }
 }
 
-#folium-container {
+#folium-container,
+#plotly-container {
     width: 100vw;
     height: 80vh;
 }
 
-#folium-map {
+#folium-map,
+#plotly-vis {
     width: 90vw;
     height: 80vh;
 }

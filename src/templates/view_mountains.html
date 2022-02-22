@@ -69,12 +69,22 @@
                 </div>
             </div>
         </div>
+        <div id="3d-terrain" class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">3D Terrain</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid d-sm-flex justify-content-sm-center">
+                    <div id="plotly-container">
+                        <object id="plotly-vis"></object>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="interactive-map" class="px-4 py-4 my-4 text-center">
             <h3 class="fw-bold text-start">Interactive Map</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
                     <div id="folium-container">
-                        <object id="folium-map" data="{{folium_path}}"></object>
+                        <object id="folium-map"></object>
                     </div>
                 </div>
             </div>
@@ -205,6 +215,16 @@
                 parent.appendChild(clone)
             }
 
+            function loadPlotly(sceneId) {
+                const updatedPlotly = `src/static/images/${sceneId}/${sceneId}-3d.html`
+                let object = document.getElementById('plotly-vis')
+                object.setAttribute('data', updatedPlotly)
+                let clone = object.cloneNode(true)
+                let parent = object.parentNode
+                parent.removeChild(object)
+                parent.appendChild(clone)
+            }
+
             function loadJuxtapose(sceneId) {
                 document.getElementById('juxtapose').innerHTML = ''
                 slider = new juxtapose.JXSlider(
@@ -229,13 +249,12 @@
             }
 
             function switchScene(sceneId) {
+                loadPlotly(sceneId)
                 loadFolium(sceneId)
                 loadJuxtapose(sceneId)
                 sceneIndex = sceneIds.indexOf(sceneId)
                 window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
-
-            switchScene(sceneIds[sceneIndex])
 
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
@@ -271,9 +290,8 @@
                 }
             }
 
-            viewer.on('scenechange', function (event) {
-                switchScene(event)
-                console.log('Loaded new scene: ' + event)
+            viewer.on('load', function (event) {
+                switchScene(viewer.getScene())
             })
 
             document
