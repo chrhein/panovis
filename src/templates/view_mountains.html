@@ -30,7 +30,8 @@
             rel="stylesheet"
             href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
         />
-
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-2.9.0.min.js"></script>
         <title>E2 - View Panoramas</title>
     </head>
     <body>
@@ -69,12 +70,22 @@
                 </div>
             </div>
         </div>
+        <div id="3d-terrain" class="px-4 py-4 my-4 text-center">
+            <h3 class="fw-bold text-start">3D Terrain</h3>
+            <div class="p-3 border bg-light">
+                <div class="d-grid d-sm-flex justify-content-sm-center">
+                    <div id="plotly-container">
+                        <object id="plotly-vis"></object>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="interactive-map" class="px-4 py-4 my-4 text-center">
             <h3 class="fw-bold text-start">Interactive Map</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
                     <div id="folium-container">
-                        <object id="folium-map" data="{{folium_path}}"></object>
+                        <object id="folium-map"></object>
                     </div>
                 </div>
             </div>
@@ -192,7 +203,7 @@
 
             const gpx = '{{ gpx }}'
 
-            function loadFolium(sceneId) {
+            async function loadFolium(sceneId) {
                 if (!interactive) {
                     return
                 }
@@ -205,7 +216,25 @@
                 parent.appendChild(clone)
             }
 
-            function loadJuxtapose(sceneId) {
+            async function loadPlotly(sceneId) {
+                let data = await d3.json(
+                    `src/static/images/${sceneId}/${sceneId}-3d.json`
+                )
+
+                console.log(data)
+
+                Plotly.react('plotly-container', data['data'], data['layout'])
+
+                /* const updatedPlotly = `src/static/images/${sceneId}/${sceneId}-3d.html`
+                let object = document.getElementById('plotly-vis')
+                object.setAttribute('data', updatedPlotly)
+                let clone = object.cloneNode(true)
+                let parent = object.parentNode
+                parent.removeChild(object)
+                parent.appendChild(clone) */
+            }
+
+            async function loadJuxtapose(sceneId) {
                 document.getElementById('juxtapose').innerHTML = ''
                 slider = new juxtapose.JXSlider(
                     '#juxtapose',
@@ -228,14 +257,13 @@
                 )
             }
 
-            function switchScene(sceneId) {
-                loadFolium(sceneId)
-                loadJuxtapose(sceneId)
+            async function switchScene(sceneId) {
+                await loadPlotly(sceneId)
+                await loadFolium(sceneId)
+                await loadJuxtapose(sceneId)
                 sceneIndex = sceneIds.indexOf(sceneId)
                 window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
-
-            switchScene(sceneIds[sceneIndex])
 
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
@@ -271,9 +299,8 @@
                 }
             }
 
-            viewer.on('scenechange', function (event) {
-                switchScene(event)
-                console.log('Loaded new scene: ' + event)
+            viewer.on('load', async function (event) {
+                await switchScene(viewer.getScene())
             })
 
             document
