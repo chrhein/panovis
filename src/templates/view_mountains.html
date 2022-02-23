@@ -30,7 +30,8 @@
             rel="stylesheet"
             href="https://cdn.knightlab.com/libs/juxtapose/latest/css/juxtapose.css"
         />
-
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-2.9.0.min.js"></script>
         <title>E2 - View Panoramas</title>
     </head>
     <body>
@@ -202,7 +203,7 @@
 
             const gpx = '{{ gpx }}'
 
-            function loadFolium(sceneId) {
+            async function loadFolium(sceneId) {
                 if (!interactive) {
                     return
                 }
@@ -215,17 +216,25 @@
                 parent.appendChild(clone)
             }
 
-            function loadPlotly(sceneId) {
-                const updatedPlotly = `src/static/images/${sceneId}/${sceneId}-3d.html`
+            async function loadPlotly(sceneId) {
+                let data = await d3.json(
+                    `src/static/images/${sceneId}/${sceneId}-3d.json`
+                )
+
+                console.log(data)
+
+                Plotly.react('plotly-container', data['data'], data['layout'])
+
+                /* const updatedPlotly = `src/static/images/${sceneId}/${sceneId}-3d.html`
                 let object = document.getElementById('plotly-vis')
                 object.setAttribute('data', updatedPlotly)
                 let clone = object.cloneNode(true)
                 let parent = object.parentNode
                 parent.removeChild(object)
-                parent.appendChild(clone)
+                parent.appendChild(clone) */
             }
 
-            function loadJuxtapose(sceneId) {
+            async function loadJuxtapose(sceneId) {
                 document.getElementById('juxtapose').innerHTML = ''
                 slider = new juxtapose.JXSlider(
                     '#juxtapose',
@@ -248,10 +257,10 @@
                 )
             }
 
-            function switchScene(sceneId) {
-                loadPlotly(sceneId)
-                loadFolium(sceneId)
-                loadJuxtapose(sceneId)
+            async function switchScene(sceneId) {
+                await loadPlotly(sceneId)
+                await loadFolium(sceneId)
+                await loadJuxtapose(sceneId)
                 sceneIndex = sceneIds.indexOf(sceneId)
                 window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
@@ -290,8 +299,8 @@
                 }
             }
 
-            viewer.on('load', function (event) {
-                switchScene(viewer.getScene())
+            viewer.on('load', async function (event) {
+                await switchScene(viewer.getScene())
             })
 
             document

@@ -1,3 +1,4 @@
+from numpy import flip
 import plotly.graph_objects as go
 
 
@@ -5,12 +6,12 @@ def plot_3d(ds_raster, plotpath):
     height_band = ds_raster.read(1)
     w, h = height_band.shape
     resolution = ds_raster.res[0]
-    offset = 25 * resolution
+    offset = 15 * resolution
     trimmed_ds = height_band[int(w/2-offset):int(w/2+offset),
                              int(h/2-offset):int(h/2+offset)]
 
     fig = go.Figure(
-        data=[go.Surface(z=trimmed_ds, colorscale='Fall',
+        data=[go.Surface(z=flip(trimmed_ds, 1), colorscale='Fall',
                          lightposition=dict(x=100,
                                             y=100,
                                             z=2000),)], )
@@ -28,11 +29,10 @@ def plot_3d(ds_raster, plotpath):
                           zaxis=dict(visible=False, showgrid=False),
                           aspectmode='manual',
                           aspectratio=dict(x=1, y=1, z=1.5/resolution),
-                          xaxis_autorange="reversed",
 
                       ),
 
                       showlegend=False,
                       )
     fig.update_traces(showlegend=False)
-    fig.write_html(plotpath)
+    fig.write_json(plotpath)
