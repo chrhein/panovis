@@ -14,11 +14,11 @@ from renderer import mountain_lookup, render_height
 from tools.debug import p_i
 from tools.file_handling import (
     get_files,
-    get_seen_images,
+    get_seen_items,
     load_image_data,
     make_folder,
     save_image_data,
-    trim_hikes,
+    trim_hike,
 )
 from PIL import Image
 from joblib import Parallel, delayed
@@ -45,7 +45,7 @@ def create_app():
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
-        ims = get_seen_images()
+        ims = get_seen_items()
         i = []
         for im in ims:
             im_data = load_image_data(im)
@@ -152,9 +152,9 @@ def create_app():
         fn = f.split("/")[-1].split(".")[0]
         filename_h = f"{fn}-{f_hash}"
         make_folder(SEEN_HIKES)
-        trimmed = trim_hikes(f)
+        trimmed = trim_hike(f)
         hike_path = f"{SEEN_HIKES}{filename_h}.pkl"
-        pickle.dump(trimmed, open(hike_path, "wb"))
+        pickle.dump([trimmed], open(hike_path, "wb"))
         os.remove(f)
         return ("", 204)
 
@@ -281,10 +281,11 @@ def create_app():
     def mtn_lookup(pano_filename, gpx_path, interactive):
         im_data = load_image_data(pano_filename)
         if im_data is not None:
-            mountains_3d, images_3d = mountain_lookup(
+            mountains_3d, images_3d, visible_hikes = mountain_lookup(
                 im_data, gpx_path, interactive)
             gpx = gpx_path.split("/")[-1].split(".")[0]
-            hs = create_hotspots(im_data, mountains_3d, images_3d)
+            hs = create_hotspots(im_data, mountains_3d,
+                                 images_3d, visible_hikes)
             im_data.add_hotspots(gpx, hs)
             save_image_data(im_data)
 
@@ -296,7 +297,7 @@ def create_app():
         else:
             interactive = False
         session["interactive"] = interactive
-        seen_images = get_seen_images()
+        seen_images = get_seen_items()
         fn = get_filename()
         session["filename"] = fn
         start_time = time.time()
@@ -327,7 +328,7 @@ def create_app():
     def get_filename():
         fn = session.get("filename", None)
         if fn is None:
-            fn = get_seen_images()[-1]
+            fn = get_seen_items()[-1]
         return fn
 
     return app
@@ -384,7 +385,7 @@ def remove_hike(hike_filename):
 
 
 def make_scenes(gpx_filename):
-    seen_images = get_seen_images()
+    seen_images = get_seen_items()
     scenes = {}
     for pano_filename in seen_images:
         im_data = load_image_data(pano_filename)
@@ -403,7 +404,7 @@ def make_scenes(gpx_filename):
     return scenes
 
 
-def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
+def create_hotspots(IMAGE_DATA, mountains_3d, images_3d, visible_hikes):
     hotspots = {}
     mountain_hotpots = {}
     for mountain in mountains_3d:
@@ -436,10 +437,29 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d):
                     }
                 }
             )
+    hike_hotspots = {}
+    for hike, waypoints in visible_hikes.items():
+        hike_waypoints = []
+        for wp in waypoints:
+            hike_waypoints.append(
+                {
+                    "yaw": IMAGE_DATA.view_direction
+                    + float(wp.location_in_3d.yaw),
+                    "pitch": wp.location_in_3d.pitch,
+                    "distance": wp.location_in_3d.distance,
+                    "elevation": wp.location.elevation,
+                }
+            )
+        hike_hotspots.update(
+            {
+                hike: hike_waypoints
+            }
+        )
     hotspots.update(
         {
             "mountains": mountain_hotpots,
             "images": image_hotpots,
+            "hikes": hike_hotspots,
         }
     )
     return hotspots

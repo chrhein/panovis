@@ -14,6 +14,7 @@ from location_handler import (
 from map_plotting import plot_to_map
 from povs import primary_pov
 from tools.file_handling import (
+    get_hikes,
     get_mountain_data,
     read_image_locations,
     read_mountain_gpx,
@@ -96,6 +97,19 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     viewshed = f'{img_data.folder}/viewshed.tif'
     ds_viewshed = rasterio.open(viewshed)
 
+    visible_hikes = {}
+    for hike in get_hikes():
+        waypoints_in_sight = find_visible_items_in_ds(
+            ds_viewshed, hike.waypoints
+        )
+        waypoints_3d = get_3d_location(
+            camera_location,
+            viewing_direction,
+            converter,
+            waypoints_in_sight,
+        )
+        visible_hikes[hike.name] = waypoints_3d
+
     images = read_image_locations(
         img_data.filename, "src/static/images", ds_raster, converter
     )
@@ -135,7 +149,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
             images=images,
         )
 
-    return mountains_3d, images_3d
+    return mountains_3d, images_3d, visible_hikes
 
 
 def execute_pov(params):

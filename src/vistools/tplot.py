@@ -13,6 +13,15 @@ def plot_3d(ds_raster, plotpath):
     fig = go.Figure(
         data=[go.Surface(z=trimmed_ds, colorscale='Fall',
                          hovertemplate='<b>Height:</b> %{z:.0f} m<extra></extra>',
+                         contours=dict(
+                             x=dict(
+                                 highlight=False,),
+                             y=dict(
+                                 highlight=False,),
+                             z=dict(
+                                 highlight=True,
+                             ),
+                         ),
                          lightposition=dict(x=100,
                                             y=100,
                                             z=2000),)], )

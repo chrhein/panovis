@@ -6,7 +6,7 @@ import gpxpy
 import rasterio
 import image_handling
 import location_handler
-from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain
+from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain, Waypoint
 from osgeo import gdal
 from rdp import rdp
 
@@ -71,7 +71,10 @@ def read_hike_gpx(gpx_path):
     ]
 
 
-def trim_hikes(gpx_file):
+def trim_hike(gpx_file):
+    ds_raster = rasterio.open(location_handler.get_raster_path())
+    crs = int(ds_raster.crs.to_authority()[1])
+    converter = LatLngToCrs(crs)
     gpx_f = open(gpx_file, "r")
     gpx = gpxpy.parse(gpx_f)
     locations = [
@@ -80,8 +83,8 @@ def trim_hikes(gpx_file):
         for j in i.segments
         for k in j.points
     ]
-    trimmed = rdp(locations, epsilon=0.0001)
-    return [Hike(gpx_file.split("/")[-1], [Location(x, y, z) for x, y, z in trimmed])]
+    trimmed = rdp(locations, epsilon=0.001)
+    return Hike(gpx_file.split("/")[-1], [Waypoint(Location(lon, lat, ele), np.array((converter.convert(lon, lat, ele).GetPoints()[0]))) for lon, lat, ele in trimmed])
 
 
 def read_mountain_gpx(gpx_path, converter):
@@ -101,7 +104,7 @@ def read_mountain_gpx(gpx_path, converter):
 
 def read_image_locations(filename, image_folder, ds_raster, converter):
     locs = []
-    seen_images = get_seen_images()
+    seen_images = get_seen_items('images')
     for image in seen_images:
         if image == filename:
             continue
@@ -171,7 +174,7 @@ def load_image_data(filename):
             img_data = pickle.load(f)
             f.close()
             if img_data is None:
-                ims = get_seen_images()
+                ims = get_seen_items('images')
                 return load_image_data(ims[-1])
     except FileNotFoundError:
         return None
@@ -184,11 +187,18 @@ def save_image_data(img_data):
     f.close()
 
 
-def get_seen_images():
+def get_seen_items(kind="images"):
     try:
-        ims = open("src/static/dev/seen_images.txt", "r")
+        ims = open(f"src/static/dev/seen_{kind}.txt", "r")
         seen_images = [i.strip("\n") for i in ims.readlines()]
         ims.close()
         return seen_images
     except FileNotFoundError:
         return []
+
+
+def get_hikes():
+    hikes = get_files("src/static/hikes")
+    for h in hikes:
+        l_hike = pickle.load(open(h, "rb"))[0]
+        yield l_hike

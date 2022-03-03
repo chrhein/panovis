@@ -49,9 +49,19 @@ class Mountain:
 
 
 @dataclass
+class Waypoint:
+    location: Location
+    location2d: any
+    location_in_3d: Location3D = None
+
+    def set_location_in_3d(self, location_in_3d):
+        self.location_in_3d = location_in_3d
+
+
+@dataclass
 class Hike:
     name: str
-    locations: list
+    waypoints: list
 
 
 @dataclass
