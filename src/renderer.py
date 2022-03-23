@@ -26,31 +26,26 @@ from vistools.tplot import plot_3d
 def render_height(img_data):
     if os.path.exists(img_data.render_path):
         return
-
     start_time = time.time()
-
     render_filename = img_data.render_path
     pov_filename = "/tmp/pov_file.pov"
-
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
-        dem_path = data["dem_path"]
+        dem = data["dem_path"]
         r_width = data["render_width"]
         r_height = data["render_height"]
 
         render_shape = [r_width, r_height]
         json_file.close()
 
-    dem_path, _, coordinates, _ = get_mountain_data(dem_path, img_data)
-
-    ds_raster = rasterio.open(dem_path)
+    cropped_dem, coordinates, _ = get_mountain_data(dem, img_data)
+    ds_raster = rasterio.open(cropped_dem)
     raster_data = get_raster_data(ds_raster, coordinates)
     if not raster_data:
         return
-
     pov_mode = "height"
-    pov = primary_pov(dem_path, raster_data, mode=pov_mode)
+    pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
     params = [pov_filename, render_filename, render_shape, "color"]
     with open(pov_filename, "w") as pf:
         pf.write(pov)
@@ -58,7 +53,7 @@ def render_height(img_data):
 
     converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
     locxy = converter.convert(coordinates[0], coordinates[1])
-    create_viewshed(dem_path, (locxy.GetX(), locxy.GetY()), img_data.folder)
+    create_viewshed(cropped_dem, (locxy.GetX(), locxy.GetY()), img_data.folder)
 
     execute_pov(params)
     stats = [
@@ -80,7 +75,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         dem_path = data["dem_path"]
         json_file.close()
 
-    dem_path, _, coordinates, viewing_direction = get_mountain_data(
+    dem_path, coordinates, viewing_direction = get_mountain_data(
         dem_path, img_data, True
     )
 
@@ -90,7 +85,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
 
     converter = LatLngToCrs(crs)
     camera_height = convert_coordinates(
-        ds_raster, converter, lat, lon, only_height=True
+        ds_raster, converter, lat, lon, True
     )
     camera_location = Location(lat, lon, camera_height)
 

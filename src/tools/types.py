@@ -50,9 +50,19 @@ class Mountain:
 
 @dataclass
 class Waypoint:
+    id: str
     location: Location
     location2d: any
     location_in_3d: Location3D = None
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(str(self.id))
+
+    def __cmp__(self, other):
+        return operator.eq((str(self), str(other)))
 
     def set_location_in_3d(self, location_in_3d):
         self.location_in_3d = location_in_3d

@@ -1,4 +1,6 @@
 import pickle
+from subprocess import call
+from osgeo import gdal
 import numpy as np
 from tools.debug import p_i, p_in, p_line, p_e
 import os
@@ -7,7 +9,6 @@ import rasterio
 import image_handling
 import location_handler
 from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain, Waypoint
-from osgeo import gdal
 from rdp import rdp
 
 
@@ -28,6 +29,7 @@ def get_mountain_data(dem_file, im_data, gradient=False):
     look_ats = location_handler.displace_camera(
         camera_lat, camera_lon, deg=viewing_direction
     )
+    coordinates = [camera_lat, camera_lon, *look_ats]
 
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
@@ -44,12 +46,15 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_placement_crs.GetY() - displacement_distance,
     )
 
-    coordinates = [camera_lat, camera_lon, *look_ats]
-
-    cropped_dem = f"dev/cropped-{im_data.filename}.tif"
-    gdal.Translate(cropped_dem, dem_file, projWin=bbox, format="GTiff")
-
-    return [cropped_dem, dem_file, coordinates, viewing_direction]
+    tmp_ds = '/tmp/temp_dem.png'
+    if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
+        call(['gdal_translate', '-ot', 'UInt16',
+              '-of', 'PNG', dem_file, tmp_ds])
+        dem_file = tmp_ds
+    cropped_dem = f"/tmp/cropped-{im_data.filename}.tif"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox,
+                   format="GTiff")
+    return cropped_dem, coordinates, viewing_direction
 
 
 def read_hike_gpx(gpx_path):
@@ -84,7 +89,13 @@ def trim_hike(gpx_file):
         for k in j.points
     ]
     trimmed = rdp(locations, epsilon=0.001)
-    return Hike(gpx_file.split("/")[-1], [Waypoint(Location(lon, lat, ele), np.array((converter.convert(lon, lat, ele).GetPoints()[0]))) for lon, lat, ele in trimmed])
+    fn = gpx_file.split("/")[-1].split(".")[0]
+    return Hike(gpx_file.split("/")[-1], [
+        Waypoint(f"{fn}{i}",
+                 Location(*val),
+                 np.array((converter.convert(*val).GetPoints()[0])))
+        for i, val in enumerate(trimmed)
+    ])
 
 
 def read_mountain_gpx(gpx_path, converter):
@@ -121,6 +132,7 @@ def read_image_locations(filename, image_folder, ds_raster, converter):
 
 
 def get_files(folder):
+    make_folder(folder)
     file_list = os.listdir(folder)
     all_files = []
     for file in file_list:
@@ -198,7 +210,8 @@ def get_seen_items(kind="images"):
 
 
 def get_hikes():
-    hikes = get_files("src/static/hikes")
+    h_path = "src/static/hikes"
+    hikes = get_files(h_path)
     for h in hikes:
         l_hike = pickle.load(open(h, "rb"))[0]
         yield l_hike
