@@ -1,5 +1,5 @@
 from json import load
-from math import asin, atan2, pi, sqrt
+from math import acos, asin, atan2, pi, radians, sqrt
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -198,6 +198,22 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
         return degrees(a1 - a2)
 
+    def get_initial_bearing(camera_location, object_location):
+        c_lon = radians(camera_location.longitude)
+        c_lat = radians(camera_location.latitude)
+        o_lon = radians(object_location.longitude)
+        o_lat = radians(object_location.latitude)
+
+        diff_lon = o_lon - c_lon
+
+        x = sin(diff_lon) * cos(o_lat)
+        y = cos(c_lat) * sin(o_lat) - sin(c_lat) * cos(o_lat) * cos(diff_lon)
+
+        init_bearing = degrees(atan2(x, y))
+        compass_bearing = (init_bearing + 360) % 360
+
+        return compass_bearing
+
     def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
         d = generator.get_distance_between_locations(
             camera_location, item.location)
@@ -206,9 +222,11 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         diff = i_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
-        i = item.location
-        loc2 = converter.convert(i.latitude, i.longitude)
-        yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        # i = item.location
+        # loc2 = converter.convert(i.latitude, i.longitude)
+        # yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        yaw = get_initial_bearing(camera_location, item.location)
+        print(f"{yaw=}")
         return yaw, pitch, d
 
     generator = Distance()

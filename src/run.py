@@ -411,8 +411,7 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d, visible_hikes):
         mountain_hotpots.update(
             {
                 str(mountain.name): {
-                    "yaw": IMAGE_DATA.view_direction
-                    + float(mountain.location_in_3d.yaw),
+                    "yaw": float(mountain.location_in_3d.yaw),
                     "pitch": mountain.location_in_3d.pitch,
                     "distance": mountain.location_in_3d.distance,
                     "elevation": mountain.location.elevation,
@@ -430,8 +429,7 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d, visible_hikes):
                         "text": image.name[0:-9],
                         "imageTooltip": f"<div class='panorama-image-div'><img class='panorama-image' src='{im_data.thumbnail_path}'></div>",
                         "sceneId": image.name,
-                        "yaw": IMAGE_DATA.view_direction
-                        + float(image.location_in_3d.yaw),
+                        "yaw": float(image.location_in_3d.yaw),
                         "pitch": image.location_in_3d.pitch,
                         "distance": image.location_in_3d.distance,
                     }
@@ -443,8 +441,8 @@ def create_hotspots(IMAGE_DATA, mountains_3d, images_3d, visible_hikes):
         for wp in waypoints:
             hike_waypoints.append(
                 {
-                    "yaw": IMAGE_DATA.view_direction
-                    + float(wp.location_in_3d.yaw),
+                    "id": wp.id,
+                    "yaw": float(wp.location_in_3d.yaw),
                     "pitch": wp.location_in_3d.pitch,
                     "distance": wp.location_in_3d.distance,
                     "elevation": wp.location.elevation,
