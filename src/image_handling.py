@@ -257,6 +257,20 @@ def reduce_filesize(image_path, image_quality=50):
     os.rename(resized_pano, image_path)
 
 
+def matching(img_data):
+    cv_image = resizer(cv2.imread(img_data.path), im_width=1200)
+    cv_gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+    # create a binary thresholded image
+    _, binary = cv2.threshold(cv_gray, 225, 255, cv2.THRESH_BINARY)
+    # find the contours from the thresholded image
+    contours, hierarchy = cv2.findContours(
+        binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # draw all contours
+    image = cv2.drawContours(cv_image, contours, -1, (0, 255, 0), 2)
+    cv2.imshow("contours", image)
+    cv2.waitKey(0)
+
+
 def transform_panorama(
     IMAGE_DATA,
     pano_coords,

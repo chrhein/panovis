@@ -1,3 +1,4 @@
+from subprocess import call
 from location_handler import get_fov
 
 
@@ -32,6 +33,12 @@ def primary_pov(
         fov = get_fov(fov)
     else:
         fov = 360
+
+    if dem_file.endswith(".tif"):
+        tmp_dem = '/tmp/dem.png'
+        call(['gdal_translate', '-ot', 'UInt16',
+              '-of', 'PNG', dem_file, tmp_dem])
+        dem_file = tmp_dem
 
     pov_text = """
     #version 3.8;
@@ -197,18 +204,13 @@ def primary_pov(
         }
         #if (MODE="texture" | MODE="height")
         plane {
-            y, 0.00000000000001
+            y, 0.0002525
             texture {
-                #if (MODE="no-going-to-use-this")
-                DEPTHTEXTURE
-                translate CAMERAPOS
-                #else
                 pigment { color rgb<0.16, 0.41, 0.52> }
 
                 finish {
                     reflection 0 ambient 1 diffuse 0 specular 0
                 }
-                #end
             }
         }
         #end

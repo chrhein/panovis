@@ -1,5 +1,5 @@
 from json import load
-from math import asin, atan2, pi, sqrt
+from math import asin, atan2, pi, radians, sqrt
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -14,7 +14,7 @@ from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
 from osgeo import gdal
 
 
-def get_raster_data(ds_raster,  coordinates):
+def get_raster_data(ds_raster, coordinates):
     crs = int(ds_raster.crs.to_authority()[1])
     converter = LatLngToCrs(crs)
     camera_lat_lon = convert_coordinates(
@@ -69,7 +69,7 @@ def find_visible_items_in_ds(ds_viewshed, dataset):
     if len(dataset) == 0:
         return []
 
-    items_in_sight = []
+    items_in_sight = set()
     vs_val = ds_viewshed.read(1)
 
     for i in dataset:
@@ -79,7 +79,8 @@ def find_visible_items_in_ds(ds_viewshed, dataset):
                     loc = i.location2d
                     raster_coordinates = ds_viewshed.index(loc[0]+x, loc[1]+y)
                     if vs_val[raster_coordinates] == 255:
-                        items_in_sight.append(i)
+                        if i not in items_in_sight:
+                            items_in_sight.add(i)
                         break
         except IndexError:
             continue
@@ -197,17 +198,35 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
         return degrees(a1 - a2)
 
+    def get_initial_bearing(camera_location, object_location):
+        c_lon = radians(camera_location.longitude)
+        c_lat = radians(camera_location.latitude)
+        o_lon = radians(object_location.longitude)
+        o_lat = radians(object_location.latitude)
+
+        diff_lon = o_lon - c_lon
+
+        x = sin(diff_lon) * cos(o_lat)
+        y = cos(c_lat) * sin(o_lat) - sin(c_lat) * cos(o_lat) * cos(diff_lon)
+
+        init_bearing = degrees(atan2(x, y))
+        compass_bearing = (init_bearing + 360) % 360
+
+        return compass_bearing
+
     def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
         d = generator.get_distance_between_locations(
             camera_location, item.location)
-        c_e = camera_location.elevation + 15
+        c_e = camera_location.elevation + 25
         i_e = item.location.elevation
         diff = i_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
-        i = item.location
-        loc2 = converter.convert(i.latitude, i.longitude)
-        yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        # i = item.location
+        # loc2 = converter.convert(i.latitude, i.longitude)
+        # yaw = find_angle_between_three_locations(loc1, loc2, loc3)
+        yaw = get_initial_bearing(camera_location, item.location)
+        print(f"{yaw=}")
         return yaw, pitch, d
 
     generator = Distance()
@@ -228,7 +247,6 @@ def create_viewshed(dem_file, location, folder):
     resolution = ds.GetGeoTransform()[1]
     max_dist = max(band.XSize * resolution, band.YSize * resolution)
     max_dist = sqrt((max_dist / 2) ** 2 + (max_dist / 2) ** 2)
-
     gdal.ViewshedGenerate(
         srcBand=band,
         driverName=ds.GetDriver().ShortName,

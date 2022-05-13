@@ -23,14 +23,13 @@ def convert_single_coordinate_pair(bounds, converter, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(raster, converter, lat, lon, only_height=False):
+def convert_coordinates(raster, converter, lat, lon, get_height=False):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = converter.convert(lat, lon)
     polar_lat = coordinate_pair.GetX()
     polar_lon = coordinate_pair.GetY()
 
-    resolution = raster.transform[0]
     lat_scaled = (polar_lat - min_x) / (max_x - min_x)
     lon_scaled = (polar_lon - min_y) / (max_y - min_y)
 
@@ -40,20 +39,14 @@ def convert_coordinates(raster, converter, lat, lon, only_height=False):
         from_crs, to_crs, [lon], [lat]))
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
+    height = h[row, col]
+    if get_height:
+        return height
 
-    try:
-        total_elevation = 0
-        for i in range(row - 2, row + 3):
-            for j in range(col - 2, col + 3):
-                total_elevation += h[i, j]
-        height = total_elevation / 25
-        if only_height:
-            return height
-    except IndexError:
-        return
+    bbox = raster.bounds
 
     def scale_height(height):
-        return (height - h.min()) / ((raster.height * resolution) - h.min()) / 2
+        return (height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min()) - 0.0004
 
     height_scaled = scale_height(height)
     height_max_mountain_scaled = scale_height(h.max())

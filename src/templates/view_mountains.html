@@ -74,9 +74,7 @@
             <h3 class="fw-bold text-start">3D Terrain</h3>
             <div class="p-3 border bg-light">
                 <div class="d-grid d-sm-flex justify-content-sm-center">
-                    <div id="plotly-container">
-                        <object id="plotly-vis"></object>
-                    </div>
+                    <div id="plotly-container"></div>
                 </div>
             </div>
         </div>
@@ -122,6 +120,7 @@
             if ('{{ interactive }}' == 'False') {
                 document.getElementById('interactive-map').style.display =
                     'none'
+                document.getElementById('3d-terrain').style.display = 'none'
                 interactive = false
             }
 
@@ -147,6 +146,10 @@
                 span.style.marginLeft =
                     -(span.scrollWidth - hotSpotDiv.offsetWidth) / 2 - 32 + 'px'
                 span.style.marginTop = -span.scrollHeight + 4 + 'px'
+            }
+
+            function setHikeHotspotId(hotSpotDiv, id) {
+                hotSpotDiv.id = id
             }
 
             const gen = (scene) => {
@@ -194,6 +197,22 @@
                                             URL: mountain.url,
                                         }
                                     }),
+                                    ...Object.values(
+                                        value.hotspots.hikes
+                                    ).flatMap((waypoints) => {
+                                        return waypoints.map((waypoint) => {
+                                            return {
+                                                id: waypoint.id,
+                                                yaw: waypoint.yaw,
+                                                pitch: waypoint.pitch,
+                                                cssClass:
+                                                    'custom-hotspot hike-hotspot',
+                                                createTooltipArgs: waypoint.id,
+                                                createTooltipFunc:
+                                                    setHikeHotspotId,
+                                            }
+                                        })
+                                    }),
                                 ],
                             },
                         ]
@@ -217,21 +236,13 @@
             }
 
             async function loadPlotly(sceneId) {
+                if (!interactive) {
+                    return
+                }
                 let data = await d3.json(
                     `src/static/images/${sceneId}/${sceneId}-3d.json`
                 )
-
-                console.log(data)
-
                 Plotly.react('plotly-container', data['data'], data['layout'])
-
-                /* const updatedPlotly = `src/static/images/${sceneId}/${sceneId}-3d.html`
-                let object = document.getElementById('plotly-vis')
-                object.setAttribute('data', updatedPlotly)
-                let clone = object.cloneNode(true)
-                let parent = object.parentNode
-                parent.removeChild(object)
-                parent.appendChild(clone) */
             }
 
             async function loadJuxtapose(sceneId) {
@@ -265,6 +276,9 @@
                 window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
 
+            const scenes = gen(s)
+
+            console.log(scenes)
             viewer = pannellum.viewer('mountain-overlay', {
                 default: {
                     firstScene: sceneIds[sceneIndex],
@@ -279,9 +293,8 @@
                     type: 'equirectangular',
                     autoLoad: true,
                     showControls: false,
-                    // backgroundColor: [0.75, 0.88, 0.93],
                 },
-                scenes: gen(s),
+                scenes: scenes,
             })
 
             function renderPolyline(sceneId) {
@@ -331,16 +344,6 @@
                 .addEventListener('click', function (e) {
                     viewer.toggleFullscreen()
                 })
-            /* document
-                .getElementById('increase-pitch')
-                .addEventListener('click', function (e) {
-                    viewer.setPitch(viewer.getPitch() + 10)
-                })
-            document
-                .getElementById('decrease-pitch')
-                .addEventListener('click', function (e) {
-                    viewer.setPitch(viewer.getPitch() - 10)
-                }) */
 
             document
                 .getElementsByClassName('pnlm-compass')[0]

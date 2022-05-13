@@ -1,4 +1,6 @@
 import pickle
+from subprocess import call
+from osgeo import gdal
 import numpy as np
 from tools.debug import p_i, p_in, p_line, p_e
 import os
@@ -6,8 +8,7 @@ import gpxpy
 import rasterio
 import image_handling
 import location_handler
-from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain
-from osgeo import gdal
+from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain, Waypoint
 from rdp import rdp
 
 
@@ -28,6 +29,7 @@ def get_mountain_data(dem_file, im_data, gradient=False):
     look_ats = location_handler.displace_camera(
         camera_lat, camera_lon, deg=viewing_direction
     )
+    coordinates = [camera_lat, camera_lon, *look_ats]
 
     ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
@@ -44,12 +46,15 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_placement_crs.GetY() - displacement_distance,
     )
 
-    coordinates = [camera_lat, camera_lon, *look_ats]
-
-    cropped_dem = f"dev/cropped-{im_data.filename}.tif"
-    gdal.Translate(cropped_dem, dem_file, projWin=bbox, format="GTiff")
-
-    return [cropped_dem, dem_file, coordinates, viewing_direction]
+    tmp_ds = '/tmp/temp_dem.png'
+    if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
+        call(['gdal_translate', '-ot', 'UInt16',
+              '-of', 'PNG', dem_file, tmp_ds])
+        dem_file = tmp_ds
+    cropped_dem = f"/tmp/cropped-{im_data.filename}.tif"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox,
+                   format="GTiff")
+    return cropped_dem, coordinates, viewing_direction
 
 
 def read_hike_gpx(gpx_path):
@@ -71,7 +76,10 @@ def read_hike_gpx(gpx_path):
     ]
 
 
-def trim_hikes(gpx_file):
+def trim_hike(gpx_file):
+    ds_raster = rasterio.open(location_handler.get_raster_path())
+    crs = int(ds_raster.crs.to_authority()[1])
+    converter = LatLngToCrs(crs)
     gpx_f = open(gpx_file, "r")
     gpx = gpxpy.parse(gpx_f)
     locations = [
@@ -80,8 +88,14 @@ def trim_hikes(gpx_file):
         for j in i.segments
         for k in j.points
     ]
-    trimmed = rdp(locations, epsilon=0.0001)
-    return [Hike(gpx_file.split("/")[-1], [Location(x, y, z) for x, y, z in trimmed])]
+    trimmed = rdp(locations, epsilon=0.001)
+    fn = gpx_file.split("/")[-1].split(".")[0]
+    return Hike(gpx_file.split("/")[-1], [
+        Waypoint(f"{fn}{i}",
+                 Location(*val),
+                 np.array((converter.convert(*val).GetPoints()[0])))
+        for i, val in enumerate(trimmed)
+    ])
 
 
 def read_mountain_gpx(gpx_path, converter):
@@ -101,7 +115,7 @@ def read_mountain_gpx(gpx_path, converter):
 
 def read_image_locations(filename, image_folder, ds_raster, converter):
     locs = []
-    seen_images = get_seen_images()
+    seen_images = get_seen_items('images')
     for image in seen_images:
         if image == filename:
             continue
@@ -118,6 +132,7 @@ def read_image_locations(filename, image_folder, ds_raster, converter):
 
 
 def get_files(folder):
+    make_folder(folder)
     file_list = os.listdir(folder)
     all_files = []
     for file in file_list:
@@ -171,7 +186,7 @@ def load_image_data(filename):
             img_data = pickle.load(f)
             f.close()
             if img_data is None:
-                ims = get_seen_images()
+                ims = get_seen_items('images')
                 return load_image_data(ims[-1])
     except FileNotFoundError:
         return None
@@ -184,11 +199,19 @@ def save_image_data(img_data):
     f.close()
 
 
-def get_seen_images():
+def get_seen_items(kind="images"):
     try:
-        ims = open("src/static/dev/seen_images.txt", "r")
+        ims = open(f"src/static/dev/seen_{kind}.txt", "r")
         seen_images = [i.strip("\n") for i in ims.readlines()]
         ims.close()
         return seen_images
     except FileNotFoundError:
         return []
+
+
+def get_hikes():
+    h_path = "src/static/hikes"
+    hikes = get_files(h_path)
+    for h in hikes:
+        l_hike = pickle.load(open(h, "rb"))[0]
+        yield l_hike

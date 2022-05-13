@@ -1,4 +1,4 @@
-from numpy import flip
+from numpy import flip, gradient
 import plotly.graph_objects as go
 
 
@@ -10,12 +10,30 @@ def plot_3d(ds_raster, plotpath):
     trimmed_ds = flip(height_band[int(w/2-offset):int(w/2+offset),
                                   int(h/2-offset):int(h/2+offset)], 1)
 
+    px, py = gradient(trimmed_ds, resolution)
+    slope = (px**2 + py**2)**0.5
+
+    hovertemplate = ('<b>Height:</b> %{z:.0f} m<br>'
+                     + '<b>Slope:</b> %{surfacecolor:.2f}°'
+                     + '<extra></extra>')
+
     fig = go.Figure(
-        data=[go.Surface(z=trimmed_ds, colorscale='Fall',
-                         hovertemplate='<b>Height:</b> %{z:.0f} m<extra></extra>',
+        data=[go.Surface(z=trimmed_ds, surfacecolor=slope, colorscale='Fall',
+                         hovertemplate=hovertemplate,
+                         contours=dict(
+                             x=dict(
+                                 highlight=False,),
+                             y=dict(
+                                 highlight=False,),
+                             z=dict(
+                                 highlight=True,
+                             ),
+                         ),
                          lightposition=dict(x=100,
                                             y=100,
-                                            z=2000),)], )
+                                            z=2000),
+
+                         )], )
     fig.update_layout(autosize=True,
                       margin=dict(l=65, r=50, b=65, t=90),
                       scene_camera=dict(
@@ -37,4 +55,5 @@ def plot_3d(ds_raster, plotpath):
                       showlegend=False,
                       )
     fig.update_traces(showlegend=False)
+    # fig.show()
     fig.write_json(plotpath)
