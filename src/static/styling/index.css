@@ -434,3 +434,8 @@ a:visited {
     -o-transform: rotate(270deg);
     transform: rotate(270deg);
 }
+
+.hike-hotspot {
+    width: 0.25rem;
+    height: 0.25rem;
+}

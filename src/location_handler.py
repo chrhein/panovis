@@ -1,5 +1,5 @@
 from json import load
-from math import acos, asin, atan2, pi, radians, sqrt
+from math import asin, atan2, pi, radians, sqrt
 import numpy as np
 import rasterio
 from tools.converters import (

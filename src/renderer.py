@@ -24,7 +24,8 @@ from vistools.tplot import plot_3d
 
 
 def render_height(img_data):
-    if os.path.exists(img_data.render_path):
+    production_mode = False
+    if os.path.exists(img_data.render_path) and production_mode:
         return
     start_time = time.time()
     render_filename = img_data.render_path
@@ -51,9 +52,11 @@ def render_height(img_data):
         pf.write(pov)
     pf.close()
 
-    converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
-    locxy = converter.convert(coordinates[0], coordinates[1])
-    create_viewshed(cropped_dem, (locxy.GetX(), locxy.GetY()), img_data.folder)
+    if production_mode:
+        converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
+        locxy = converter.convert(coordinates[0], coordinates[1])
+        create_viewshed(cropped_dem, (locxy.GetX(),
+                        locxy.GetY()), img_data.folder)
 
     execute_pov(params)
     stats = [
