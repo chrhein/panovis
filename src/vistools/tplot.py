@@ -2,7 +2,7 @@ from numpy import flip, gradient
 import plotly.graph_objects as go
 
 
-def plot_3d(ds_raster, plotpath):
+def plot_3d(ds_raster, plotpath, debug=False):
     height_band = ds_raster.read(1)
     w, h = height_band.shape
     resolution = ds_raster.res[0]
@@ -10,7 +10,7 @@ def plot_3d(ds_raster, plotpath):
     trimmed_ds = flip(height_band[int(w/2-offset):int(w/2+offset),
                                   int(h/2-offset):int(h/2+offset)], 1)
 
-    px, py = gradient(trimmed_ds, resolution)
+    px, py = gradient(trimmed_ds)
     slope = (px**2 + py**2)**0.5
 
     hovertemplate = ('<b>Height:</b> %{z:.0f} m<br>'
@@ -22,9 +22,9 @@ def plot_3d(ds_raster, plotpath):
                          hovertemplate=hovertemplate,
                          contours=dict(
                              x=dict(
-                                 highlight=False,),
+                                 highlight=True if debug else False,),
                              y=dict(
-                                 highlight=False,),
+                                 highlight=True if debug else False,),
                              z=dict(
                                  highlight=True,
                              ),
@@ -55,5 +55,9 @@ def plot_3d(ds_raster, plotpath):
                       showlegend=False,
                       )
     fig.update_traces(showlegend=False)
-    # fig.show()
-    fig.write_json(plotpath)
+
+    if debug:
+        fig.write_html(plotpath)
+        fig.show()
+    else:
+        fig.write_json(plotpath)
