@@ -46,7 +46,7 @@ def convert_coordinates(raster, converter, lat, lon, get_height=False):
     bbox = raster.bounds
 
     def scale_height(height):
-        return (height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min()) - 0.0004
+        return (height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min()) - 0.0003
 
     height_scaled = scale_height(height)
     height_max_mountain_scaled = scale_height(h.max())

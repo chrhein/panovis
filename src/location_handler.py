@@ -53,7 +53,7 @@ def get_raster_path():
 
 def get_height_from_raster(location, ds_raster, converter):
     h = convert_coordinates(
-        ds_raster, converter, location.latitude, location.longitude, only_height=True
+        ds_raster, converter, location.latitude, location.longitude, get_height=True
     )
     return h
 

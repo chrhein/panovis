@@ -397,6 +397,18 @@ a:visited {
     background: rgba(200, 200, 200, 1);
 }
 
+.vis-peaks {
+    width: fit-content;
+}
+
+.vis-peaks:hover {
+    background: rgba(200, 200, 200, 0.6);
+}
+
+.peak-number{
+    display: inline-block;
+}
+
 .pnlm-panorama-info {
     position: absolute;
     bottom: 0;

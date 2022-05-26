@@ -24,7 +24,7 @@ from vistools.tplot import plot_3d
 
 
 def render_height(img_data):
-    production_mode = False
+    production_mode = True
     if os.path.exists(img_data.render_path) and production_mode:
         return
     start_time = time.time()

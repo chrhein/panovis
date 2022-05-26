@@ -31,11 +31,12 @@ def get_gradient_3d(upper_left_color, lower_right_color, is_horizontal_list):
 
 
 def create_color_gradient_image():
-    gradient_path = f"data/color_gradient.png"
+    gradient_path = "data/color_gradient.png"
     upper_left_color = (0, 0, 192)
     lower_right_color = (255, 255, 64)
     gradient = np.true_divide(
-        get_gradient_3d(upper_left_color, lower_right_color, (True, False, False)),
+        get_gradient_3d(upper_left_color, lower_right_color,
+                        (True, False, False)),
         255,
     )
     img = cv2.cvtColor(np.uint8(gradient * 255), cv2.COLOR_BGR2RGB)
@@ -69,7 +70,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     crs = int(ds_raster.crs.to_authority()[1])
     converter = LatLngToCrs(crs)
     lower_left = converter.convert(minimums[0].latitude, minimums[1].longitude)
-    upper_right = converter.convert(maximums[0].latitude, maximums[1].longitude)
+    upper_right = converter.convert(
+        maximums[0].latitude, maximums[1].longitude)
 
     bbox = (
         lower_left.GetX(),
@@ -101,7 +103,8 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     bounds = [b.left, b.bottom, b.right, b.top]
     converter = LatLngToCrs(crs)
     locs = [
-        convert_single_coordinate_pair(bounds, converter, i.latitude, i.longitude)
+        convert_single_coordinate_pair(
+            bounds, converter, i.latitude, i.longitude)
         for i in mns
     ]
     prev_lat = abs(int(((100.0 * locs[0][0]) / 100) * w))
@@ -130,10 +133,11 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
     )
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
     x, y, w, h = cv2.boundingRect(cnt)
-    crop = img[y : y + h, x : x + w]
+    crop = img[y: y + h, x: x + w]
     cv2.imwrite(im_path, crop)
 
     tex_bounds = TextureBounds(
@@ -147,11 +151,12 @@ def create_route_texture(dem_file, gpx_path, debugging=False):
         max_y=max_y,
     )
 
-    p_i(f"Route texture complete")
+    p_i("Route texture complete")
 
     with open(texture_bounds_path, "wb") as f:
         pickle.dump(tex_bounds, f)
 
-    subprocess.call(["rm", "-r", f"{folder}/{filename}-output_crop_raster.tif"])
+    subprocess.call(
+        ["rm", "-r", f"{folder}/{filename}-output_crop_raster.tif"])
 
     return [im_path, tex_bounds]

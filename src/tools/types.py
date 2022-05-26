@@ -134,6 +134,7 @@ class ImageData:
     fov_l: float = None
     fov_r: float = None
     location: Location = None
+    transform_matrix: any = None
 
     def __init__(self, path):
         self.path = path

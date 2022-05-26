@@ -304,6 +304,11 @@ def transform_panorama(
 
     TRANSFORM_MATRIX, _ = cv2.findHomography(pts_panorama, pts_render)
 
+    TRANFORM_COORDS, _ = cv2.findHomography(pts_render, pts_panorama)
+
+    print(TRANFORM_COORDS)
+    IMAGE_DATA.transform_matrix = TRANFORM_COORDS
+
     warped_panorama = cv2.warpPerspective(
         panorama_image,
         TRANSFORM_MATRIX,

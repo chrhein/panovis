@@ -56,6 +56,15 @@
                                 <div class="ctrl" id="zoom-out">&minus;</div>
                                 <div class="ctrl" id="fullscreen">&#x2922;</div>
                             </div>
+                            <div class="ctrl vis-peaks">
+                                Visible peaks:
+                                <div
+                                    class="peak-number"
+                                    id="mountains-in-sight"
+                                >
+                                    0
+                                </div>
+                            </div>
                             <div id="right">
                                 <div class="ctrl" id="show-tooltips">
                                     &#x2139;
@@ -272,6 +281,9 @@
                 await loadPlotly(sceneId)
                 await loadFolium(sceneId)
                 await loadJuxtapose(sceneId)
+                console.log(s[sceneId].hotspots.mountains)
+                document.getElementById('mountains-in-sight').innerHTML =
+                    Object.keys(s[sceneId].hotspots.mountains).length
                 sceneIndex = sceneIds.indexOf(sceneId)
                 window.history.pushState({}, '', `?sceneId=${sceneId}`)
             }
