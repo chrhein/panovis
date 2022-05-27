@@ -129,11 +129,11 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         mountains_in_sight,
     )
 
-    plotly_path = f"{img_data.folder}/{img_data.filename}-3d.json"
-    if not os.path.exists(plotly_path):
-        plot_3d(ds_raster, plotly_path)
-
     if plot:
+        plotly_path = f"{img_data.folder}/{img_data.filename}-3d.json"
+        if not os.path.exists(plotly_path):
+            plot_3d(ds_raster, plotly_path)
+
         plot_filename = f"{img_data.folder}/{img_data.filename}-{gpx_file.split('/')[-1].split('.')[0]}.html"
         plot_to_map(
             img_data.thumbnail_path,

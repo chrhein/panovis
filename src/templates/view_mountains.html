@@ -238,6 +238,11 @@
                 const updatedFolium = `src/static/images/${sceneId}/${sceneId}-${gpx}.html`
                 let object = document.getElementById('folium-map')
                 object.setAttribute('data', updatedFolium)
+                object.setAttribute(
+                    'sandbox',
+                    'allow-scripts allow-top-navigation'
+                )
+
                 let clone = object.cloneNode(true)
                 let parent = object.parentNode
                 parent.removeChild(object)
@@ -393,6 +398,20 @@
                         }
                     }
                 })
+
+            if (window.addEventListener) {
+                window.addEventListener('message', onMessage, false)
+            } else if (window.attachEvent) {
+                window.attachEvent('onmessage', onMessage, false)
+            }
+
+            function onMessage(event) {
+                console.log(event)
+                if (event.origin !== 'null') return
+
+                var data = event.data
+                viewer.loadScene(data)
+            }
         </script>
     </body>
 </html>

@@ -95,7 +95,18 @@ def plot_to_map(
             ).add_to(images_fg)
 
     encoded = base64.b64encode(open(camera_pano_path, "rb").read())
-    html = '<img src="data:image/JPG;base64,{}">'.format
+    html = '''
+    <!doctype html>
+    <script type="text/javascript">
+    function redirect() {{
+        window.parent.parent.postMessage('IMG_0452-db1790b3', '*');
+    }}
+    </script>
+    <html>
+    <button onclick="redirect();">Click Me</button>
+    <img src="data:image/JPG;base64,{}">
+    </html>
+    '''.format
     iframe = folium.IFrame(
         html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
     )
