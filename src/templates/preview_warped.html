@@ -19,6 +19,13 @@
         >
             Home
         </button>
+        <button
+            id="nav-reset"
+            class="btn btn-secondary btn-md my-2 mx-4"
+            onclick="reset();"
+        >
+            Restart
+        </button>
         <div class="px-4 py-2 my-4 text-center">
             <h3 class="fw-bold text-start">Render/panorama comparison</h3>
             <div class="border bg-light px-5">
@@ -41,6 +48,10 @@
         <script>
             function navigate() {
                 window.location.href = '/'
+            }
+
+            function reset() {
+                window.location.href = '/resetimg?image_id={{ pano_id }}'
             }
         </script>
     </body>

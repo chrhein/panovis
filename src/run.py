@@ -6,7 +6,6 @@ from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
     get_exif_gsp_img_direction,
-    get_image_description,
     reduce_filesize,
     transform_panorama,
 )
@@ -17,6 +16,7 @@ from tools.file_handling import (
     get_seen_items,
     load_image_data,
     make_folder,
+    reset_image,
     save_image_data,
     trim_hike,
 )
@@ -104,9 +104,8 @@ def create_app():
                 reduce_filesize(IMAGE_DATA.path)
 
             im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
-            im_description = get_image_description(IMAGE_DATA.path)
 
-            if im_view_direction is not None and im_description is not None:
+            if im_view_direction is not None:
                 IMAGE_DATA.view_direction = im_view_direction
                 save_image_data(IMAGE_DATA)
 
@@ -163,6 +162,12 @@ def create_app():
         file_to_remove = request.args.get("image_id")
         session["filename"] = remove_image_as_seen(file_to_remove)
         return redirect(url_for("homepage"))
+
+    @app.route("/resetimg", methods=["GET"])
+    def resetimg():
+        file_to_remove = request.args.get("image_id")
+        reset_image(file_to_remove)
+        return redirect(url_for("spcoords"))
 
     @app.route("/rmvhike", methods=["GET"])
     def rmvhike():
@@ -254,28 +259,26 @@ def create_app():
     @app.route("/transform", methods=["POST", "GET"])
     def transform():
         IMAGE_DATA = load_image_data(get_filename())
-
-        im_view_direction = get_exif_gsp_img_direction(IMAGE_DATA.path)
         session["filename"] = IMAGE_DATA.filename
 
-        if im_view_direction is None:
-            pano_coords = strip_array(request.args.get("pano_coords"), True)
-            render_coords = strip_array(
-                request.args.get("render_coords"), True)
+        pano_coords = strip_array(request.args.get("pano_coords"), True)
+        render_coords = strip_array(
+            request.args.get("render_coords"), True)
 
-            IMAGE_DATA = transform_panorama(
-                IMAGE_DATA, pano_coords, render_coords)
-            if not IMAGE_DATA:
-                return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
+        IMAGE_DATA = transform_panorama(
+            IMAGE_DATA, pano_coords, render_coords)
+        if not IMAGE_DATA:
+            return "<h4>Transform failed because of an unequal amount of sample points in the panorama and render ...</h4>"
 
-            save_image_data(IMAGE_DATA)
-            session["filename"] = IMAGE_DATA.filename
+        save_image_data(IMAGE_DATA)
+        session["filename"] = IMAGE_DATA.filename
 
         mark_image_seen(IMAGE_DATA)
         return render_template(
             "preview_warped.html",
             warped=IMAGE_DATA.overlay_path,
             render=IMAGE_DATA.ultrawide_path,
+            pano_id=IMAGE_DATA.filename,
         )
 
     def mtn_lookup(pano_filename, gpx_path, interactive):

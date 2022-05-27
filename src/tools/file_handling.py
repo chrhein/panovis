@@ -215,3 +215,17 @@ def get_hikes():
     for h in hikes:
         l_hike = pickle.load(open(h, "rb"))[0]
         yield l_hike
+
+
+def reset_image(im):
+    p_i(f"Resetting image {im}")
+    IMAGE_DATA = load_image_data(im)
+    os.remove(IMAGE_DATA.overlay_path)
+    os.remove(IMAGE_DATA.ultrawide_path)
+    os.remove(IMAGE_DATA.warped_panorama_path)
+    IMAGE_DATA.view_direction = None
+    IMAGE_DATA.fov_l = None
+    IMAGE_DATA.fov_r = None
+    IMAGE_DATA.location = None
+    IMAGE_DATA.transform_matrix = None
+    save_image_data(IMAGE_DATA)

@@ -1,6 +1,5 @@
 from base64 import b64encode
 import io
-import json
 import os
 from PIL import Image
 import cv2
@@ -55,15 +54,12 @@ def get_image_description(file_path):
         return None
 
 
-def write_exif_to_pano(file_path, fov, imdims):
+def write_exif_to_pano(file_path, fov):
     with open(file_path, "rb") as image_file:
         im = exif.Image(image_file)
         image_file.close()
     im.gps_img_direction = get_view_direction(fov)
     im.gps_img_direction_ref = "M"
-    imdata = {"fov": fov, "imdims": imdims}
-    custom_exif = json.dumps(imdata, separators=(",", ":"))
-    im.user_comment = custom_exif
     with open("/tmp/exifed.jpg", "wb") as new_image_file:
         new_image_file.write(im.get_file())
         new_image_file.close()
@@ -372,7 +368,7 @@ def transform_panorama(
     IMAGE_DATA.fov_l = heading_bound_left
     IMAGE_DATA.fov_r = heading_bound_right
     IMAGE_DATA.view_direction = get_view_direction(fov)
-    write_exif_to_pano(IMAGE_DATA.path, fov, ultrawide_render_crop.shape[:2])
+    write_exif_to_pano(IMAGE_DATA.path, fov)
 
     return IMAGE_DATA
 
