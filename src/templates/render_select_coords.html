@@ -51,7 +51,8 @@
             </form>
         </div>
         <script>
-            let clickedCoords = []
+            let clickedCoordsXY = []
+            let clickedCoordsYaw = []
             let shiftPressed = false
             const minimum_samples = getSampleNumber()
             let pc = eval(JSON.parse('{{ pano_coords | tojson }}'))
@@ -64,11 +65,9 @@
             }
 
             function submitCoords() {
-                console.log(clickedCoords)
-                console.log(panoCoords)
                 let form = document.getElementById('submit-coordinates')
                 form.appendChild(
-                    addCoords(document, clickedCoords, 'render-coords')
+                    addCoords(document, clickedCoordsXY, 'render-coords')
                 )
                 form.appendChild(
                     addCoords(document, panoCoords, 'panorama-coords')
@@ -147,29 +146,51 @@
 
             viewer.on('mousedown', function (event) {
                 if (shiftPressed) {
-                    var coords = viewer.mouseEventToCoords(event)
-                    var x = (coords[1] / horizontal_fov + 0.5) * panorama_width
-                    var y = (0.5 - coords[0] / vertical_fov) * panorama_height
+                    const coords = viewer.mouseEventToCoords(event)
+                    const yaw = coords[1]
+
+                    let illegalPlacement = false
+
+                    if (clickedCoordsYaw && clickedCoordsYaw.length > 0) {
+                        let prev = clickedCoordsYaw[clickedCoordsYaw.length - 1]
+                        let diff = yaw - prev
+                        if (diff > 180) return
+                        if (Math.abs(diff) >= 180) {
+                            diff = (360 - yaw - prev) % 360
+                        }
+                        if (diff < 0) {
+                            illegalPlacement = true
+                        }
+                    }
+                    if (illegalPlacement) {
+                        return
+                    }
+
+                    const pitch = coords[0]
+
+                    var x = (yaw / horizontal_fov + 0.5) * panorama_width
+                    var y = (0.5 - pitch / vertical_fov) * panorama_height
 
                     if (outOfBounds(x, y, panorama_width, panorama_height)) {
                         return
                     }
 
-                    var itemNum = clickedCoords.length + 1
-                    clickedCoords.push([x, y])
-                    updateFormText(document, clickedCoords.length)
+                    var itemNum = clickedCoordsXY.length + 1
+                    clickedCoordsXY.push([x, y])
+                    clickedCoordsYaw.push(yaw)
+                    updateFormText(document, clickedCoordsXY.length)
                     viewer.addHotSpot({
-                        id: 'selected-location-' + clickedCoords.length,
+                        id: 'selected-location-' + clickedCoordsXY.length,
                         pitch: coords[0],
                         yaw: coords[1],
                         cssClass: 'custom-hotspot',
                     })
-                    if (clickedCoords.length == 1) {
+                    if (clickedCoordsXY.length == 1) {
                         document
                             .getElementById('submit-button')
                             .removeAttribute('hidden')
                     }
-                    if (clickedCoords.length >= minimum_samples) {
+                    if (clickedCoordsXY.length >= minimum_samples) {
                         var submitButton =
                             document.getElementById('submit-button')
                         submitButton.setAttribute('class', 'btn btn-primary')
@@ -188,14 +209,34 @@
                 }
             })
             document.addEventListener('keydown', function (event) {
+                let empty = false
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoords.length; i++) {
+                    for (var i = 1; i <= clickedCoordsXY.length; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
-                    clickedCoords = []
+                    empty = true
+                }
+                if (event.keyCode === 90) {
+                    viewer.removeHotSpot(
+                        'selected-location-' + clickedCoordsXY.length
+                    )
+                    clickedCoordsXY.pop()
+                    clickedCoordsYaw.pop()
+                    updateFormText(document, clickedCoordsXY.length)
+                    if (
+                        clickedCoordsXY.length == 0 &&
+                        clickedCoordsYaw.length == 0
+                    ) {
+                        empty = true
+                    }
+                }
+                if (empty) {
+                    clickedCoordsXY = []
+                    clickedCoordsYaw = []
                     var submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-secondary')
-                    updateFormText(document, clickedCoords.length)
+                    submitButton.innerText = 'Submit'
+                    updateFormText(document, clickedCoordsXY.length)
                 }
             })
         </script>
