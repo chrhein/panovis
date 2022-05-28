@@ -50,9 +50,9 @@ def plot_to_map(
             (
                 folium.Circle(
                     location=(i.location.latitude, i.location.longitude),
-                    color="#66bca2",
+                    color="#755239",
                     fill=True,
-                    fill_color="#66bca2",
+                    fill_color="#755239",
                     fill_opacity=0.2,
                     radius=100,
                     popup=f"{i.name}, {int(i.location.elevation)} m",
@@ -78,7 +78,8 @@ def plot_to_map(
                         str(i.name),
                         i.location.elevation,
                     ),
-                    icon=folium.Icon(color="green", icon="mountain"),
+                    icon=folium.Icon(
+                        color="green", icon="chevron-up", prefix="fa"),
                 ).add_to(mountains_in_sight_fg)
             )
             for i in mountains_in_sight
@@ -214,8 +215,8 @@ def plot_to_map(
         <div class='legend-scale'>
             <ul class='legend-labels'>
                 <li><span style='background:#426877;opacity:1.0;'></span>Current Viewpoint</li>
-                <li><span style='background:#66bca2;opacity:1.0;'></span>Images in dataset</li>
-                <li><span style='background:#66bca2;opacity:1.0;'></span>All mountains in dataset</li>
+                <li><span style='background:#f69730;opacity:1.0;'></span>Images in dataset</li>
+                <li><span style='background:#755239;opacity:1.0;'></span>All mountains in dataset</li>
                 <li><span style='background:#71b025;opacity:1.0;'></span>Mountains in sight</li>
                 <li><span style='background:#d63e29;opacity:1.0;'></span>DEM bounding box</li>
             </ul>
