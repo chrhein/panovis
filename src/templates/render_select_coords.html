@@ -168,14 +168,14 @@
 
                     const pitch = coords[0]
 
-                    var x = (yaw / horizontal_fov + 0.5) * panorama_width
-                    var y = (0.5 - pitch / vertical_fov) * panorama_height
+                    let x = (yaw / horizontal_fov + 0.5) * panorama_width
+                    let y = (0.5 - pitch / vertical_fov) * panorama_height
 
                     if (outOfBounds(x, y, panorama_width, panorama_height)) {
                         return
                     }
 
-                    var itemNum = clickedCoordsXY.length + 1
+                    let itemNum = clickedCoordsXY.length + 1
                     clickedCoordsXY.push([x, y])
                     clickedCoordsYaw.push(yaw)
                     updateFormText(document, clickedCoordsXY.length)
@@ -191,7 +191,7 @@
                             .removeAttribute('hidden')
                     }
                     if (clickedCoordsXY.length >= minimum_samples) {
-                        var submitButton =
+                        let submitButton =
                             document.getElementById('submit-button')
                         submitButton.setAttribute('class', 'btn btn-primary')
                         submitButton.removeAttribute('disabled')
@@ -211,7 +211,7 @@
             document.addEventListener('keydown', function (event) {
                 let empty = false
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoordsXY.length; i++) {
+                    for (let i = 1; i <= clickedCoordsXY.length; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
                     empty = true
@@ -233,7 +233,7 @@
                 if (empty) {
                     clickedCoordsXY = []
                     clickedCoordsYaw = []
-                    var submitButton = document.getElementById('submit-button')
+                    let submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-secondary')
                     submitButton.innerText = 'Submit'
                     updateFormText(document, clickedCoordsXY.length)

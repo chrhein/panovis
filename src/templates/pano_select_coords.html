@@ -48,16 +48,16 @@
             </form>
         </div>
         <script>
-            var clickedCoordsXY = []
+            let clickedCoordsXY = []
             let clickedCoordsYaw = []
-            var shiftPressed = false
+            let shiftPressed = false
             const minimum_samples = getSampleNumber()
-            var renderComplete = false
+            let renderComplete = false
 
             function onRenderComplete() {
                 renderComplete = true
                 if (clickedCoordsXY.length >= minimum_samples) {
-                    var submitButton = document.getElementById('submit-button')
+                    let submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-primary')
                     submitButton.innerText = 'Submit'
                     submitButton.removeAttribute('disabled')
@@ -69,7 +69,7 @@
             ).then(onRenderComplete)
 
             function submitCoords() {
-                var form = document.getElementById('submit-coordinates')
+                let form = document.getElementById('submit-coordinates')
                 form.appendChild(
                     addCoords(document, clickedCoordsXY, 'pano-coords')
                 )
@@ -131,7 +131,7 @@
                             .removeAttribute('hidden')
                     }
                     if (clickedCoordsXY.length >= minimum_samples) {
-                        var submitButton =
+                        let submitButton =
                             document.getElementById('submit-button')
                         if (renderComplete) {
                             submitButton.setAttribute(
@@ -159,7 +159,7 @@
             document.addEventListener('keydown', function (event) {
                 let empty = false
                 if (event.keyCode === 67) {
-                    for (var i = 1; i <= clickedCoordsXY.length; i++) {
+                    for (let i = 1; i <= clickedCoordsXY.length; i++) {
                         viewer.removeHotSpot('selected-location-' + i)
                     }
                     empty = true
@@ -178,7 +178,7 @@
                 if (empty) {
                     clickedCoordsXY = []
                     clickedCoordsYaw = []
-                    var submitButton = document.getElementById('submit-button')
+                    let submitButton = document.getElementById('submit-button')
                     submitButton.setAttribute('class', 'btn btn-secondary')
                     submitButton.innerText = 'Submit'
                     updateFormText(document, clickedCoordsXY.length)

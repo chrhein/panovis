@@ -135,7 +135,7 @@
 
             function mountainHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('mountain-tooltip')
-                var span = document.createElement('span')
+                let span = document.createElement('span')
                 span.innerHTML = args
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
@@ -148,7 +148,7 @@
 
             function imageHotspotTooltip(hotSpotDiv, args) {
                 hotSpotDiv.classList.add('panorama-image-tooltip')
-                var span = document.createElement('span')
+                let span = document.createElement('span')
                 span.innerHTML = args
                 hotSpotDiv.appendChild(span)
                 span.style.width = span.scrollWidth - 20 + 'px'
@@ -406,10 +406,9 @@
             }
 
             function onMessage(event) {
-                console.log(event)
                 if (event.origin !== 'null') return
 
-                var data = event.data
+                let data = event.data
                 viewer.loadScene(data)
             }
         </script>

@@ -5,6 +5,7 @@ import folium.raster_layers
 import os
 import location_handler
 from tools.debug import p_i
+from branca.element import Template, MacroElement
 
 
 def plot_to_map(
@@ -38,6 +39,10 @@ def plot_to_map(
         name="Map",
     ).add_to(m)
 
+    ###########################################################################
+    ###########################################################################
+    # All mountains in dataset
+
     if mountains:
         mountains_fg = folium.FeatureGroup(name="All Mountains", show=False)
         m.add_child(mountains_fg)
@@ -45,9 +50,9 @@ def plot_to_map(
             (
                 folium.Circle(
                     location=(i.location.latitude, i.location.longitude),
-                    color="#ed6952",
+                    color="#66bca2",
                     fill=True,
-                    fill_color="#ed6952",
+                    fill_color="#66bca2",
                     fill_opacity=0.2,
                     radius=100,
                     popup=f"{i.name}, {int(i.location.elevation)} m",
@@ -55,6 +60,11 @@ def plot_to_map(
             )
             for i in mountains
         ]
+
+    ###########################################################################
+    ###########################################################################
+    # Mountains in sight
+
     if mountains_in_sight:
         mountains_in_sight_fg = folium.FeatureGroup(
             name="Visible Mountains", show=True)
@@ -63,59 +73,102 @@ def plot_to_map(
             (
                 folium.Marker(
                     location=(i.location.latitude, i.location.longitude),
-                    popup="%s\n%.4f, %.4f\n%im"
+                    popup="%s\n%im"
                     % (
                         str(i.name),
-                        i.location.latitude,
-                        i.location.longitude,
                         i.location.elevation,
                     ),
-                    icon=folium.Icon(color="pink", icon="mountain"),
+                    icon=folium.Icon(color="green", icon="mountain"),
                 ).add_to(mountains_in_sight_fg)
             )
             for i in mountains_in_sight
         ]
+
+    ###########################################################################
+    ###########################################################################
+    # Other images in dataset
 
     if images:
         images_fg = folium.FeatureGroup(name="Visible Images", show=True)
         m.add_child(images_fg)
         for im in images:
             encoded = base64.b64encode(open(im.thumbnail_path, "rb").read())
-            html = '<img id="folium-image" src="data:image/JPG;base64,{}"></img>'.format
 
+            html = f'''
+            <!doctype html>
+            <html>
+                <head>
+                    <style>
+                        .redirect-button {{
+                            color: #fff;
+                            cursor: pointer;
+                            background-color: #6c757d;
+                            border-color: #6c757d;
+                            display: inline-block;
+                            font-weight: 400;
+                            line-height: 1.5;
+                            text-align: center;
+                            text-decoration: none;
+                            vertical-align: middle;
+                            padding: .375rem .75rem;
+                            border-radius: .25rem;
+                            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+                        }}
+
+                        .redirect-button:hover {{
+                            color: #fff;
+                            background-color: #5c636a;
+                            border-color: #545b62;
+                        }}
+                    </style>
+                    <script type="text/javascript">
+                        function redirect() {{
+                            console.log("Redirecting to: ", "{im.name}");
+                            window.parent.parent.postMessage("{im.name}", '*');
+                        }}
+                    </script>
+                </head>
+                <body>
+                    <button class="redirect-button" onclick="redirect();">View image</button>
+                    <img src="data:image/JPG;base64,{encoded.decode("UTF-8")}">
+                </body>
+            </html>
+            '''
             iframe = folium.IFrame(
-                html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
+                html, width=450 + 20, height=150 + 20
             )
             popup = folium.Popup(iframe, max_width=470)
 
             folium.Marker(
                 location=(im.location.latitude, im.location.longitude),
                 popup=popup,
-                icon=folium.Icon(color="beige", icon="camera"),
+                icon=folium.Icon(color="orange", icon="camera"),
             ).add_to(images_fg)
 
+    ###########################################################################
+    ###########################################################################
+    # Current viewpoint
+
     encoded = base64.b64encode(open(camera_pano_path, "rb").read())
-    html = '''
+    html = f'''
     <!doctype html>
-    <script type="text/javascript">
-    function redirect() {{
-        window.parent.parent.postMessage('IMG_0452-db1790b3', '*');
-    }}
-    </script>
     <html>
-    <button onclick="redirect();">Click Me</button>
-    <img src="data:image/JPG;base64,{}">
+        <img src="data:image/JPG;base64,{encoded.decode("UTF-8")}">
     </html>
-    '''.format
+    '''
     iframe = folium.IFrame(
-        html(encoded.decode("UTF-8")), width=450 + 20, height=150 + 20
+        html, width=450 + 20, height=150 + 20
     )
     popup = folium.Popup(iframe, max_width=450)
     folium.Marker(
         location=[c_lat, c_lon],
         popup=popup,
-        icon=folium.Icon(color="green", icon="camera"),
+        icon=folium.Icon(color="cadetblue", icon="camera"),
     ).add_to(m)
+
+    ###########################################################################
+    ###########################################################################
+    # Visible coordinates
 
     if locs:
         locs_fg = folium.FeatureGroup(name="Retrieved Coordinates", show=True)
@@ -131,44 +184,95 @@ def plot_to_map(
                 radius=15,
             ).add_to(locs_fg)
 
-    raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=True)
+    ###########################################################################
+    ###########################################################################
+    # Raster bounds
+
+    raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=False)
     m.add_child(raster_bounds)
-    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#ed6952").add_to(
+    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#d63e29").add_to(
         raster_bounds
     )
 
-    """
+    ###########################################################################
+    ###########################################################################
+    # Legend
 
-    (
-        lower_left,
-        upper_left,
-        upper_right,
-        lower_right,
-    ) = location_handler.get_raster_bounds(dem_file)
+    template = """
+    {% macro html(this, kwargs) %}
 
-     ll1, _ = lower_left
-    _, ul2 = upper_left
-    ur1, _ = upper_right
-    _, lr2 = lower_right
+    <!doctype html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+    <div id='maplegend' class='maplegend'
+        style='position: absolute; z-index:9999; border:2px solid grey; background-color:rgba(255, 255, 255, 0.8);
+        border-radius:6px; padding: 10px; font-size:14px; right: 20px; bottom: 20px;'>
+        <div class='legend-scale'>
+            <ul class='legend-labels'>
+                <li><span style='background:#426877;opacity:1.0;'></span>Current Viewpoint</li>
+                <li><span style='background:#66bca2;opacity:1.0;'></span>Images in dataset</li>
+                <li><span style='background:#66bca2;opacity:1.0;'></span>All mountains in dataset</li>
+                <li><span style='background:#71b025;opacity:1.0;'></span>Mountains in sight</li>
+                <li><span style='background:#d63e29;opacity:1.0;'></span>DEM bounding box</li>
+            </ul>
+        </div>
+    </div>
+    </body>
+    </html>
 
-    color_gradient = folium.FeatureGroup(
-        name="Color Gradient (Not Working)", show=False
-    )
-    m.add_child(color_gradient)
-    im = cv2.imread("data/color_gradient.png")
-    rotated_image = image_handling.rotate_image_on_map(
-        im, lower_left, upper_left)
+    <style type='text/css'>
+    .maplegend .legend-title {
+        text-align: left;
+        margin-bottom: 5px;
+        font-weight: bold;
+        font-size: 90%;
+        }
+    .maplegend .legend-scale ul {
+        margin: 0;
+        margin-bottom: 5px;
+        padding: 0;
+        float: left;
+        list-style: none;
+        }
+    .maplegend .legend-scale ul li {
+        font-size: 80%;
+        list-style: none;
+        margin-left: 0;
+        line-height: 18px;
+        margin-bottom: 2px;
+        }
+    .maplegend ul.legend-labels li span {
+        display: block;
+        float: left;
+        height: 16px;
+        width: 30px;
+        margin-right: 5px;
+        margin-left: 0;
+        border: 1px solid #999;
+        }
+    .maplegend .legend-source {
+        font-size: 80%;
+        color: #777;
+        clear: both;
+        }
+    .maplegend a {
+        color: #777;
+        }
+    </style>
+    {% endmacro %}"""
 
-    folium.raster_layers.ImageOverlay(
-        image=rotated_image,
-        bounds=[(ll1, ul2), (ur1, lr2)],
-        mercator_project=True,
-        origin="upper",
-    ).add_to(color_gradient)
+    macro = MacroElement()
+    macro._template = Template(template)
 
-    """
-
+    ###########################################################################
+    ###########################################################################
+    # Add to map
     folium.LayerControl().add_to(m)
+    m.get_root().add_child(macro)
     m.save(filename)
 
 
