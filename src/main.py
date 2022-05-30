@@ -2,7 +2,7 @@ from debug import debugger
 
 
 def main():
-    debugger(0)
+    debugger(1)
     pass
 
 

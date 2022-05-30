@@ -8,6 +8,33 @@ from tools.debug import p_i
 from branca.element import Template, MacroElement
 
 
+def get_glyph(id, color, elevation):
+    scaling = (elevation / 100)
+    width = 12 + scaling
+    height = 24 + scaling
+    glyph = f"""
+            <!doctype html>
+            <html>
+                <head>
+                    <style>
+                        #triangle-{id} {{
+                            width: 0;
+                            height: 0;
+                            border-left: {width}px solid transparent;
+                            border-right: {width}px solid transparent;
+                            border-bottom: {height}px solid {color};
+                            transform: translate(-37%, -40%);
+                            filter: drop-shadow(2px -3px 4px rgba(255, 255, 255, .33));
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div id="triangle-{id}"></div>
+                </body>
+            </html>"""
+    return glyph
+
+
 def plot_to_map(
     camera_pano_path,
     mountains_in_sight,
@@ -48,14 +75,16 @@ def plot_to_map(
         m.add_child(mountains_fg)
         [
             (
-                folium.Circle(
+                folium.Marker(
                     location=(i.location.latitude, i.location.longitude),
-                    color="#755239",
-                    fill=True,
-                    fill_color="#755239",
-                    fill_opacity=0.2,
-                    radius=100,
-                    popup=f"{i.name}, {int(i.location.elevation)} m",
+                    popup="%s\n%im"
+                    % (
+                        str(i.name),
+                        i.location.elevation,
+                    ),
+                    icon=folium.DivIcon(html=get_glyph(
+                        f"am-{i.name}", "#755239", i.location.elevation)),
+                    zIndexOffset=1,
                 ).add_to(mountains_fg)
             )
             for i in mountains
@@ -69,6 +98,7 @@ def plot_to_map(
         mountains_in_sight_fg = folium.FeatureGroup(
             name="Visible Mountains", show=True)
         m.add_child(mountains_in_sight_fg)
+
         [
             (
                 folium.Marker(
@@ -78,8 +108,9 @@ def plot_to_map(
                         str(i.name),
                         i.location.elevation,
                     ),
-                    icon=folium.Icon(
-                        color="green", icon="chevron-up", prefix="fa"),
+                    icon=folium.DivIcon(html=get_glyph(
+                        f"vm-{i.name}", "#426877", i.location.elevation)),
+                    zIndexOffset=10,
                 ).add_to(mountains_in_sight_fg)
             )
             for i in mountains_in_sight
@@ -144,6 +175,8 @@ def plot_to_map(
                 location=(im.location.latitude, im.location.longitude),
                 popup=popup,
                 icon=folium.Icon(color="orange", icon="camera"),
+                zIndexOffset=12,
+
             ).add_to(images_fg)
 
     ###########################################################################
@@ -164,7 +197,9 @@ def plot_to_map(
     folium.Marker(
         location=[c_lat, c_lon],
         popup=popup,
-        icon=folium.Icon(color="cadetblue", icon="camera"),
+        icon=folium.Icon(color="green", icon="camera"),
+        zIndexOffset=13,
+
     ).add_to(m)
 
     ###########################################################################
@@ -191,7 +226,7 @@ def plot_to_map(
 
     raster_bounds = folium.FeatureGroup(name="Raster Bounds", show=False)
     m.add_child(raster_bounds)
-    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#d63e29").add_to(
+    folium.PolyLine(locations=[ll, ul, ur, lr, ll], color="#d63e29", zIndexOffset=15).add_to(
         raster_bounds
     )
 
@@ -214,10 +249,10 @@ def plot_to_map(
         border-radius:6px; padding: 10px; font-size:14px; right: 20px; bottom: 20px;'>
         <div class='legend-scale'>
             <ul class='legend-labels'>
-                <li><span style='background:#426877;opacity:1.0;'></span>Current Viewpoint</li>
+                <li><span style='background:#71b025;opacity:1.0;'></span>Current Viewpoint</li>
                 <li><span style='background:#f69730;opacity:1.0;'></span>Images in dataset</li>
                 <li><span style='background:#755239;opacity:1.0;'></span>All mountains in dataset</li>
-                <li><span style='background:#71b025;opacity:1.0;'></span>Mountains in sight</li>
+                <li><span style='background:#426877;opacity:1.0;'></span>Mountains in sight</li>
                 <li><span style='background:#d63e29;opacity:1.0;'></span>DEM bounding box</li>
             </ul>
         </div>
