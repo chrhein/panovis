@@ -13,6 +13,9 @@ class Location:
     def loc(self):
         return (self.latitude, self.longitude)
 
+    def __cmp__(self, other):
+        return operator.eq((str(self), str(other)))
+
 
 @dataclass
 class Location3D:

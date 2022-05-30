@@ -8,10 +8,10 @@ from tools.debug import p_i
 from branca.element import Template, MacroElement
 
 
-def get_glyph(id, color, elevation):
-    scaling = (elevation / 100)
-    width = 12 + scaling
-    height = 24 + scaling
+def get_glyph(id, color, elevation, min_ele, max_ele):
+    scaling = (elevation - min_ele) * 15 / (max_ele - min_ele)
+    width = 8 + scaling
+    height = 16 + scaling
     glyph = f"""
             <!doctype html>
             <html>
@@ -23,7 +23,7 @@ def get_glyph(id, color, elevation):
                             border-left: {width}px solid transparent;
                             border-right: {width}px solid transparent;
                             border-bottom: {height}px solid {color};
-                            transform: translate(-37%, -40%);
+                            transform: translate(-{width / 2}px, -{height / 2}px);
                             filter: drop-shadow(2px -3px 4px rgba(255, 255, 255, .33));
                         }}
                     </style>
@@ -66,6 +66,13 @@ def plot_to_map(
         name="Map",
     ).add_to(m)
 
+    min_ele, max_ele = 10000, 0
+    for i in mountains:
+        if i.location.elevation > max_ele:
+            max_ele = i.location.elevation
+        if i.location.elevation < min_ele:
+            min_ele = i.location.elevation
+
     ###########################################################################
     ###########################################################################
     # All mountains in dataset
@@ -83,7 +90,7 @@ def plot_to_map(
                         i.location.elevation,
                     ),
                     icon=folium.DivIcon(html=get_glyph(
-                        f"am-{i.name}", "#755239", i.location.elevation)),
+                        f"am-{i.name}-{int(i.location.elevation)}", "#755239", i.location.elevation, min_ele, max_ele)),
                     zIndexOffset=1,
                 ).add_to(mountains_fg)
             )
@@ -109,7 +116,7 @@ def plot_to_map(
                         i.location.elevation,
                     ),
                     icon=folium.DivIcon(html=get_glyph(
-                        f"vm-{i.name}", "#426877", i.location.elevation)),
+                        f"vm-{i.name}-{int(i.location.elevation)}", "#426877", i.location.elevation, min_ele, max_ele)),
                     zIndexOffset=10,
                 ).add_to(mountains_in_sight_fg)
             )
