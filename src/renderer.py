@@ -40,7 +40,7 @@ def render_height(img_data):
         render_shape = [r_width, r_height]
         json_file.close()
 
-    cropped_dem, coordinates, _ = get_mountain_data(dem, img_data)
+    cropped_dem, coordinates = get_mountain_data(dem, img_data)
     ds_raster = rasterio.open(cropped_dem)
     raster_data = get_raster_data(ds_raster, coordinates)
     if not raster_data:
@@ -78,7 +78,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         dem_path = data["dem_path"]
         json_file.close()
 
-    dem_path, coordinates, viewing_direction = get_mountain_data(
+    dem_path, coordinates = get_mountain_data(
         dem_path, img_data, True
     )
 
@@ -102,8 +102,6 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         )
         waypoints_3d = get_3d_location(
             camera_location,
-            viewing_direction,
-            converter,
             waypoints_in_sight,
         )
         visible_hikes[hike.name] = waypoints_3d
@@ -114,8 +112,6 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     images_in_sight = find_visible_items_in_ds(ds_viewshed, images)
     images_3d = get_3d_location(
         camera_location,
-        viewing_direction,
-        converter,
         images_in_sight,
     )
 
@@ -124,8 +120,6 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         ds_viewshed, mountains)
     mountains_3d = get_3d_location(
         camera_location,
-        viewing_direction,
-        converter,
         mountains_in_sight,
     )
 

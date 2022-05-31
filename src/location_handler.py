@@ -181,22 +181,7 @@ def get_view_direction(fov):
     return ((left_bound + (fov_deg / 2)) + 180) % 360
 
 
-def get_3d_location(camera_location, viewing_direction, converter, dataset):
-    loc1 = converter.convert(
-        *displace_camera(
-            camera_location.latitude,
-            camera_location.longitude,
-            deg=viewing_direction,
-            dist=1.0,
-        ),
-    )
-    loc3 = converter.convert(camera_location.latitude,
-                             camera_location.longitude)
-
-    def find_angle_between_three_locations(loc1, loc2, loc3):
-        a1 = atan2(loc3.GetX() - loc2.GetX(), loc3.GetY() - loc2.GetY())
-        a2 = atan2(loc3.GetX() - loc1.GetX(), loc3.GetY() - loc1.GetY())
-        return degrees(a1 - a2)
+def get_3d_location(camera_location, dataset):
 
     def get_initial_bearing(camera_location, object_location):
         c_lon = radians(camera_location.longitude)
@@ -214,7 +199,7 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
 
         return compass_bearing
 
-    def get_3d_placement(loc1, loc3, camera_location, item, generator, converter):
+    def get_3d_placement(camera_location, item, generator):
         d = generator.get_distance_between_locations(
             camera_location, item.location)
         c_e = camera_location.elevation + 25
@@ -222,17 +207,13 @@ def get_3d_location(camera_location, viewing_direction, converter, dataset):
         diff = i_e - c_e
         h = (d ** 2 + diff ** 2) ** 0.5
         pitch = degrees(asin(diff / h))
-        # i = item.location
-        # loc2 = converter.convert(i.latitude, i.longitude)
-        # yaw = find_angle_between_three_locations(loc1, loc2, loc3)
         yaw = get_initial_bearing(camera_location, item.location)
-        print(f"{yaw=}")
         return yaw, pitch, d
 
     generator = Distance()
     for item in dataset:
         yaw, pitch, d = get_3d_placement(
-            loc1, loc3, camera_location, item, generator, converter
+            camera_location, item, generator
         )
         item.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
 

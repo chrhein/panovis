@@ -2,6 +2,7 @@ import base64
 from dotenv import load_dotenv
 import folium
 import folium.raster_layers
+# from folium.plugins import Fullscreen
 import os
 import location_handler
 from tools.debug import p_i
@@ -63,7 +64,7 @@ def plot_to_map(
         tiles=MAPBOX_STYLE_URL,
         API_key=MAPBOX_TOKEN,
         attr="Christian Hein",
-        name="Map",
+        name="Settings",
     ).add_to(m)
 
     min_ele, max_ele = 10000, 0
@@ -253,7 +254,7 @@ def plot_to_map(
     <body>
     <div id='maplegend' class='maplegend'
         style='position: absolute; z-index:9999; border:2px solid grey; background-color:rgba(255, 255, 255, 0.8);
-        border-radius:6px; padding: 10px; font-size:14px; right: 20px; bottom: 20px;'>
+        border-radius:6px; padding: 10px 10px 1px; font-size:16px; font-weight:500; right: 20px; bottom: 24px;'>
         <div class='legend-scale'>
             <ul class='legend-labels'>
                 <li><span style='background:#71b025;opacity:1.0;'></span>Current Viewpoint</li>
@@ -316,6 +317,8 @@ def plot_to_map(
     # Add to map
     folium.LayerControl().add_to(m)
     m.get_root().add_child(macro)
+    # m.add_child(Fullscreen(position='topleft'))
+
     m.save(filename)
 
 

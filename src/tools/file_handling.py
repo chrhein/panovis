@@ -28,43 +28,7 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_lat, camera_lon, deg=viewing_direction
     )
     coordinates = [camera_lat, camera_lon, *look_ats]
-    """
-        print(f"{coordinates=}")
-
-        ds_raster = rasterio.open(dem_file)
-        crs = int(ds_raster.crs.to_authority()[1])
-
-        print(f"{crs=}")
-
-        converter = LatLngToCrs(crs)
-        camera_placement_crs = converter.convert(camera_lat, camera_lon)
-
-        print(f"{camera_placement_crs=}")
-
-        displacement_distance = 15000  # in meters from camera placement
-
-        bbox = (
-            camera_placement_crs.GetX() - displacement_distance,
-            camera_placement_crs.GetY() + displacement_distance,
-            camera_placement_crs.GetX() + displacement_distance,
-            camera_placement_crs.GetY() - displacement_distance,
-        )
-
-        print(f"{bbox=}")
-
-        tmp_ds = '/tmp/temp_dem.png'
-        if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
-            print(f"converting dem {dem_file} to png")
-            call(['gdal_translate', '-ot', 'UInt16',
-                '-of', 'PNG', dem_file, tmp_ds])
-            dem_file = tmp_ds
-            print(f"{dem_file=}")
-        cropped_dem = f"/tmp/cropped-{im_data.filename}.tif"
-        print(f"cropping dem {dem_file} to {cropped_dem}")
-        gdal.Translate(cropped_dem, dem_file, projWin=bbox,
-                    format="GTiff")
-        print(f"{cropped_dem=}") """
-    return dem_file, coordinates, viewing_direction
+    return dem_file, coordinates
 
 
 def read_hike_gpx(gpx_path):
@@ -230,9 +194,18 @@ def get_hikes():
 def reset_image(im):
     p_i(f"Resetting image {im}")
     IMAGE_DATA = load_image_data(im)
-    os.remove(IMAGE_DATA.overlay_path)
-    os.remove(IMAGE_DATA.ultrawide_path)
-    os.remove(IMAGE_DATA.warped_panorama_path)
+    try:
+        os.remove(IMAGE_DATA.overlay_path)
+    except AttributeError:
+        pass
+    try:
+        os.remove(IMAGE_DATA.ultrawide_path)
+    except AttributeError:
+        pass
+    try:
+        os.remove(IMAGE_DATA.warped_panorama_path)
+    except AttributeError:
+        pass
     IMAGE_DATA.view_direction = None
     IMAGE_DATA.fov_l = None
     IMAGE_DATA.fov_r = None

@@ -14,7 +14,7 @@
         <div class="p-3 border bg-secondary text-light">
             <div class="d-flex">
                 <div class="my-auto fw-bold h6 text-start me-3">
-                    Mountain dataset:
+                    Peak data set:
                 </div>
 
                 <div
@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-5">
+        <!-- <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-5">
             <h3 class="fw-bold text-start">Hikes</h3>
             <div class="border bg-light">
                 <div class="uploaded-hikes-wrapper">
@@ -103,11 +103,10 @@
                     </div>
                 </div>
             </div>
-        </div>
-
+        </div>-->
         <div class="col-xs-12 col-md-10 col-xl-8 mx-auto align-middle p-5 pt-4">
             <div class="row">
-                <div class="col-xs-12 col-xl-6 mx-auto align-middle pt-4">
+                <div class="col-xs-12 col-xl-12 mx-auto align-middle pt-4">
                     <h4 class="fw-bold text-start">Upload new panorama</h4>
                     <div class="p-3 border bg-light">
                         <div
@@ -138,7 +137,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xs-12 col-xl-6 mx-auto align-middle pt-4">
+                <!-- <div class="col-xs-12 col-xl-6 mx-auto align-middle pt-4">
                     <h4 class="fw-bold text-start">Upload new hike</h4>
                     <div class="p-3 border bg-light">
                         <div
@@ -168,7 +167,7 @@
                             </form>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
 
@@ -179,8 +178,8 @@
                 ).checked
                 redir_url = 'mountains'
                 task = 'findmtns?interactive=' + interactive
-                title = 'Locating Mountains'
-                text = 'Finding mountains in panorama...'
+                title = 'Locating Visible Peaks'
+                text = 'Locating visible peaks in data set...'
                 window.location.href = `/loading?redirect_url=${redir_url}&task=${task}&title=${title}&text=${text}`
             }
 
