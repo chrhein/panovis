@@ -4,7 +4,7 @@ import time
 import subprocess
 import rasterio
 from tools.converters import convert_coordinates
-from tools.debug import p_i, p_line
+from tools.debug import p_e, p_i, p_line
 from location_handler import (
     create_viewshed,
     get_3d_location,
@@ -23,9 +23,8 @@ from tools.types import CrsToLatLng, LatLngToCrs, Location
 from vistools.tplot import plot_3d
 
 
-def render_height(img_data):
-    production_mode = True
-    if os.path.exists(img_data.render_path) and production_mode:
+def render_height(img_data, r_h=None, debug=False):
+    if os.path.exists(img_data.render_path) and not debug:
         return
     start_time = time.time()
     render_filename = img_data.render_path
@@ -33,14 +32,16 @@ def render_height(img_data):
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
-        dem = data["dem_path"]
-        r_width = data["render_width"]
-        r_height = data["render_height"]
-
-        render_shape = [r_width, r_height]
+        dem_file = data["dem_path"]
+        if r_h:
+            render_shape = [r_h*2, r_h]
+        else:
+            r_width = data["render_width"]
+            r_height = data["render_height"]
+            render_shape = [r_width, r_height]
         json_file.close()
 
-    cropped_dem, coordinates = get_mountain_data(dem, img_data)
+    cropped_dem, coordinates = get_mountain_data(dem_file, img_data)
     ds_raster = rasterio.open(cropped_dem)
     raster_data = get_raster_data(ds_raster, coordinates)
     if not raster_data:
@@ -52,11 +53,13 @@ def render_height(img_data):
         pf.write(pov)
     pf.close()
 
-    if production_mode:
-        converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
-        locxy = converter.convert(coordinates[0], coordinates[1])
-        create_viewshed(cropped_dem, (locxy.GetX(),
-                        locxy.GetY()), img_data.folder)
+    p_i(f"Creating viewshed for {img_data.filename}")
+    converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
+    locxy = converter.convert(coordinates[0], coordinates[1])
+    vs_created = create_viewshed(cropped_dem, (locxy.GetX(),
+                                               locxy.GetY()), img_data.folder)
+    if not vs_created:
+        p_e(f"Failed to create viewshed for {img_data.filename}")
 
     execute_pov(params)
     stats = [
@@ -72,17 +75,20 @@ def render_height(img_data):
 def mountain_lookup(img_data, gpx_file, plot=False):
     p_i(f"Beginning mountain lookup for {img_data.filename}")
 
+    viewshed = f'{img_data.folder}/viewshed.tif'
+    ds_viewshed = rasterio.open(viewshed)
+    if not ds_viewshed:
+        return False
+
     render_settings_path = "render_settings.json"
     with open(render_settings_path) as json_file:
         data = load(json_file)
-        dem_path = data["dem_path"]
+        dem_file = data["dem_path"]
         json_file.close()
 
-    dem_path, coordinates = get_mountain_data(
-        dem_path, img_data, True
-    )
+    cropped_dem, coordinates = get_mountain_data(dem_file, img_data, True)
 
-    ds_raster = rasterio.open(dem_path)
+    ds_raster = rasterio.open(cropped_dem)
     crs = int(ds_raster.crs.to_authority()[1])
     lat, lon = coordinates[0], coordinates[1]
 
@@ -134,9 +140,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
             mountains_3d,
             coordinates,
             plot_filename,
-            dem_path,
+            dem_file,
             CrsToLatLng(crs),
-            # locs=get_visible_coordinates(ds_raster, viewshed),
             mountains=mountains,
             images=images,
         )

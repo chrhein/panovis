@@ -1,13 +1,16 @@
 import pickle
+from subprocess import call
 import numpy as np
-from tools.debug import p_i, p_in, p_line, p_e
+from tools.debug import p_a, p_i, p_in, p_line, p_e
 import os
+from pathlib import Path
 import gpxpy
 import rasterio
 import image_handling
 import location_handler
 from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain, Waypoint
 from rdp import rdp
+from osgeo import gdal
 
 
 def get_mountain_data(dem_file, im_data, gradient=False):
@@ -28,7 +31,43 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_lat, camera_lon, deg=viewing_direction
     )
     coordinates = [camera_lat, camera_lon, *look_ats]
-    return dem_file, coordinates
+    ds_raster = rasterio.open(dem_file)
+    crs = int(ds_raster.crs.to_authority()[1])
+
+    converter = LatLngToCrs(crs)
+    camera_placement_crs = converter.convert(camera_lat, camera_lon)
+
+    displacement_distance = 20000  # in meters from camera placement
+
+    westernmost_point = camera_placement_crs.GetX() - displacement_distance
+    northernmost_point = camera_placement_crs.GetY() + displacement_distance
+    easternmost_point = camera_placement_crs.GetX() + displacement_distance
+    southernmost_point = camera_placement_crs.GetY() - displacement_distance
+
+    ds_bbox = ds_raster.bounds
+    if ds_bbox.left < westernmost_point:
+        westernmost_point = ds_bbox.left
+    if ds_bbox.right > easternmost_point:
+        easternmost_point = ds_bbox.right
+    if ds_bbox.top > northernmost_point:
+        northernmost_point = ds_bbox.top
+    if ds_bbox.bottom < southernmost_point:
+        southernmost_point = ds_bbox.bottom
+
+    bbox = (
+        westernmost_point,
+        northernmost_point,
+        easternmost_point,
+        southernmost_point,
+    )
+    tmp_ds = 'data/rasters/temp_dem.png'
+    if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
+        call(['gdal_translate', '-ot', 'UInt16',
+              '-of', 'PNG', dem_file, tmp_ds])
+        dem_file = tmp_ds
+    cropped_dem = f"data/rasters/cropped-{im_data.filename}.tif"
+    gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+    return cropped_dem, coordinates
 
 
 def read_hike_gpx(gpx_path):
@@ -196,15 +235,15 @@ def reset_image(im):
     IMAGE_DATA = load_image_data(im)
     try:
         os.remove(IMAGE_DATA.overlay_path)
-    except AttributeError:
+    except (AttributeError, FileNotFoundError):
         pass
     try:
         os.remove(IMAGE_DATA.ultrawide_path)
-    except AttributeError:
+    except (AttributeError, FileNotFoundError):
         pass
     try:
         os.remove(IMAGE_DATA.warped_panorama_path)
-    except AttributeError:
+    except (AttributeError, FileNotFoundError):
         pass
     IMAGE_DATA.view_direction = None
     IMAGE_DATA.fov_l = None
@@ -212,3 +251,19 @@ def reset_image(im):
     IMAGE_DATA.location = None
     IMAGE_DATA.transform_matrix = None
     save_image_data(IMAGE_DATA)
+
+
+def remove_with_force(im):
+    try:
+        def remove_path(path: Path):
+            if path.is_file() or path.is_symlink():
+                path.unlink()
+                return
+            for p in path.iterdir():
+                remove_path(p)
+            path.rmdir()
+        path_to_remove = Path(f"src/static/images/{im}")
+        remove_path(path_to_remove)
+        p_a(f"Removed image {im}")
+    except (FileNotFoundError):
+        pass

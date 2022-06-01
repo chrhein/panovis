@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import rasterio
 from location_handler import find_visible_items_in_ds
 from map_plotting import plot_to_map
+from renderer import render_height
 from tools.debug import p_e
 from tools.file_handling import get_mountain_data, load_image_data, read_image_locations, read_mountain_gpx
 from tools.types import CrsToLatLng, LatLngToCrs
@@ -11,8 +12,8 @@ from os import getenv
 
 
 def debugger(mode):
+    load_dotenv()
     if mode == 0:
-        load_dotenv()
         img_filename = getenv("DEBUG_IMAGE_FILENAME")
         img_data = load_image_data(img_filename)
         render_settings_path = "render_settings.json"
@@ -27,7 +28,6 @@ def debugger(mode):
         plotly_path = f"{img_data.folder}/{img_data.filename}-3d.html"
         plot_3d(ds_raster, plotly_path, True)
     elif mode == 1:
-        load_dotenv()
         img_filename = getenv("DEBUG_IMAGE_FILENAME")
         img_data = load_image_data(img_filename)
         render_settings_path = "render_settings.json"
@@ -61,5 +61,9 @@ def debugger(mode):
             mountains=mountains,
             images=images,
         )
+    elif mode == 2:
+        img_filename = getenv("DEBUG_IMAGE_FILENAME")
+        img_data = load_image_data(img_filename)
+        render_height(img_data, 400, True)
     else:
         p_e("Mode not recognized")

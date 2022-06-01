@@ -1,5 +1,6 @@
 from subprocess import call
 from location_handler import get_fov
+from sklearn.preprocessing import normalize
 
 
 def primary_pov(
@@ -12,8 +13,8 @@ def primary_pov(
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
-    _, max_height = raster_data[1]
-    y_axis_scaling = 1.25
+    distances, max_height = raster_data[1]
+    y_axis_scaling = max(*normalize([distances], norm='l1'))
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -214,7 +215,7 @@ def primary_pov(
             }
         }
         #end
-        scale <1, 1, 1>
+        scale <1, YSCALE, 1>
     }
     """ % (
         location_x,

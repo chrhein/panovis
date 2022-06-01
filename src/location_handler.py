@@ -1,5 +1,6 @@
 from json import load
-from math import asin, atan2, pi, radians, sqrt
+from math import asin, atan2, pi, radians
+import os
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -227,7 +228,6 @@ def create_viewshed(dem_file, location, folder):
     band = ds.GetRasterBand(1)
     resolution = ds.GetGeoTransform()[1]
     max_dist = max(band.XSize * resolution, band.YSize * resolution)
-    max_dist = sqrt((max_dist / 2) ** 2 + (max_dist / 2) ** 2)
     gdal.ViewshedGenerate(
         srcBand=band,
         driverName=ds.GetDriver().ShortName,
@@ -244,3 +244,4 @@ def create_viewshed(dem_file, location, folder):
         dfCurvCoeff=0.85714,
         mode=2,
         maxDistance=max_dist)
+    return os.path.exists(viewshed_filename)

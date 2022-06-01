@@ -422,9 +422,16 @@
             }
 
             function resetImageTransformation() {
-                window.location.href = `/resetimg?image_id=${urlParams.get(
-                    'sceneId'
-                )}`
+                clearId = urlParams.get('sceneId')
+                if (clearId) {
+                    console.log('clearing', clearId)
+                    window.location.href = `/resetimg?image_id=${clearId}`
+                } else {
+                    alert(
+                        'Failed to reset image metadata for image with sceneId:',
+                        clearId
+                    )
+                }
             }
         </script>
     </body>

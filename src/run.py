@@ -16,6 +16,7 @@ from tools.file_handling import (
     get_seen_items,
     load_image_data,
     make_folder,
+    remove_with_force,
     reset_image,
     save_image_data,
     trim_hike,
@@ -166,6 +167,7 @@ def create_app():
     @app.route("/resetimg", methods=["GET"])
     def resetimg():
         file_to_remove = request.args.get("image_id")
+        session["filename"] = file_to_remove
         reset_image(file_to_remove)
         return redirect(url_for("spcoords"))
 
@@ -287,7 +289,7 @@ def create_app():
             mountains_3d, images_3d, visible_hikes = mountain_lookup(
                 im_data, gpx_path, interactive)
             gpx = gpx_path.split("/")[-1].split(".")[0]
-            hs = create_hotspots(im_data, mountains_3d,
+            hs = create_hotspots(mountains_3d,
                                  images_3d, visible_hikes)
             im_data.add_hotspots(gpx, hs)
             save_image_data(im_data)
@@ -301,12 +303,18 @@ def create_app():
             interactive = False
         session["interactive"] = interactive
         seen_images = get_seen_items()
-        fn = get_filename()
+        i = []
+        for im in seen_images:
+            if verify_image_data(im):
+                i.append(im)
+            else:
+                remove_image_as_seen(im)
+        fn = i[-1]
         session["filename"] = fn
         start_time = time.time()
-        Parallel(n_jobs=min(4, len(seen_images)))(
+        Parallel(n_jobs=min(4, len(i)))(
             delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
-            for pano_filename in seen_images
+            for pano_filename in i
         )
         app.logger.info(
             f"Duration:  {time.time() - start_time} seconds",
@@ -315,10 +323,19 @@ def create_app():
 
     @app.route("/mountains")
     def mountains():
-        IMAGE_DATA = load_image_data(get_filename())
+        ims = get_seen_items()
+        i = []
+        for im in ims:
+            if verify_image_data(im):
+                i.append(im)
+            else:
+                remove_image_as_seen(im)
+        if len(i) == 0:
+            return "<h4>No images found</h4>"
+        IMAGE_DATA = load_image_data(i[-1])
         gpx_filename = session.get(
             "gpx_path", None).split("/")[-1].split(".")[0]
-        scenes = make_scenes(gpx_filename)
+        scenes = make_scenes(gpx_filename, i)
         interactive = session.get("interactive", False)
         return render_template(
             "view_mountains.html",
@@ -335,6 +352,25 @@ def create_app():
         return fn
 
     return app
+
+
+def verify_image_data(im):
+    im_data = load_image_data(im)
+    if im_data is None:
+        return False
+    if im_data.render_path is None:
+        return False
+    if im_data.view_direction is None:
+        return False
+    if im_data.ultrawide_path is None:
+        return False
+    if im_data.overlay_path is None:
+        return False
+    if im_data.hotspots is None:
+        return False
+    if im_data.warped_panorama_path is None:
+        return False
+    return True
 
 
 def mark_image_seen(img_data):
@@ -373,6 +409,7 @@ def remove_image_as_seen(image_filename):
             w = open(SEEN_IMAGES_PATH, "w")
             w.writelines(seen_images)
             w.close()
+            remove_with_force(image_filename)
         except ValueError:
             pass
         return seen_images[-1].strip("\n")
@@ -387,27 +424,25 @@ def remove_hike(hike_filename):
         pass
 
 
-def make_scenes(gpx_filename):
-    seen_images = get_seen_items()
+def make_scenes(gpx_filename, images=None):
     scenes = {}
-    for pano_filename in seen_images:
-        im_data = load_image_data(pano_filename)
-        if im_data is not None:
-            hs_name = f"{im_data.filename}-{gpx_filename}"
-            im_hs = im_data.hotspots.get(hs_name, None)
-            if im_hs is not None:
-                scenes[pano_filename] = {
-                    "hotspots": im_hs,
-                    "render_path": im_data.render_path,
-                    "view_direction": im_data.view_direction,
-                    "cropped_render_path": im_data.ultrawide_path,
-                    "cropped_overlay_path": im_data.overlay_path,
-                    "warped_panorama_path": im_data.warped_panorama_path,
-                }
+    for filename in images:
+        im_data = load_image_data(filename)
+        hs_name = f"{im_data.filename}-{gpx_filename}"
+        im_hs = im_data.hotspots.get(hs_name, None)
+        if im_hs is not None:
+            scenes[filename] = {
+                "hotspots": im_hs,
+                "render_path": im_data.render_path,
+                "view_direction": im_data.view_direction,
+                "cropped_render_path": im_data.ultrawide_path,
+                "cropped_overlay_path": im_data.overlay_path,
+                "warped_panorama_path": im_data.warped_panorama_path,
+            }
     return scenes
 
 
-def create_hotspots(IMAGE_DATA, mountains_3d, images_3d, visible_hikes):
+def create_hotspots(mountains_3d, images_3d, visible_hikes):
     hotspots = {}
     mountain_hotpots = {}
     for mountain in mountains_3d:
