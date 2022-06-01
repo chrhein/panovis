@@ -22,10 +22,35 @@
         <div class="px-4 py-4 my-4 text-center">
             <h3 class="fw-bold text-start">{{ text }}</h3>
             <div class="p-3 border bg-light row-12">
-                <div class="d-grid py-5 d-sm-flex justify-content-sm-center">
-                    <div class="col-12 loader"></div>
+                <div class="progress">
+                    <div
+                        class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar"
+                        aria-valuenow="0"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        style="width: 0"
+                        id="progress-bar"
+                    ></div>
                 </div>
             </div>
         </div>
     </body>
+    <script>
+        function update() {
+            var element = document.getElementById('progress-bar')
+            let progress = 0
+            var identity = setInterval(scene, 100)
+            function scene() {
+                if (progress >= 100) {
+                    clearInterval(identity)
+                } else {
+                    progress++
+                    element.ariaValueNow = progress
+                    element.style.width = progress + '%'
+                }
+            }
+        }
+        update()
+    </script>
 </html>
