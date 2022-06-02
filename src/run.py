@@ -9,7 +9,7 @@ from image_handling import (
     reduce_filesize,
     transform_panorama,
 )
-from renderer import mountain_lookup, render_height
+from renderer import generate_viewshed, mountain_lookup, render_height
 from tools.debug import p_i
 from tools.file_handling import (
     get_files,
@@ -189,6 +189,15 @@ def create_app():
             return ("", 204)
         else:
             return "<h4>Render Failed</h4>"
+
+    @app.route("/viewshed")
+    def viewshed():
+        IMAGE_DATA = load_image_data(get_filename())
+        viewshed_complete = generate_viewshed(IMAGE_DATA)
+        if viewshed_complete:
+            return ("", 204)
+        else:
+            return "<h4>Could Not Create Viewshed</h4>"
 
     # select pano coordinates
     @app.route("/spcoords")

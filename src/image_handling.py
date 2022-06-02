@@ -274,6 +274,8 @@ def transform_panorama(
 ):
     pts_panorama = np.float32([[x, y] for x, y in pano_coords])
     panorama_image = cv2.imread(IMAGE_DATA.path)
+
+    # make all black pixels one tint lighter to not be removed later
     panorama_image[np.where((panorama_image == [0, 0, 0]).all(axis=2))] = [
         1, 1, 1]
 
@@ -302,7 +304,6 @@ def transform_panorama(
 
     TRANFORM_COORDS, _ = cv2.findHomography(pts_render, pts_panorama)
 
-    print(TRANFORM_COORDS)
     IMAGE_DATA.transform_matrix = TRANFORM_COORDS
 
     warped_panorama = cv2.warpPerspective(
@@ -312,15 +313,6 @@ def transform_panorama(
         flags=cv2.RANSAC,
         borderMode=cv2.BORDER_TRANSPARENT,
     )
-
-    p_h, p_w, _ = panorama_image.shape
-
-    pano_bbox = np.array(
-        [[0, 0], [p_w, 0], [p_w, p_h], [0, p_h]],
-        dtype=np.float32,
-    )
-    warped_bbox = cv2.perspectiveTransform(
-        pano_bbox[None, :, :], TRANSFORM_MATRIX)
 
     mask = np.where((warped_panorama == (0, 0, 0)).all(
         axis=2), 0, 255).astype(np.uint8)
@@ -336,17 +328,24 @@ def transform_panorama(
         height, width, _ = x.shape
         return [x[0:height, 0:width//2], x[0:height, width//2:width]]
 
+    # merge the right part of the photo with the left part
     fg_l, fg_r = im_crop(fg_panorama.copy())
     alpha = fg_r[:, :, 3] / 255.0
     black_img[:, :, 0] = (1. - alpha) * fg_l[:, :, 0] + alpha * fg_r[:, :, 0]
     black_img[:, :, 1] = (1. - alpha) * fg_l[:, :, 1] + alpha * fg_r[:, :, 1]
     black_img[:, :, 2] = (1. - alpha) * fg_l[:, :, 2] + alpha * fg_r[:, :, 2]
-
     cv2.imwrite(IMAGE_DATA.warped_panorama_path, black_img)
 
     im_overlay = cv2.add(bg_render, fg_panorama)
 
-    ub_l, ub_r, lb_r, lb_l = warped_bbox[0]
+    p_h, p_w, _ = panorama_image.shape
+    pano_bbox = np.array(
+        [[0, 0], [p_w, 0], [p_w, p_h], [0, p_h]],
+        dtype=np.float32,
+    )
+    warped_bbox = cv2.perspectiveTransform(
+        pano_bbox[None, :, :], TRANSFORM_MATRIX)[0]
+    ub_l, ub_r, lb_r, lb_l = warped_bbox
 
     minx = int(ub_l[0])
     maxx = int(ub_r[0])

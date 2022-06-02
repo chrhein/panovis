@@ -63,6 +63,21 @@
                 let y = parseFloat(c[1])
                 panoCoords.push([x, y])
             }
+            let viewshedComplete = false
+
+            function onViewshedComplete() {
+                viewshedComplete = true
+                if (clickedCoordsXY.length >= minimum_samples) {
+                    let submitButton = document.getElementById('submit-button')
+                    submitButton.setAttribute('class', 'btn btn-primary')
+                    submitButton.innerText = 'Submit'
+                    submitButton.removeAttribute('disabled')
+                }
+            }
+
+            fetch(
+                '/viewshed?pano_path={{pano_path}}&render_path={{render_path}}'
+            ).then(onViewshedComplete)
 
             function submitCoords() {
                 let form = document.getElementById('submit-coordinates')
@@ -193,8 +208,15 @@
                     if (clickedCoordsXY.length >= minimum_samples) {
                         let submitButton =
                             document.getElementById('submit-button')
-                        submitButton.setAttribute('class', 'btn btn-primary')
-                        submitButton.removeAttribute('disabled')
+                        if (viewshedComplete) {
+                            submitButton.setAttribute(
+                                'class',
+                                'btn btn-primary'
+                            )
+                            submitButton.removeAttribute('disabled')
+                        } else {
+                            submitButton.innerText = 'Waiting ...'
+                        }
                     }
                 }
             })

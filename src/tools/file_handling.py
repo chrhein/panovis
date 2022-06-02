@@ -60,11 +60,11 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         easternmost_point,
         southernmost_point,
     )
-    tmp_ds = 'data/rasters/temp_dem.png'
+    """ tmp_ds = 'data/rasters/temp_dem.png'
     if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
         call(['gdal_translate', '-ot', 'UInt16',
               '-of', 'PNG', dem_file, tmp_ds])
-        dem_file = tmp_ds
+        dem_file = tmp_ds """
     cropped_dem = f"data/rasters/cropped-{im_data.filename}.tif"
     gdal.Translate(cropped_dem, dem_file, projWin=bbox)
     return cropped_dem, coordinates

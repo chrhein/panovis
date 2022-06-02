@@ -1,3 +1,4 @@
+import pickle
 from json import load
 import os
 import time
@@ -42,6 +43,8 @@ def render_height(img_data, r_h=None, debug=False):
         json_file.close()
 
     cropped_dem, coordinates = get_mountain_data(dem_file, img_data)
+    pickle.dump([cropped_dem, coordinates], open(
+        f"{img_data.folder}/vs.pkl", "wb"))
     ds_raster = rasterio.open(cropped_dem)
     raster_data = get_raster_data(ds_raster, coordinates)
     if not raster_data:
@@ -53,14 +56,6 @@ def render_height(img_data, r_h=None, debug=False):
         pf.write(pov)
     pf.close()
 
-    p_i(f"Creating viewshed for {img_data.filename}")
-    converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
-    locxy = converter.convert(coordinates[0], coordinates[1])
-    vs_created = create_viewshed(cropped_dem, (locxy.GetX(),
-                                               locxy.GetY()), img_data.folder)
-    if not vs_created:
-        p_e(f"Failed to create viewshed for {img_data.filename}")
-
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
@@ -69,6 +64,21 @@ def render_height(img_data, r_h=None, debug=False):
         f"Duration:  {time.time() - start_time} seconds",
     ]
     p_line(stats)
+    return True
+
+
+def generate_viewshed(img_data):
+    cropped_dem, coordinates = pickle.load(
+        open(f"{img_data.folder}/vs.pkl", "rb"))
+    ds_raster = rasterio.open(cropped_dem)
+    p_i(f"Creating viewshed for {img_data.filename}")
+    converter = LatLngToCrs(int(ds_raster.crs.to_authority()[1]))
+    locxy = converter.convert(coordinates[0], coordinates[1])
+    vs_created = create_viewshed(cropped_dem, (locxy.GetX(),
+                                               locxy.GetY()), img_data.folder)
+    if not vs_created:
+        p_e(f"Failed to create viewshed for {img_data.filename}")
+        return False
     return True
 
 
