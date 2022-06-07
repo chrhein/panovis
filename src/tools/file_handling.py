@@ -1,5 +1,5 @@
 import pickle
-# from subprocess import call
+from subprocess import call
 import numpy as np
 from tools.debug import p_a, p_i, p_in, p_line, p_e
 import os
@@ -10,7 +10,6 @@ import image_handling
 import location_handler
 from tools.types import Hike, ImageInSight, LatLngToCrs, Location, Mountain, Waypoint
 from rdp import rdp
-from osgeo import gdal
 
 
 def get_mountain_data(dem_file, im_data, gradient=False):
@@ -31,7 +30,7 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_lat, camera_lon, deg=viewing_direction
     )
     coordinates = [camera_lat, camera_lon, *look_ats]
-    ds_raster = rasterio.open(dem_file)
+    """ ds_raster = rasterio.open(dem_file)
     crs = int(ds_raster.crs.to_authority()[1])
 
     converter = LatLngToCrs(crs)
@@ -59,14 +58,29 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         northernmost_point,
         easternmost_point,
         southernmost_point,
-    )
-    """ tmp_ds = 'data/rasters/temp_dem.png'
-    if dem_file.lower().endswith('.dem') or dem_file.lower().endswith('.tif'):
-        call(['gdal_translate', '-ot', 'UInt16',
-              '-of', 'PNG', dem_file, tmp_ds])
-        dem_file = tmp_ds """
+    ) """
+
     cropped_dem = f"data/rasters/cropped-{im_data.filename}.tif"
-    gdal.Translate(cropped_dem, dem_file, projWin=bbox)
+
+    src = rasterio.open(dem_file)
+    crs = int(src.crs.to_authority()[1])
+    converter = LatLngToCrs(crs)
+    camera_placement_crs = converter.convert(camera_lat, camera_lon)
+
+    displacement_distance = 15000  # in meters from camera placement
+
+    westernmost_point = camera_placement_crs.GetX() - displacement_distance
+    northernmost_point = camera_placement_crs.GetY() + displacement_distance
+    easternmost_point = camera_placement_crs.GetX() + displacement_distance
+    southernmost_point = camera_placement_crs.GetY() - displacement_distance
+
+    minx, miny = westernmost_point, southernmost_point
+    maxx, maxy = easternmost_point, northernmost_point
+
+    call(['gdal_translate', '-ot', 'UInt16',
+          '-projwin', str(minx), str(maxy), str(maxx), str(miny),
+          dem_file, cropped_dem])
+
     return cropped_dem, coordinates
 
 

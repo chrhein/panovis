@@ -295,7 +295,6 @@
                 await loadPlotly(sceneId)
                 await loadFolium(sceneId)
                 await loadJuxtapose(sceneId)
-                console.log(s[sceneId].hotspots.mountains)
                 document.getElementById('mountains-in-sight').innerHTML =
                     Object.keys(s[sceneId].hotspots.mountains).length
                 sceneIndex = sceneIds.indexOf(sceneId)
