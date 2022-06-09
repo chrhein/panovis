@@ -65,7 +65,7 @@ def debugger(mode):
     elif mode == 2:
         img_filename = getenv("DEBUG_IMAGE_FILENAME")
         img_data = load_image_data(img_filename)
-        render_height(img_data, 400, True)
+        render_height(img_data, 750, True)
     elif mode == 3:
         pano_coords = [(1268.3492494885356, 521.1557312916943), (2232.240080844574, 809.9500084904776), (3366.9770353440626, 463.0411889003789),
                        (3436.3423840943774, 1079.8566784289249), (4197.845757610887, 846.6553426931105), (4856.037095186607, 568.4021607815313)]

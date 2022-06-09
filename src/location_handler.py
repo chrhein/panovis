@@ -1,6 +1,7 @@
 from json import load
 from math import asin, atan2, pi, radians
 import os
+from subprocess import call
 import numpy as np
 import rasterio
 from tools.converters import (
@@ -224,24 +225,9 @@ def get_3d_location(camera_location, dataset):
 def create_viewshed(dem_file, location, folder):
     x, y = location
     viewshed_filename = f"{folder}/viewshed.tif"
-    ds = gdal.Open(dem_file, gdal.GA_ReadOnly)
-    band = ds.GetRasterBand(1)
-    resolution = ds.GetGeoTransform()[1]
-    max_dist = max(band.XSize * resolution, band.YSize * resolution)
-    gdal.ViewshedGenerate(
-        srcBand=band,
-        driverName=ds.GetDriver().ShortName,
-        targetRasterName=viewshed_filename,
-        creationOptions=None,
-        observerX=x,
-        observerY=y,
-        observerHeight=2,
-        targetHeight=1.8,
-        visibleVal=255,
-        invisibleVal=0,
-        outOfRangeVal=0,
-        noDataVal=0,
-        dfCurvCoeff=0.85714,
-        mode=2,
-        maxDistance=max_dist)
+    call(
+        [
+            "gdal_viewshed", '-b', '1', '-md', '20000',
+            '-ox', str(x), '-oy', str(y), dem_file, viewshed_filename
+        ])
     return os.path.exists(viewshed_filename)

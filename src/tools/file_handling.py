@@ -30,36 +30,6 @@ def get_mountain_data(dem_file, im_data, gradient=False):
         camera_lat, camera_lon, deg=viewing_direction
     )
     coordinates = [camera_lat, camera_lon, *look_ats]
-    """ ds_raster = rasterio.open(dem_file)
-    crs = int(ds_raster.crs.to_authority()[1])
-
-    converter = LatLngToCrs(crs)
-    camera_placement_crs = converter.convert(camera_lat, camera_lon)
-
-    displacement_distance = 20000  # in meters from camera placement
-
-    westernmost_point = camera_placement_crs.GetX() - displacement_distance
-    northernmost_point = camera_placement_crs.GetY() + displacement_distance
-    easternmost_point = camera_placement_crs.GetX() + displacement_distance
-    southernmost_point = camera_placement_crs.GetY() - displacement_distance
-
-    ds_bbox = ds_raster.bounds
-    if ds_bbox.left < westernmost_point:
-        westernmost_point = ds_bbox.left
-    if ds_bbox.right > easternmost_point:
-        easternmost_point = ds_bbox.right
-    if ds_bbox.top > northernmost_point:
-        northernmost_point = ds_bbox.top
-    if ds_bbox.bottom < southernmost_point:
-        southernmost_point = ds_bbox.bottom
-
-    bbox = (
-        westernmost_point,
-        northernmost_point,
-        easternmost_point,
-        southernmost_point,
-    ) """
-
     cropped_dem = f"data/rasters/cropped-{im_data.filename}.tif"
 
     src = rasterio.open(dem_file)
@@ -79,7 +49,14 @@ def get_mountain_data(dem_file, im_data, gradient=False):
 
     call(['gdal_translate', '-ot', 'UInt16',
           '-projwin', str(minx), str(maxy), str(maxx), str(miny),
+          '--config', 'GDAL_CACHEMAX', '1024',
           dem_file, cropped_dem])
+
+    cropped_dem_png = f"data/rasters/cropped-{im_data.filename}.png"
+    call(['gdal_translate', '-ot', 'UInt16',
+          '-projwin', str(minx), str(maxy), str(maxx), str(miny),
+          '--config', 'GDAL_CACHEMAX', '1024',
+          dem_file, cropped_dem_png])
 
     return cropped_dem, coordinates
 

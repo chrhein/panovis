@@ -54,7 +54,7 @@ def render_height(img_data, r_h=None, debug=False):
     with open(pov_filename, "w") as pf:
         pf.write(pov)
     pf.close()
-
+    print(f"Rendering {render_filename}")
     execute_pov(params)
     stats = [
         "Information about completed task: \n",
@@ -95,7 +95,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         dem_file = data["dem_path"]
         json_file.close()
 
-    cropped_dem, coordinates = get_mountain_data(dem_file, img_data, True)
+    cropped_dem, coordinates = pickle.load(
+        open(f"{img_data.folder}/vs.pkl", "rb"))
 
     ds_raster = rasterio.open(cropped_dem)
     crs = int(ds_raster.crs.to_authority()[1])

@@ -1,6 +1,4 @@
-from subprocess import call
 from location_handler import get_fov
-from sklearn.preprocessing import normalize
 
 
 def primary_pov(
@@ -13,8 +11,10 @@ def primary_pov(
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
-    distances, max_height = raster_data[1]
-    y_axis_scaling = max(*normalize([distances], norm='l1'))
+    _, max_height = raster_data[1]
+    y_axis_scaling = 1.055
+    # y_axis_scaling = 1.065
+    # y_axis_scaling = 0.95
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -35,11 +35,11 @@ def primary_pov(
     else:
         fov = 360
 
-    if dem_file.endswith(".tif"):
+    """ if dem_file.endswith(".tif"):
         tmp_dem = '/tmp/dem.png'
         call(['gdal_translate', '-ot', 'UInt16',
               '-of', 'PNG', dem_file, tmp_dem])
-        dem_file = tmp_dem
+        dem_file = tmp_dem """
 
     pov_text = """
     #version 3.8;
@@ -223,7 +223,7 @@ def primary_pov(
         location_y,
         view_x,
         view_y,
-        dem_file,
+        dem_file.replace('.tif', '.png'),
         y_axis_scaling,
         max_height,
         texture_path,

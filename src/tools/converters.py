@@ -43,12 +43,16 @@ def convert_coordinates(raster, converter, lat, lon, get_height=False):
     if get_height:
         return height
 
+    h_avg = [h[x, y] for x in range(row - 1, row + 2)
+             for y in range(col - 1, col + 2)]
+    h_avg = sum(h_avg) / len(h_avg)
+
     bbox = raster.bounds
 
     def scale_height(height):
         return (height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min())
 
-    height_scaled = scale_height(height)
+    height_scaled = scale_height(h_avg)
     height_max_mountain_scaled = scale_height(h.max())
 
     return [
