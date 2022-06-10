@@ -2,11 +2,9 @@ import hashlib
 import os
 import pickle
 import time
-from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
-    get_exif_gps_latlon,
     get_exif_gsp_img_direction,
     reduce_filesize,
     transform_panorama,
@@ -26,9 +24,6 @@ from tools.file_handling import (
 from PIL import Image
 from joblib import Parallel, delayed
 from tools.types import ImageData
-
-import requests
-from requests.structures import CaseInsensitiveDict
 
 
 global UPLOAD_FOLDER
@@ -440,20 +435,11 @@ def remove_hike(hike_filename):
 
 
 def make_scenes(gpx_filename, images=None):
-    load_dotenv()
-    api_key = os.getenv("MAPBOX_TOKEN")
     scenes = {}
     for filename in images:
         im_data = load_image_data(filename)
         hs_name = f"{im_data.filename}-{gpx_filename}"
         im_hs = im_data.hotspots.get(hs_name, None)
-        im_pos = get_exif_gps_latlon(im_data.path)
-        url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{im_pos.longitude},{im_pos.latitude}.json?access_token={api_key}"
-        headers = CaseInsensitiveDict()
-        headers["Accept"] = "application/json"
-
-        resp = requests.get(url, headers=headers).json()
-        place_name = resp["features"][0]["text"]
 
         if im_hs is not None:
             scenes[filename] = {
@@ -463,7 +449,8 @@ def make_scenes(gpx_filename, images=None):
                 "cropped_render_path": im_data.ultrawide_path,
                 "cropped_overlay_path": im_data.overlay_path,
                 "warped_panorama_path": im_data.warped_panorama_path,
-                "place_name": place_name if place_name is not None else "",
+                "place_name": im_data.place_name,
+                "elevation": str(im_data.place_elevation),
             }
     return scenes
 

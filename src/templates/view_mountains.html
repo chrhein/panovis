@@ -179,7 +179,7 @@
                                 panorama: value.warped_panorama_path,
                                 yaw: value.view_direction,
                                 title: value.place_name
-                                    ? value.place_name
+                                    ? `${value.place_name}, ${value.elevation}m`
                                     : key.slice(0, key.length - 9),
                                 hotSpots: [
                                     ...Object.entries(

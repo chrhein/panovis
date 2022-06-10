@@ -12,7 +12,7 @@ def primary_pov(
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
     _, max_height = raster_data[1]
-    y_axis_scaling = 1.055
+    y_axis_scaling = 1.0
     # y_axis_scaling = 1.065
     # y_axis_scaling = 0.95
 

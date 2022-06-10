@@ -13,7 +13,6 @@ from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
 from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
-from osgeo import gdal
 
 
 def get_raster_data(ds_raster, coordinates):
@@ -36,13 +35,13 @@ def get_raster_data(ds_raster, coordinates):
     total_distance_n_s = raster_top - raster_bottom
     distances = [total_distance_n_s, total_distance_e_w]
     try:
-        max_height = camera_lat_lon[-1]
+        max_height = camera_lat_lon[3]
     except TypeError:
         max_height = 10000
         pass
     normalized_coordinates = [*camera_lat_lon[:3], *look_at_lat_lon[:3]]
     raster_metadata = [distances, max_height]
-    return [normalized_coordinates, raster_metadata]
+    return [normalized_coordinates, raster_metadata], camera_lat_lon[4]
 
 
 def get_raster_path():

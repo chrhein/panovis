@@ -58,7 +58,7 @@ def get_mountain_data(dem_file, im_data, gradient=False):
           '--config', 'GDAL_CACHEMAX', '1024',
           dem_file, cropped_dem_png])
 
-    return cropped_dem, coordinates
+    return cropped_dem, coordinates, image_location
 
 
 def read_hike_gpx(gpx_path):
@@ -128,6 +128,8 @@ def read_image_locations(filename, image_folder, ds_raster, converter):
         loc = image_handling.get_exif_gps_latlon(im_path)
         height = location_handler.get_height_from_raster(
             loc, ds_raster, converter)
+        if not height:
+            continue
         loc = Location(loc.latitude, loc.longitude, height)
         p = converter.convert(loc.latitude, loc.longitude, loc.elevation)
         locs.append(ImageInSight(image, t_im_path, loc,

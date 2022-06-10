@@ -39,7 +39,11 @@ def convert_coordinates(raster, converter, lat, lon, get_height=False):
         from_crs, to_crs, [lon], [lat]))
     row, col = raster.index(new_x, new_y)
     h = raster.read(1)
-    height = h[row, col]
+    try:
+        height = h[row, col]
+    except IndexError:
+        return None
+
     if get_height:
         return height
 
@@ -60,6 +64,7 @@ def convert_coordinates(raster, converter, lat, lon, get_height=False):
         height_scaled,
         lon_scaled,
         height_max_mountain_scaled,
+        height
     ]
 
 

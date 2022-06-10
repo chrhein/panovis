@@ -138,6 +138,8 @@ class ImageData:
     fov_r: float = None
     location: Location = None
     transform_matrix: any = None
+    place_name: str = ""
+    place_elevation: float = None
 
     def __init__(self, path):
         self.path = path

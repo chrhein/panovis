@@ -3,7 +3,9 @@ from json import load
 import os
 import time
 import subprocess
+from dotenv import load_dotenv
 import rasterio
+import requests
 from tools.converters import convert_coordinates
 from tools.debug import p_e, p_i, p_line
 from location_handler import (
@@ -18,9 +20,11 @@ from tools.file_handling import (
     get_mountain_data,
     read_image_locations,
     read_mountain_gpx,
+    save_image_data,
 )
 from tools.types import CrsToLatLng, LatLngToCrs, Location
 from vistools.tplot import plot_3d
+from requests.structures import CaseInsensitiveDict
 
 
 def render_height(img_data, r_h=None, debug=False):
@@ -41,13 +45,14 @@ def render_height(img_data, r_h=None, debug=False):
             render_shape = [r_width, r_height]
         json_file.close()
 
-    cropped_dem, coordinates = get_mountain_data(dem_file, img_data)
-    pickle.dump([cropped_dem, coordinates], open(
-        f"{img_data.folder}/vs.pkl", "wb"))
+    cropped_dem, coordinates, image_location = get_mountain_data(
+        dem_file, img_data)
     ds_raster = rasterio.open(cropped_dem)
-    raster_data = get_raster_data(ds_raster, coordinates)
+    raster_data, elevation = get_raster_data(ds_raster, coordinates)
     if not raster_data:
         return
+    pickle.dump([cropped_dem, coordinates, image_location, elevation], open(
+        f"{img_data.folder}/vs.pkl", "wb"))
     pov_mode = "height"
     pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
     params = [pov_filename, render_filename, render_shape, "color"]
@@ -67,7 +72,7 @@ def render_height(img_data, r_h=None, debug=False):
 
 
 def generate_viewshed(img_data):
-    cropped_dem, coordinates = pickle.load(
+    cropped_dem, coordinates, image_location, elevation = pickle.load(
         open(f"{img_data.folder}/vs.pkl", "rb"))
     ds_raster = rasterio.open(cropped_dem)
     p_i(f"Creating viewshed for {img_data.filename}")
@@ -78,6 +83,16 @@ def generate_viewshed(img_data):
     if not vs_created:
         p_e(f"Failed to create viewshed for {img_data.filename}")
         return False
+    load_dotenv()
+    api_key = os.getenv("MAPBOX_TOKEN")
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{image_location.longitude},{image_location.latitude}.json?access_token={api_key}"
+    headers = CaseInsensitiveDict()
+    headers["Accept"] = "application/json"
+    resp = requests.get(url, headers=headers).json()
+    place_name = resp["features"][0]["text"]
+    img_data.place_name = place_name
+    img_data.place_elevation = elevation
+    save_image_data(img_data)
     return True
 
 
@@ -95,7 +110,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         dem_file = data["dem_path"]
         json_file.close()
 
-    cropped_dem, coordinates = pickle.load(
+    cropped_dem, coordinates, _, _ = pickle.load(
         open(f"{img_data.folder}/vs.pkl", "rb"))
 
     ds_raster = rasterio.open(cropped_dem)
