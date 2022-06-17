@@ -22,7 +22,7 @@ def debugger(mode):
             data = load(json_file)
             dem_path = data["dem_path"]
             json_file.close()
-        dem_path, _ = get_mountain_data(
+        dem_path, _, _ = get_mountain_data(
             dem_path, img_data, True
         )
         ds_raster = rasterio.open(dem_path)

@@ -56,6 +56,22 @@ def plot_3d(ds_raster, plotpath, debug=False):
                       )
     fig.update_traces(showlegend=False)
 
+    hovertemplate = ('<b>Viewpoint<br>' + '<b>Height:</b> %{z:.0f} m'
+                     + '<extra></extra>')
+
+    x, y = trimmed_ds.shape
+    fig.add_trace(
+        go.Scatter3d(x=[int(x/2)],
+                     y=[int(y/2)],
+                     z=[trimmed_ds[int(x/2), int(y/2)]+2],
+                     mode='markers',
+                     name='Viewpoint',
+                     surfacecolor='red',
+                     hovertemplate=hovertemplate,
+                     marker=dict(size=8, color='red'),
+                     )
+    )
+
     if debug:
         fig.write_html(plotpath)
         fig.show()
