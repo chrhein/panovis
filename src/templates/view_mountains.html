@@ -206,12 +206,14 @@
                                             pitch: mountain.pitch,
                                             cssClass:
                                                 'custom-hotspot mountain-hotspot',
-                                            createTooltipArgs: `<div>${name}</div>
+                                            createTooltipArgs: `
+                                            <div>${name}</div>
                                             <div style="width: 150px;">${
                                                 mountain.elevation
                                             } m, ${Number(
                                                 mountain.distance / 1000
-                                            ).toFixed(1)} km</div>`,
+                                            ).toFixed(1)} km</div>
+                                            `,
                                             createTooltipFunc:
                                                 mountainHotspotTooltip,
                                             URL: mountain.url,
@@ -315,7 +317,7 @@
                     mouseZoom: false,
                     keyboardZoom: false,
                     hfov: 180,
-                    vaov: 110,
+                    vaov: 180,
                     pitch: -7.5,
                     type: 'equirectangular',
                     autoLoad: true,

@@ -39,10 +39,10 @@ def render_height(img_data, r_h=None, debug=False):
         data = load(json_file)
         dem_file = data["dem_path"]
         if r_h:
-            render_shape = [r_h*2, r_h]
+            render_shape = [r_h * 2, r_h]
         else:
-            r_width = data["render_width"]
             r_height = data["render_height"]
+            r_width = r_height * 2
             render_shape = [r_width, r_height]
         json_file.close()
 
@@ -153,6 +153,8 @@ def mountain_lookup(img_data, gpx_file, plot=False):
         )
         visible_hikes[hike.name] = waypoints_3d """
 
+    fov = [img_data.fov_l, img_data.fov_r]
+
     images = read_image_locations(
         img_data.filename, "src/static/images", ds_raster, converter
     )
@@ -160,6 +162,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     images_3d = get_3d_location(
         camera_location,
         images_in_sight,
+        fov
     )
 
     mountains = read_mountain_gpx(gpx_file, converter)
@@ -168,6 +171,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
     mountains_3d = get_3d_location(
         camera_location,
         mountains_in_sight,
+        fov
     )
 
     if plot:

@@ -8,7 +8,7 @@ from tools.converters import (
     convert_coordinates,
     get_earth_radius,
 )
-from tools.debug import p_a, p_e, p_s
+from tools.debug import p_a, p_e, p_i, p_s
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
@@ -182,7 +182,7 @@ def get_view_direction(fov):
     return ((left_bound + (fov_deg / 2)) + 180) % 360
 
 
-def get_3d_location(camera_location, dataset):
+def get_3d_location(camera_location, dataset, fov):
 
     def get_initial_bearing(camera_location, object_location):
         c_lon = radians(camera_location.longitude)
@@ -212,13 +212,19 @@ def get_3d_location(camera_location, dataset):
         return yaw, pitch, d
 
     generator = Distance()
+    new_ds = []
+    p_i(f"Field of View: {fov[0]}-{fov[1]}")
     for item in dataset:
         yaw, pitch, d = get_3d_placement(
             camera_location, item, generator
         )
-        item.set_location_in_3d(Location3D(yaw=yaw, pitch=pitch, distance=d))
+        item.set_location_in_3d(Location3D(
+            yaw=yaw, pitch=pitch, distance=d))
+        p_i(f"{item.name} at {item.location_in_3d}")
+        if yaw < fov[0] or yaw > fov[1]:
+            new_ds.append(item)
 
-    return dataset
+    return new_ds
 
 
 def create_viewshed(dem_file, location, folder):

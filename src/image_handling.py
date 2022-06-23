@@ -246,6 +246,11 @@ def trim_edges(image):
 
 def reduce_filesize(image_path, image_quality=50):
     im = Image.open(image_path)
+    width, height = im.size
+    if width > 16000:
+        n_w = 16000
+        n_h = int(n_w / width * height)
+        im = im.resize((n_w, n_h), Image.ANTIALIAS)
     resized_pano = "/tmp/resized.jpg"
     im.save(resized_pano, quality=image_quality, optimize=True)
     transplant(image_path, resized_pano)
@@ -285,6 +290,9 @@ def transform_panorama(
 
     if len(pano_coords) != len(render_coords):
         return False
+
+    for i in range(len(pano_coords)):
+        print(f"Mapping {pts_panorama[i]} to {pts_render[i]}.")
 
     prev_x_coord = 0
     shift_coords = False
