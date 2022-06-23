@@ -1,8 +1,10 @@
+import sys
 from debug import debugger
 
 
 def main():
-    debugger(0)
+    # render height = 2
+    debugger(int(sys.argv[1]))
     pass
 
 

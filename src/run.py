@@ -208,8 +208,8 @@ def create_app():
         with Image.open(IMAGE_DATA.path) as img:
             width, height = img.size
             img.close()
-        horizontal_fov = 750 * (height / width)
-        vertical_fov = 250 * (height / width)
+        horizontal_fov = 450 * (height / width)
+        vertical_fov = 150 * (height / width)
         return render_template(
             "pano_select_coords.html",
             pano_path=IMAGE_DATA.path,
@@ -245,7 +245,7 @@ def create_app():
             width, height = img.size
             img.close()
         horizontal_fov = 360
-        vertical_fov = 115
+        vertical_fov = 180
         return render_template(
             "render_select_coords.html",
             render_path=IMAGE_DATA.render_path,

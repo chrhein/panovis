@@ -380,3 +380,10 @@ def image_array_to_flask(im):
         "ascii"
     )
     return base64img
+
+
+def verify_viewpoint(render_path):
+    im = cv2.imread(render_path)
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    im_bottom = im[im.shape[0]-1]
+    return len(im_bottom[im_bottom > 250]) < len(im_bottom) / 10

@@ -1,6 +1,3 @@
-from location_handler import get_fov
-
-
 def primary_pov(
     dem_file,
     raster_data,
@@ -12,9 +9,7 @@ def primary_pov(
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
     _, max_height = raster_data[1]
-    y_axis_scaling = 1.0
-    # y_axis_scaling = 1.065
-    # y_axis_scaling = 0.95
+    y_axis_scaling = 2.0
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -29,11 +24,6 @@ def primary_pov(
     else:
         texture_path = ""
         skew_x, skew_y, x_l, y_l = 0, 0, 0, 0
-
-    if fov:
-        fov = get_fov(fov)
-    else:
-        fov = 360
 
     """ if dem_file.endswith(".tif"):
         tmp_dem = '/tmp/dem.png'
@@ -59,7 +49,6 @@ def primary_pov(
     #declare SKEW = <%f, %f, 0.0>;
     #declare SCALE = <%f, %f, 0.0>;
     #declare MODE = "%s";
-    #declare FOV = %f;
 
     #declare HEIGHT = CAMERAHEIGHT;
 
@@ -114,8 +103,8 @@ def primary_pov(
     #end
 
     camera {
-        cylinder 1
-        angle FOV
+        spherical
+        angle 360 180
         location CAMERAPOS
         look_at CAMERALOOKAT
     }
@@ -232,7 +221,6 @@ def primary_pov(
         y_l,
         x_l,
         mode,
-        fov,
     )
     return pov_text
 

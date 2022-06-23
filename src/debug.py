@@ -1,7 +1,7 @@
 from json import load
 from dotenv import load_dotenv
 import rasterio
-from image_handling import transform_panorama
+from image_handling import transform_panorama, verify_viewpoint
 from location_handler import find_visible_items_in_ds
 from map_plotting import plot_to_map
 from renderer import generate_viewshed, render_height
@@ -78,5 +78,9 @@ def debugger(mode):
         img_filename = getenv("DEBUG_IMAGE_FILENAME")
         img_data = load_image_data(img_filename)
         generate_viewshed(img_data)
+    elif mode == 5:
+        img_filename = getenv("DEBUG_IMAGE_FILENAME")
+        img_data = load_image_data(img_filename)
+        print(verify_viewpoint(img_data.render_path))
     else:
         p_e("Mode not recognized")

@@ -6,6 +6,7 @@ import subprocess
 from dotenv import load_dotenv
 import rasterio
 import requests
+from image_handling import verify_viewpoint
 from tools.converters import convert_coordinates
 from tools.debug import p_e, p_i, p_line
 from location_handler import (
@@ -54,13 +55,28 @@ def render_height(img_data, r_h=None, debug=False):
     pickle.dump([cropped_dem, coordinates, image_location, elevation], open(
         f"{img_data.folder}/vs.pkl", "wb"))
     pov_mode = "height"
-    pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
-    params = [pov_filename, render_filename, render_shape, "color"]
-    with open(pov_filename, "w") as pf:
-        pf.write(pov)
-    pf.close()
-    print(f"Rendering {render_filename}")
-    execute_pov(params)
+
+    # position viewpoint as close as possible to the terrain
+    raster_data[0][1] = raster_data[0][1] - 0.0001
+    while True:
+        pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
+        params = [pov_filename, render_filename, [200, 100], "color"]
+        with open(pov_filename, "w") as pf:
+            pf.write(pov)
+        pf.close()
+        print(f"Rendering {render_filename}")
+        execute_pov(params)
+        if verify_viewpoint(render_filename):
+            pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
+            params = [pov_filename, render_filename, render_shape, "color"]
+            with open(pov_filename, "w") as pf:
+                pf.write(pov)
+            pf.close()
+            print(f"Rendering {render_filename}")
+            execute_pov(params)
+            break
+        raster_data[0][1] = raster_data[0][1] + 0.00005
+
     stats = [
         "Information about completed task: \n",
         f"File:      {img_data.filename}",
