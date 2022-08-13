@@ -2,6 +2,7 @@ import hashlib
 import os
 import pickle
 import time
+import webbrowser
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
@@ -44,6 +45,10 @@ def create_app():
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+    # The reloader has not yet run - open the browser
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        app.logger.info("Opening browser ...")
+        webbrowser.open_new('http://localhost:5000/')
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
@@ -528,5 +533,5 @@ def strip_array(arr, to_pythonic_list=False):
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="localhost", port=8080, debug=True)
+    app.run(host="localhost", port=5000, debug=True)
     # main()

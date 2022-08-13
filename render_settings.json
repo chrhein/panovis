@@ -1,4 +1,4 @@
 {
-    "dem_path": "data/rasters/bergen10.png",
+    "dem_path": "data/rasters/sandnes.dem",
     "render_height": 2000
 }

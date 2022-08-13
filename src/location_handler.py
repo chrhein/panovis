@@ -8,24 +8,24 @@ from tools.converters import (
     convert_coordinates,
     get_earth_radius,
 )
-from tools.debug import p_a, p_e, p_i, p_s
+from tools.debug import p_a, p_e, p_s
 from numpy import arctan2, sin, cos, degrees
 import cv2
 from operator import attrgetter
 from tools.types import CrsToLatLng, Distance, LatLngToCrs, Location3D
 
 
-def get_raster_data(ds_raster, coordinates):
+def get_raster_data(ds_raster, coordinates, va):
     crs = int(ds_raster.crs.to_authority()[1])
     converter = LatLngToCrs(crs)
     camera_lat_lon = convert_coordinates(
-        ds_raster, converter, coordinates[0], coordinates[1]
+        ds_raster, converter, coordinates[0], coordinates[1], va
     )
     if not camera_lat_lon:
         p_e("Camera location is out of bounds")
         return
     look_at_lat_lon = convert_coordinates(
-        ds_raster, converter, coordinates[2], coordinates[3]
+        ds_raster, converter, coordinates[2], coordinates[3], va
     )
     if not look_at_lat_lon:
         p_e("Viewpoint location is out of bounds")
@@ -54,7 +54,7 @@ def get_raster_path():
 
 def get_height_from_raster(location, ds_raster, converter):
     h = convert_coordinates(
-        ds_raster, converter, location.latitude, location.longitude, get_height=True
+        ds_raster, converter, location.latitude, location.longitude, 1.0, get_height=True
     )
     return h
 
@@ -213,14 +213,12 @@ def get_3d_location(camera_location, dataset, fov):
 
     generator = Distance()
     new_ds = []
-    p_i(f"Field of View: {fov[0]}-{fov[1]}")
     for item in dataset:
         yaw, pitch, d = get_3d_placement(
             camera_location, item, generator
         )
         item.set_location_in_3d(Location3D(
             yaw=yaw, pitch=pitch, distance=d))
-        p_i(f"{item.name} at {item.location_in_3d}")
         if yaw < fov[0] or yaw > fov[1]:
             new_ds.append(item)
 
