@@ -1,30 +1,22 @@
-# E2
+# PanoVis
 
-E2 is a program for rendering digital elevations models, overlaying `gpx` on top of the rendered landscape and finding the corresponding edges in a real-world panorama. The goal with this project is to automate the whole process so that the user only needs to choose which panorama to use and then E2 will do the rest.
+### Installation
 
-As of now, E2 can be used to render landscapes from the DEM file provided given a hardcoded set of `LatLon` coordinates, field of view and viewing direction. Using the following parameters,
+Clone the project, then run `pip install -r "requirements.txt"` to install all the necessary Python dependencies.
+Additionally, [GDAL](https://gdal.org/download.html) and [POV-Ray](https://www.povray.org/download/) are required and can be downloaded either manually from their websites or through a packet manager like Homebrew for MacOS, using the following command:
 
-```json
-"camera_location": {
-    "latitude": 60.36423590473352,
-    "longitude": 5.382310057603189,
-    "panoramic_angle": 210,
-    "view_direction": 280
-}
-```
+`brew install gdal povray`
 
-E2 computes a `pov` file which is used to render the following panoramic render:
+#### Setup
 
-![](preview/preview-height.png)
+PanoVis requires a MapBox token for loading the visualizations that includes maps. Therefore, a MapBox token is required. This token should be added to an `.env` file located at root level, formatted as the following:
 
-Using a `gpx` file with coordinates that should be in sight in the render, a route texture is computed looking like this:
+`MAPBOX_TOKEN=<your-token>`
 
-![](preview/preview-hike-route.png)
+Additionally, you can add custom MapBox styles by adding a valid MapBox Style URL to `.env` with the `MAPBOX_STYLE_URL` keyword.
 
-To visually see where in the DEM we are going to place the route texture, E2 includes a birds eye view rendering mode. This mode can be used to overlay the `gpx` on the DEM while looking high above the center of the map.
+A digital elevation model stored in a `.tiff` or `.dem` file is required for creating renderings and three-dimensional interactive terrain views. Please add this DEM to the project and update `render_settings.json` to reflect the path and filename of your DEM.
 
-![](preview/preview-hike-birds-eye.png)
+#### Running PanoVis
 
-Finally, using the same parameters as in the first render we can paint the route texture into the landscape, which results in a render like the following image:
-
-![](preview/preview-hike.png)
+Start the flask server by running the `start` script. If everything is correctly setup, PanoVis will be running on `localhost:3000` waiting for you to upload your very first panorama to the application.

@@ -299,6 +299,10 @@ def create_app():
         )
 
     def mtn_lookup(pano_filename, gpx_path, interactive):
+        print("Mountain Lookup")
+        print("Pano Filename: ", pano_filename)
+        print("GPX Path: ", gpx_path)
+        print("Interactive: ", interactive)
         im_data = load_image_data(pano_filename)
         if im_data is not None:
             mountains_3d, images_3d, visible_hikes = mountain_lookup(
@@ -327,7 +331,7 @@ def create_app():
         fn = i[-1]
         session["filename"] = fn
         start_time = time.time()
-        Parallel(n_jobs=min(4, len(i)))(
+        Parallel(n_jobs=-1)(
             delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
             for pano_filename in i
         )
