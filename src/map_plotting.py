@@ -2,7 +2,6 @@ import base64
 from dotenv import load_dotenv
 import folium
 import folium.raster_layers
-# from folium.plugins import Fullscreen
 import os
 import location_handler
 from tools.debug import p_i

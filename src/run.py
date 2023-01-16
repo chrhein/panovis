@@ -2,6 +2,7 @@ import hashlib
 import os
 import pickle
 import time
+import webbrowser
 from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.utils import secure_filename
 from image_handling import (
@@ -44,6 +45,10 @@ def create_app():
     app.secret_key = "secret key"
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
+    # The reloader has not yet run - open the browser
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        app.logger.info("Opening browser ...")
+        webbrowser.open_new('http://localhost:5000/')
 
     @app.route("/", methods=["POST", "GET"])
     def homepage():
@@ -294,6 +299,10 @@ def create_app():
         )
 
     def mtn_lookup(pano_filename, gpx_path, interactive):
+        print("Mountain Lookup")
+        print("Pano Filename: ", pano_filename)
+        print("GPX Path: ", gpx_path)
+        print("Interactive: ", interactive)
         im_data = load_image_data(pano_filename)
         if im_data is not None:
             mountains_3d, images_3d, visible_hikes = mountain_lookup(
@@ -322,7 +331,7 @@ def create_app():
         fn = i[-1]
         session["filename"] = fn
         start_time = time.time()
-        Parallel(n_jobs=min(4, len(i)))(
+        Parallel(n_jobs=-1)(
             delayed(mtn_lookup)(pano_filename, gpx_path, interactive)
             for pano_filename in i
         )
@@ -528,5 +537,5 @@ def strip_array(arr, to_pythonic_list=False):
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="localhost", port=8080, debug=True)
+    app.run(host="localhost", port=5000, debug=True)
     # main()

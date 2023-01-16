@@ -35,6 +35,8 @@ def render_height(img_data, r_h=None, debug=False):
     render_filename = img_data.render_path
     pov_filename = "/tmp/pov_file.pov"
     render_settings_path = "render_settings.json"
+    vertical_exaggeration = 3.0
+
     with open(render_settings_path) as json_file:
         data = load(json_file)
         dem_file = data["dem_path"]
@@ -49,7 +51,8 @@ def render_height(img_data, r_h=None, debug=False):
     cropped_dem, coordinates, image_location = get_mountain_data(
         dem_file, img_data)
     ds_raster = rasterio.open(cropped_dem)
-    raster_data, elevation = get_raster_data(ds_raster, coordinates)
+    raster_data, elevation = get_raster_data(
+        ds_raster, coordinates, vertical_exaggeration)
     if not raster_data:
         return
     pickle.dump([cropped_dem, coordinates, image_location, elevation], open(
@@ -59,7 +62,8 @@ def render_height(img_data, r_h=None, debug=False):
     # position viewpoint as close as possible to the terrain
     raster_data[0][1] = raster_data[0][1] - 0.0001
     while True:
-        pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
+        pov = primary_pov(cropped_dem, raster_data,
+                          vertical_exaggeration, mode=pov_mode)
         params = [pov_filename, render_filename, [200, 100], "color"]
         with open(pov_filename, "w") as pf:
             pf.write(pov)
@@ -67,7 +71,8 @@ def render_height(img_data, r_h=None, debug=False):
         print(f"Rendering {render_filename}")
         execute_pov(params)
         if verify_viewpoint(render_filename):
-            pov = primary_pov(cropped_dem, raster_data, mode=pov_mode)
+            pov = primary_pov(cropped_dem, raster_data,
+                              vertical_exaggeration, mode=pov_mode)
             params = [pov_filename, render_filename, render_shape, "color"]
             with open(pov_filename, "w") as pf:
                 pf.write(pov)
@@ -135,7 +140,7 @@ def mountain_lookup(img_data, gpx_file, plot=False):
 
     converter = LatLngToCrs(crs)
     camera_height = convert_coordinates(
-        ds_raster, converter, lat, lon, True
+        ds_raster, converter, lat, lon, 1.0, True
     )
     camera_location = Location(lat, lon, camera_height)
 

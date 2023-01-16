@@ -23,7 +23,7 @@ def convert_single_coordinate_pair(bounds, converter, lat, lon):
     return [lat_scaled, lon_scaled]
 
 
-def convert_coordinates(raster, converter, lat, lon, get_height=False):
+def convert_coordinates(raster, converter, lat, lon, va, get_height=False):
     b = raster.bounds
     min_x, min_y, max_x, max_y = b.left, b.bottom, b.right, b.top
     coordinate_pair = converter.convert(lat, lon)
@@ -54,7 +54,7 @@ def convert_coordinates(raster, converter, lat, lon, get_height=False):
     bbox = raster.bounds
 
     def scale_height(height):
-        return (((height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min())) * 2)
+        return (((height - h.min()) / ((bbox.right - bbox.left) + (bbox.top - bbox.bottom) - h.min())) * va)
 
     height_scaled = scale_height(max(height, h_avg))
     height_max_mountain_scaled = scale_height(h.max())

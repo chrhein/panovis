@@ -1,6 +1,6 @@
 #!/bin/zsh
 # start Flask server
-source venv/bin/activate
+source env/bin/activate
 export FLASK_APP=src/run.py
-export FLASK_ENV=development
+export FLASK_DEBUG=true
 flask run --no-debugger

@@ -1,15 +1,15 @@
 def primary_pov(
     dem_file,
     raster_data,
+    vertical_exaggeration,
     texture_path="",
     tex_bounds=None,
     mode="height",
-    fov=None,
 ):
     coordinates = raster_data[0]
     location_x, location_height, location_y, view_x, _, view_y = coordinates
     _, max_height = raster_data[1]
-    y_axis_scaling = 2.0
+    y_axis_scaling = vertical_exaggeration
 
     if mode == "texture" or mode == "route" or mode == "gradient":
         if mode == "gradient":
@@ -171,7 +171,7 @@ def primary_pov(
                     }
                     finish { ambient 1 diffuse 0 specular 0 }
                     rotate <90, 0, 0>
-                }
+        }
             #end
             #if (MODE="depth")
                 texture {
