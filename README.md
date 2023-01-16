@@ -19,4 +19,4 @@ A digital elevation model stored in a `.tiff` or `.dem` file is required for cre
 
 #### Running PanoVis
 
-Start the flask server by running the `start` script. If everything is correctly setup, PanoVis will be running on `localhost:3000` waiting for you to upload your very first panorama to the application.
+Start the flask server by running the `start` script. If everything is correctly setup, PanoVis will be running on `localhost:5000` waiting for you to upload your very first panorama to the application.
