@@ -15,7 +15,7 @@ PanoVis requires a MapBox token for loading the visualizations that includes map
 
 Also, you can add custom MapBox styles by adding a valid MapBox Style URL to `.env` with the `MAPBOX_STYLE_URL` keyword.
 
-A digital elevation model stored in a `.tiff` or `.dem` file is required for creating renderings and three-dimensional interactive terrain views. Please add this DEM to the project and update `render_settings.json` to reflect the path and filename of your DEM.
+A digital elevation model stored in a `.tiff`, `.png`, or `.dem` file is required for creating renderings and three-dimensional interactive terrain views. Please add this DEM to the project and update `render_settings.json` to reflect the path and filename of your DEM.
 
 When running the application, it needs a `GPX` file containing the mountains that PanoVis should search for in the panoramas. These can be downloaded from [PeakBook](https://peakbook.org/) (might require a Pro subscription). This example can be used to create a file containing a single mountain:
 
